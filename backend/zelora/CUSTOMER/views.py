@@ -1,5 +1,6 @@
 import logging
 import uuid
+import re
 import razorpay
 from django.conf import settings
 from django.utils import timezone
@@ -747,37 +748,81 @@ class RazorpayPaymentVerifyView(APIView):
 # ==========================================
 
 class SellerRegisterView(APIView):
-    """Registers a new fashion partner seller and sets up their atelier shop."""
+    """Registers a new fashion partner seller and sets up their atelier shop with comprehensive validation."""
     permission_classes = [AllowAny]
 
     def post(self, request):
-        data = request.data
-        owner_name = data.get('owner_name', '').strip()
-        email = data.get('email', '').strip().lower()
-        mobile_number = data.get('mobile_number', '').strip()
-        password = data.get('password')
-        shop_name = data.get('shop_name', '').strip()
-        shop_category = data.get('shop_category', 'Haute Couture & Designer Wear')
+        data = request.data or {}
+        owner_name = str(data.get('owner_name', '')).strip()
+        email_raw = str(data.get('email', '')).strip()
+        mobile_number = str(data.get('mobile_number', '')).strip()
+        password = data.get('password', '')
+        shop_name = str(data.get('shop_name', '')).strip()
+        shop_category = str(data.get('shop_category', 'Haute Couture & Designer Wear')).strip()
 
-        if not email or not password or not shop_name:
-            return Response(
-                {"detail": "Email, password, and shop name are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        errors = {}
 
-        user = User.objects.filter(email=email).first()
-        if user:
-            if user.is_seller:
-                return Response(
-                    {"detail": "A seller account already exists with this email."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            user.is_seller = True
-            user.shop_name = shop_name
-            user.shop_category = shop_category
+        # 1. Validate Owner Name
+        if not owner_name:
+            errors['owner_name'] = ["Owner full name is required."]
+        elif len(owner_name) < 2:
+            errors['owner_name'] = ["Owner full name must contain at least 2 characters."]
+
+        # 2. Validate Email
+        if not email_raw:
+            errors['email'] = ["Business email address is required."]
+        else:
+            email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+            if not re.match(email_regex, email_raw):
+                errors['email'] = ["Please enter a valid business email format (e.g. atelier@boutique.com)."]
+
+        # 3. Validate Mobile Number
+        if not mobile_number:
+            errors['mobile_number'] = ["Contact phone number is required."]
+        else:
+            cleaned_phone = re.sub(r'[\s\-\(\)\+]', '', mobile_number)
+            if len(cleaned_phone) < 7 or not cleaned_phone.isdigit():
+                errors['mobile_number'] = ["Please enter a valid phone number (at least 7 digits)."]
+
+        # 4. Validate Password
+        if not password:
+            errors['password'] = ["Password is required."]
+        elif len(password) < 6:
+            errors['password'] = ["Password must be at least 6 characters long."]
+
+        # 5. Validate Shop Name
+        if not shop_name:
+            errors['shop_name'] = ["Boutique/Atelier shop name is required."]
+        elif len(shop_name) < 2:
+            errors['shop_name'] = ["Shop name must contain at least 2 characters."]
+
+        # 6. Validate Shop Category
+        if not shop_category:
+            errors['shop_category'] = ["Fashion category specialization is required."]
+
+        if errors:
+            detail_msg = next(iter(errors.values()))[0]
+            return Response({"detail": detail_msg, "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = email_raw.lower()
+
+        # Check existing seller
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user and existing_user.is_seller:
+            return Response({
+                "detail": "A seller account already exists with this email address. Please sign in instead.",
+                "errors": {"email": ["A seller account already exists with this email."]}
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if existing_user:
+            existing_user.is_seller = True
+            existing_user.shop_name = shop_name
+            existing_user.shop_category = shop_category
             if mobile_number:
-                user.phone_number = mobile_number
-            user.save()
+                existing_user.phone_number = mobile_number
+            existing_user.set_password(password)
+            existing_user.save()
+            user = existing_user
         else:
             name_parts = owner_name.split(' ', 1)
             first_name = name_parts[0]
@@ -814,37 +859,87 @@ class SellerRegisterView(APIView):
 
 
 class SellerLoginView(APIView):
-    """Authenticates a seller and returns their token and shop profile."""
+    """Authenticates a seller and returns their token and shop profile with complete backend validation."""
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
-        password = request.data.get('password')
+        data = request.data or {}
+        email_raw = data.get('email', '')
+        password = data.get('password', '')
 
-        if not email or not password:
-            return Response(
-                {"detail": "Both email and password are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        errors = {}
 
-        user = authenticate(request, username=email, password=password)
+        # 1. Field presence validation
+        if not email_raw or not str(email_raw).strip():
+            errors['email'] = ["Business email address is required."]
+
+        if not password:
+            errors['password'] = ["Password is required."]
+
+        if errors:
+            detail_msg = next(iter(errors.values()))[0]
+            return Response({"detail": detail_msg, "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = str(email_raw).strip().lower()
+
+        # 2. Email format validation
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        if not re.match(email_regex, email):
+            errors['email'] = ["Please enter a valid business email address format."]
+            return Response({
+                "detail": "Please enter a valid business email address format.",
+                "errors": errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3. Password length check
+        if len(str(password)) < 6:
+            errors['password'] = ["Password must contain at least 6 characters."]
+            return Response({
+                "detail": "Password must contain at least 6 characters.",
+                "errors": errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 4. Check user existence
+        user = User.objects.filter(email=email).first()
         if not user:
-            return Response(
-                {"detail": "Invalid email or password credentials."},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({
+                "detail": "No boutique account found with this email. Please verify your credentials or register as a seller.",
+                "errors": {"email": ["No boutique account found with this email."]}
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Mark user as seller if authenticating into seller portal
+        # 5. Account active status check
+        if not user.is_active:
+            return Response({
+                "detail": "Your boutique seller account has been deactivated or suspended. Please contact ZELORA Administration.",
+                "errors": {"account": ["Account is deactivated."]}
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 6. Password authentication check
+        if not user.check_password(password):
+            return Response({
+                "detail": "Incorrect password. Please verify your credentials and try again.",
+                "errors": {"password": ["Incorrect password."]}
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # 7. Seller authorization check
+        if not user.is_seller and not hasattr(user, 'seller_shop'):
+            return Response({
+                "detail": "This account is not registered as a fashion partner seller. Please complete seller registration.",
+                "errors": {"role": ["Account is not registered as a seller."]}
+            }, status=status.HTTP_403_FORBIDDEN)
+
         if not user.is_seller:
             user.is_seller = True
-            user.save()
+            user.save(update_fields=['is_seller'])
 
+        # 8. Retrieve or initialize shop profile
         shop, _ = SellerShop.objects.get_or_create(
             owner=user,
             defaults={
                 'name': user.shop_name or f"{user.first_name}'s Atelier",
                 'category': user.shop_category or "Haute Couture & Designer Wear",
                 'contact_email': user.email,
+                'contact_number': user.phone_number or '',
             }
         )
 

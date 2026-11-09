@@ -21,6 +21,7 @@ export default function SellerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Forgot password modal state
@@ -28,42 +29,57 @@ export default function SellerLoginPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSubmitted, setForgotSubmitted] = useState(false);
 
+  // Client-side field validation
+  const validateFields = () => {
+    const errors = {};
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      errors.email = 'Business email address is required.';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        errors.email = 'Please enter a valid email format (e.g. atelier@boutique.com).';
+      }
+    }
+
+    if (!password) {
+      errors.password = 'Password is required.';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters.';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!email || !password) {
-      setErrorMsg('Please enter both business email and password.');
+    if (!validateFields()) {
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Check if this seller registered and is awaiting admin approval
-      const registeredSellers = JSON.parse(localStorage.getItem('zelora_registered_sellers') || '[]');
-      const matched = registeredSellers.find((s) => s.email?.toLowerCase() === email.toLowerCase());
-
-      if (matched) {
-        const adminShops = JSON.parse(localStorage.getItem('zelora_admin_shops') || '[]');
-        const adminMatched = adminShops.find(
-          (sh) =>
-            sh.owner_email?.toLowerCase() === email.toLowerCase() ||
-            sh.name?.toLowerCase() === matched.shop_name?.toLowerCase()
-        );
-
-        if (!adminMatched || adminMatched.status !== 'approved') {
-          setErrorMsg(
-            'Your boutique application is currently pending Administrator approval. Access will be unlocked once approved by ZELORA Executive Administration.'
-          );
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      await loginSeller({ email, password });
+      await loginSeller({ email: email.trim().toLowerCase(), password });
       navigate('/seller/dashboard');
-    } catch {
-      setErrorMsg('Invalid email or password.');
+    } catch (err) {
+      const backendErrors = err.data?.errors || {};
+      const detail = err.data?.detail || err.message || 'Invalid email or password credentials.';
+      setErrorMsg(typeof detail === 'string' ? detail : JSON.stringify(detail));
+
+      const newFieldErrors = {};
+      if (backendErrors.email) {
+        newFieldErrors.email = Array.isArray(backendErrors.email) ? backendErrors.email[0] : backendErrors.email;
+      }
+      if (backendErrors.password) {
+        newFieldErrors.password = Array.isArray(backendErrors.password) ? backendErrors.password[0] : backendErrors.password;
+      }
+      if (Object.keys(newFieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...newFieldErrors }));
+      }
       setIsSubmitting(false);
     }
   };
@@ -71,6 +87,8 @@ export default function SellerLoginPage() {
   const handleDemoFill = () => {
     setEmail('atelier@maisondelombre.luxury');
     setPassword('Couture2026!');
+    setFieldErrors({ email: '', password: '' });
+    setErrorMsg('');
   };
 
   const handleGoogleSellerLogin = () => {
@@ -181,15 +199,28 @@ export default function SellerLoginPage() {
         <form onSubmit={handleSubmit}>
           {/* Email */}
           <div className="seller-form-group">
-            <label className="seller-form-label">Business Email Address</label>
+            <label className="seller-form-label">
+              Business Email Address <span style={{ color: 'var(--seller-danger)' }}>*</span>
+            </label>
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
+                if (errorMsg) setErrorMsg('');
+              }}
               placeholder="atelier@maisondelombre.luxury"
               className="seller-input"
-              required
+              style={fieldErrors.email ? { borderColor: 'var(--seller-danger)' } : {}}
+              autoComplete="email"
             />
+            {fieldErrors.email && (
+              <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <AlertCircle size={13} />
+                <span>{fieldErrors.email}</span>
+              </div>
+            )}
           </div>
 
           {/* Password */}
@@ -203,7 +234,7 @@ export default function SellerLoginPage() {
               }}
             >
               <label className="seller-form-label" style={{ margin: 0 }}>
-                Password
+                Password <span style={{ color: 'var(--seller-danger)' }}>*</span>
               </label>
               <button
                 type="button"
@@ -228,10 +259,15 @@ export default function SellerLoginPage() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }));
+                  if (errorMsg) setErrorMsg('');
+                }}
+                placeholder="Enter your password (min 6 chars)"
                 className="seller-input"
-                required
+                style={fieldErrors.password ? { borderColor: 'var(--seller-danger)' } : {}}
+                autoComplete="current-password"
               />
               <button
                 type="button"
@@ -246,10 +282,17 @@ export default function SellerLoginPage() {
                   cursor: 'pointer',
                 }}
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {fieldErrors.password && (
+              <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <AlertCircle size={13} />
+                <span>{fieldErrors.password}</span>
+              </div>
+            )}
           </div>
 
           {/* Remember me */}

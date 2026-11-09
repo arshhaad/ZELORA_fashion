@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { authApi } from '../services/api';
 
 const SellerContext = createContext();
 
@@ -535,7 +536,7 @@ export function SellerProvider({ children }) {
   const [payouts, setPayouts] = useState(() => loadStored('payouts', INITIAL_PAYOUTS));
   const [tickets, setTickets] = useState(() => loadStored('tickets', INITIAL_TICKETS));
   const [isSellerAuthenticated, setIsSellerAuthenticated] = useState(() => {
-    return localStorage.getItem('zelora_seller_auth') === 'true' || true; // Default true so user can immediately explore dashboard
+    return localStorage.getItem('zelora_seller_auth') === 'true';
   });
 
   // Sync to local storage
@@ -558,47 +559,91 @@ export function SellerProvider({ children }) {
 
   // Auth Operations
   const loginSeller = async ({ email, password }) => {
-    // Check or authenticate
-    const loggedUser = {
-      ...INITIAL_SELLER,
-      email: email || INITIAL_SELLER.email,
+    const res = await authApi.sellerLogin({ email, password });
+
+    if (res.tokens?.access) {
+      localStorage.setItem('zelora_seller_access_token', res.tokens.access);
+    }
+    if (res.tokens?.refresh) {
+      localStorage.setItem('zelora_seller_refresh_token', res.tokens.refresh);
+    }
+
+    const sellerUser = {
+      id: res.user?.id || `sel-${Date.now()}`,
+      name: `${res.user?.first_name || ''} ${res.user?.last_name || ''}`.trim() || res.user?.email?.split('@')[0] || 'Eleanor Vance',
+      email: res.user?.email || email,
+      phone: res.user?.phone_number || '+91 98201 54321',
+      avatar: res.user?.avatar_url || INITIAL_SELLER.avatar,
+      shop_name: res.shop?.name || res.user?.shop_name || "Maison de L'Ombre",
+      shop_category: res.shop?.category || res.user?.shop_category || "Haute Couture & Designer Wear",
+      role: "Verified Atelier",
     };
-    setSeller(loggedUser);
+
+    const shopData = {
+      ...INITIAL_SHOP,
+      name: res.shop?.name || sellerUser.shop_name,
+      category: res.shop?.category || sellerUser.shop_category,
+      contact_email: res.shop?.contact_email || res.user?.email || email,
+      contact_number: res.shop?.contact_number || sellerUser.phone,
+      business_address: res.shop?.business_address || INITIAL_SHOP.business_address,
+      description: res.shop?.description || INITIAL_SHOP.description,
+      is_open: res.shop?.is_open ?? true,
+    };
+
+    setSeller(sellerUser);
+    setShop(shopData);
     setIsSellerAuthenticated(true);
     localStorage.setItem('zelora_seller_auth', 'true');
-    showToast(`Welcome back, ${loggedUser.name}!`);
-    return loggedUser;
+    saveStored('user', sellerUser);
+    saveStored('shop', shopData);
+    showToast(`Welcome back, ${sellerUser.name}!`);
+    return { user: sellerUser, shop: shopData };
   };
 
   const registerSeller = async (formData) => {
-    const newSeller = {
-      id: `sel-${Date.now()}`,
-      name: formData.owner_name,
-      email: formData.email,
-      phone: formData.mobile_number,
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-      shop_name: formData.shop_name,
-      shop_category: formData.shop_category,
+    const res = await authApi.sellerRegister(formData);
+
+    if (res.tokens?.access) {
+      localStorage.setItem('zelora_seller_access_token', res.tokens.access);
+    }
+    if (res.tokens?.refresh) {
+      localStorage.setItem('zelora_seller_refresh_token', res.tokens.refresh);
+    }
+
+    const sellerUser = {
+      id: res.user?.id || `sel-${Date.now()}`,
+      name: `${res.user?.first_name || ''} ${res.user?.last_name || ''}`.trim() || formData.owner_name,
+      email: res.user?.email || formData.email,
+      phone: res.user?.phone_number || formData.mobile_number,
+      avatar: res.user?.avatar_url || INITIAL_SELLER.avatar,
+      shop_name: res.shop?.name || formData.shop_name,
+      shop_category: res.shop?.category || formData.shop_category,
       role: "Verified Boutique",
     };
-    const newShop = {
+
+    const shopData = {
       ...INITIAL_SHOP,
-      name: formData.shop_name,
-      category: formData.shop_category,
-      contact_email: formData.email,
-      contact_number: formData.mobile_number,
+      name: res.shop?.name || formData.shop_name,
+      category: res.shop?.category || formData.shop_category,
+      contact_email: res.shop?.contact_email || formData.email,
+      contact_number: res.shop?.contact_number || formData.mobile_number,
     };
-    setSeller(newSeller);
-    setShop(newShop);
+
+    setSeller(sellerUser);
+    setShop(shopData);
     setIsSellerAuthenticated(true);
     localStorage.setItem('zelora_seller_auth', 'true');
-    showToast("Seller registration complete! Welcome to ZELORA.");
-    return newSeller;
+    saveStored('user', sellerUser);
+    saveStored('shop', shopData);
+    showToast("Seller registration complete! Welcome to ZELORA Atelier.");
+    return { user: sellerUser, shop: shopData };
   };
 
   const logoutSeller = () => {
     setIsSellerAuthenticated(false);
     localStorage.removeItem('zelora_seller_auth');
+    localStorage.removeItem('zelora_seller_access_token');
+    localStorage.removeItem('zelora_seller_refresh_token');
     showToast("Signed out from Seller Center.");
   };
 

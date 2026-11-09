@@ -95,6 +95,18 @@ export default function SellerRegisterPage() {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setErrorMsg('Please enter a valid business email format (e.g. atelier@boutique.com).');
+      return;
+    }
+
+    const cleanedPhone = (formData.mobile_number || '').replace(/[\s\-\(\)\+]/g, '');
+    if (cleanedPhone.length < 7 || !/^\d+$/.test(cleanedPhone)) {
+      setErrorMsg('Please enter a valid contact phone number (at least 7 digits).');
+      return;
+    }
+
     if (formData.password.length < 6) {
       setErrorMsg('Password must be at least 6 characters.');
       return;
@@ -185,7 +197,21 @@ export default function SellerRegisterPage() {
 
   const completeRegistration = async (paymentId) => {
     try {
-      // 1. Save to registered sellers list
+      // 1. Register seller in backend database
+      try {
+        await authApi.sellerRegister({
+          owner_name: formData.owner_name,
+          email: formData.email,
+          mobile_number: formData.mobile_number,
+          password: formData.password,
+          shop_name: formData.shop_name,
+          shop_category: formData.shop_category,
+        });
+      } catch (err) {
+        console.warn('Backend seller registration sync:', err);
+      }
+
+      // 2. Save to registered sellers list
       const existing = JSON.parse(localStorage.getItem('zelora_registered_sellers') || '[]');
       const newSellerRecord = {
         ...formData,

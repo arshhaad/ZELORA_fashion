@@ -89,6 +89,9 @@ import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminSupportTicketsPage from './pages/admin/AdminSupportTicketsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 
+// AI Assistant Floating Widget
+import ZeloraAIChatWidget from './components/ai/ZeloraAIChatWidget';
+
 // Styles
 import './components/landing/landing.css';
 import './components/common/shop.css';
@@ -562,6 +565,9 @@ export default function App() {
                   {/* Fallback route */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+
+                {/* Floating ZELORA Luxury AI Assistant Concierge */}
+                <ZeloraAIChatWidget />
               </BrowserRouter>
               </AdminProvider>
               </SellerProvider>

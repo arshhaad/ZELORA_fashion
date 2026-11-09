@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'CUSTOMER',
     'SELLER',
     'ADMIN',
+    'ai_assistant',
 ]
 
 AUTH_USER_MODEL = 'CUSTOMER.User'

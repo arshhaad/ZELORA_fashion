@@ -12,3 +12,4 @@ urlpatterns = [
     path('conversations/<uuid:pk>/', ConversationDetailView.as_view(), name='ai-conversation-detail'),
     path('conversations/clear-all/', AIClearAllConversationsView.as_view(), name='ai-clear-all'),
 ]
+

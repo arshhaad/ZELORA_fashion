@@ -93,3 +93,4 @@ export const aiApi = {
     return aiRequest('/conversations/clear-all/', { method: 'POST' });
   },
 };
+

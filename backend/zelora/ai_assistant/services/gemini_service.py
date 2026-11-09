@@ -105,3 +105,4 @@ class GeminiService:
             raise GeminiAPIError("Gemini API call timed out.")
         except requests.RequestException as e:
             raise GeminiAPIError(f"Network error communicating with Gemini API: {str(e)}")
+

@@ -50,3 +50,4 @@ class AIRouter:
         raise RuntimeError(
             "Our AI Concierge service is temporarily unavailable due to high demand. Please try again shortly."
         )
+

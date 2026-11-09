@@ -66,3 +66,4 @@ class AIChatRequestSerializer(serializers.Serializer):
         required=False,
         allow_null=True
     )
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   MessageSquare,
   X,
@@ -16,6 +17,10 @@ import { aiApi, getActiveAuthToken, getActiveAuthUser } from '../../services/aiA
 import './aiChat.css';
 
 export default function ZeloraAIChatWidget() {
+  const { user: authUser } = useAuth();
+  const location = useLocation();
+
+  const [activeUser, setActiveUser] = useState(() => authUser || getActiveAuthUser());
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -23,36 +28,55 @@ export default function ZeloraAIChatWidget() {
   const [conversationId, setConversationId] = useState(null);
   const [preferredProvider, setPreferredProvider] = useState('gemini'); // 'gemini' | 'groq'
   const [activeProviderBadge, setActiveProviderBadge] = useState('Gemini 3.5');
-  const [user, setUser] = useState(() => getActiveAuthUser());
   const messagesEndRef = useRef(null);
 
-  // Sync active user when widget opens
+  // Synchronize authenticated user state whenever route, storage, or auth context updates
   useEffect(() => {
-    if (isOpen) {
-      const active = getActiveAuthUser();
-      setUser(active);
-
-      // If no messages yet, seed with luxury personalized greeting
-      if (messages.length === 0) {
-        const firstName = active?.first_name || active?.name?.split(' ')[0] || (active?.email ? active.email.split('@')[0] : 'Guest');
-        const role = active?.is_staff || active?.role?.toLowerCase().includes('admin')
-          ? 'Administrator'
-          : (active?.is_seller ? 'Boutique Seller' : 'Valued Client');
-
-        setMessages([
-          {
-            id: 'init-1',
-            role: 'assistant',
-            content: active
-              ? `Hi ${firstName}! 👋 Welcome to your private ZELORA Concierge. As a verified ${role}, how may I assist your wardrobe, orders, or atelier today?`
-              : `Welcome to the ZELORA Luxury AI Concierge. Sign in to your account to review live order telemetry, track bespoke parcels, or query your boutique records.`,
-            provider: 'gemini',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
+    const checkAuth = () => {
+      const token = getActiveAuthToken();
+      const userObj = authUser || getActiveAuthUser();
+      if (token && userObj) {
+        setActiveUser(userObj);
+      } else {
+        setActiveUser(null);
+        setIsOpen(false);
       }
+    };
+
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
+  }, [authUser, location.pathname]);
+
+  // Seed personalized greeting when chat is first opened by authenticated user
+  useEffect(() => {
+    if (isOpen && activeUser && messages.length === 0) {
+      const firstName =
+        activeUser.first_name ||
+        activeUser.name?.split(' ')[0] ||
+        (activeUser.email ? activeUser.email.split('@')[0] : 'Client');
+
+      const role =
+        activeUser.is_staff || activeUser.role?.toLowerCase().includes('admin')
+          ? 'Administrator'
+          : (activeUser.is_seller ? 'Boutique Seller' : 'Valued Client');
+
+      setMessages([
+        {
+          id: 'init-1',
+          role: 'assistant',
+          content: `Hi ${firstName}! 👋 Welcome to your private ZELORA Concierge. As a verified ${role}, how may I assist your wardrobe, orders, or atelier today?`,
+          provider: 'gemini',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
     }
-  }, [isOpen]);
+  }, [isOpen, activeUser]);
+
+  // Strictly do NOT render the AI assistant widget if the user is not logged in
+  if (!activeUser || !getActiveAuthToken()) {
+    return null;
+  }
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -143,8 +167,7 @@ export default function ZeloraAIChatWidget() {
 
   const handleClearChat = async () => {
     setConversationId(null);
-    const active = getActiveAuthUser();
-    const firstName = active?.first_name || active?.name?.split(' ')[0] || 'Client';
+    const firstName = activeUser?.first_name || activeUser?.name?.split(' ')[0] || 'Client';
     setMessages([
       {
         id: `reset-${Date.now()}`,
@@ -162,18 +185,9 @@ export default function ZeloraAIChatWidget() {
     setActiveProviderBadge(next === 'groq' ? 'Groq Fast' : 'Gemini 3.5');
   };
 
-  // Role-Aware Quick Suggestion Chips
+  // Role-Aware Quick Suggestion Chips for Authenticated User
   const getSuggestions = () => {
-    const active = user || getActiveAuthUser();
-    if (!active) {
-      return [
-        "What is ZELORA?",
-        "Recommend an evening look",
-        "Sign in to track orders",
-      ];
-    }
-
-    if (active.is_staff || active.role?.toLowerCase().includes('admin')) {
+    if (activeUser?.is_staff || activeUser?.role?.toLowerCase().includes('admin')) {
       return [
         "What is the total platform revenue?",
         "Show marketplace statistics",
@@ -182,7 +196,7 @@ export default function ZeloraAIChatWidget() {
       ];
     }
 
-    if (active.is_seller) {
+    if (activeUser?.is_seller) {
       return [
         "What are my shop sales?",
         "How many units have I sold?",
@@ -191,7 +205,7 @@ export default function ZeloraAIChatWidget() {
       ];
     }
 
-    // Default Customer
+    // Default Authenticated Customer
     return [
       "Where is my order?",
       "How many orders have I placed?",
@@ -269,16 +283,6 @@ export default function ZeloraAIChatWidget() {
               </button>
             </div>
           </div>
-
-          {/* Guest Notice if unauthenticated */}
-          {!user && (
-            <div className="zelora-ai-guest-banner">
-              <span>Sign in for order tracking & bespoke support:</span>
-              <Link to="/auth" className="zelora-ai-guest-link" onClick={() => setIsOpen(false)}>
-                Sign In →
-              </Link>
-            </div>
-          )}
 
           {/* Messages Stream Area */}
           <div className="zelora-ai-messages-area">
@@ -366,3 +370,4 @@ export default function ZeloraAIChatWidget() {
     </>
   );
 }
+

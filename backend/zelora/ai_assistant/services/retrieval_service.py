@@ -217,3 +217,4 @@ class RetrievalService:
             "pending_seller_payout_requests": pending_payouts,
             "open_support_tickets": open_tickets,
         }
+

@@ -258,3 +258,4 @@ class AIAssistantSecurityTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['intent'], "product_recommendation")
         self.assertIn("Silk Evening Slip Gown", response.data['reply'])
+

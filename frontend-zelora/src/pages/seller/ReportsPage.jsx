@@ -122,14 +122,14 @@ export default function ReportsPage() {
       <div className="seller-stats-grid">
         <div className="seller-stat-card">
           <span className="stat-label">Total Commercial Sales</span>
-          <h2 className="stat-value">${totalSales.toFixed(2)}</h2>
+          <h2 className="stat-value">₹{totalSales.toFixed(2)}</h2>
           <span className="stat-subtext">Gross shopper purchases</span>
         </div>
 
         <div className="seller-stat-card">
           <span className="stat-label">Net Atelier Earnings</span>
           <h2 className="stat-value" style={{ color: 'var(--seller-gold-dark)' }}>
-            ${totalEarnings.toFixed(2)}
+            ₹{totalEarnings.toFixed(2)}
           </h2>
           <span className="stat-subtext">88% net boutique margin</span>
         </div>
@@ -142,7 +142,7 @@ export default function ReportsPage() {
 
         <div className="seller-stat-card">
           <span className="stat-label">Average Order Value (AOV)</span>
-          <h2 className="stat-value">${averageOrderValue.toFixed(2)}</h2>
+          <h2 className="stat-value">₹{averageOrderValue.toFixed(2)}</h2>
           <span className="stat-subtext">Per checked-out cart</span>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function ReportsPage() {
                     fill="var(--seller-espresso)"
                     rx="3"
                   >
-                    <title>{`${d.month}: Gross $${d.gross.toLocaleString()}`}</title>
+                    <title>{`${d.month}: Gross ₹${d.gross.toLocaleString()}`}</title>
                   </rect>
 
                   {/* Net bar */}
@@ -207,7 +207,7 @@ export default function ReportsPage() {
                     fill="var(--seller-gold)"
                     rx="3"
                   >
-                    <title>{`${d.month}: Net $${d.net.toLocaleString()}`}</title>
+                    <title>{`${d.month}: Net ₹${d.net.toLocaleString()}`}</title>
                   </rect>
 
                   {/* Label */}
@@ -287,7 +287,7 @@ export default function ReportsPage() {
                   <td>{prod.category}</td>
 
                   <td>
-                    <strong>${prod.discount_price || prod.regular_price}</strong>
+                    <strong>₹{prod.discount_price || prod.regular_price}</strong>
                   </td>
 
                   <td>
@@ -298,13 +298,13 @@ export default function ReportsPage() {
 
                   <td>
                     <strong style={{ color: 'var(--seller-espresso)' }}>
-                      ${gross.toFixed(2)}
+                      ₹{gross.toFixed(2)}
                     </strong>
                   </td>
 
                   <td>
                     <strong style={{ color: 'var(--seller-gold-dark)' }}>
-                      ${net.toFixed(2)}
+                      ₹{net.toFixed(2)}
                     </strong>
                   </td>
                 </tr>

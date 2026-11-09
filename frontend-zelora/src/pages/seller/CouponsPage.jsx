@@ -128,16 +128,16 @@ export default function CouponsPage() {
                     <span style={{ fontWeight: 700, color: 'var(--seller-espresso)' }}>
                       {cp.discount_type === 'Percentage'
                         ? `${cp.discount_value}% OFF`
-                        : `$${cp.discount_value} OFF`}
+                        : `₹${cp.discount_value} OFF`}
                     </span>
                   </td>
 
                   <td>
-                    <span style={{ fontSize: '13px' }}>${cp.min_order}</span>
+                    <span style={{ fontSize: '13px' }}>₹{cp.min_order}</span>
                   </td>
 
                   <td>
-                    <span style={{ fontSize: '13px' }}>${cp.max_discount}</span>
+                    <span style={{ fontSize: '13px' }}>₹{cp.max_discount}</span>
                   </td>
 
                   <td>
@@ -246,13 +246,13 @@ export default function CouponsPage() {
                       className="seller-select"
                     >
                       <option value="Percentage">Percentage (%)</option>
-                      <option value="Fixed Amount">Fixed Amount ($)</option>
+                      <option value="Fixed Amount">Fixed Amount (₹)</option>
                     </select>
                   </div>
 
                   <div className="seller-form-group">
                     <label className="seller-form-label">
-                      {formData.discount_type === 'Percentage' ? 'Discount Percentage (%) *' : 'Discount Amount ($) *'}
+                      {formData.discount_type === 'Percentage' ? 'Discount Percentage (%) *' : 'Discount Amount (₹) *'}
                     </label>
                     <input
                       type="number"
@@ -267,7 +267,7 @@ export default function CouponsPage() {
 
                 <div className="seller-form-grid-2">
                   <div className="seller-form-group">
-                    <label className="seller-form-label">Minimum Order Spend ($)</label>
+                    <label className="seller-form-label">Minimum Order Spend (₹)</label>
                     <input
                       type="number"
                       min="0"
@@ -278,7 +278,7 @@ export default function CouponsPage() {
                   </div>
 
                   <div className="seller-form-group">
-                    <label className="seller-form-label">Maximum Discount Cap ($)</label>
+                    <label className="seller-form-label">Maximum Discount Cap (₹)</label>
                     <input
                       type="number"
                       min="0"

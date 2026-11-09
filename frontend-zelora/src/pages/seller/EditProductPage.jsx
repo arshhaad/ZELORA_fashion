@@ -222,7 +222,7 @@ export default function EditProductPage() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+        <div className="seller-product-form-layout">
           {/* Left Column */}
           <div>
             {/* General Info */}
@@ -389,11 +389,11 @@ export default function EditProductPage() {
             {/* Pricing */}
             <div className="seller-card mb-24">
               <div className="seller-card-title-row">
-                <h3>Pricing ($ USD)</h3>
+                <h3>Pricing (₹ INR)</h3>
               </div>
 
               <div className="seller-form-group">
-                <label className="seller-form-label">Regular Retail Price ($) *</label>
+                <label className="seller-form-label">Regular Retail Price (₹) *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -407,7 +407,7 @@ export default function EditProductPage() {
               </div>
 
               <div className="seller-form-group">
-                <label className="seller-form-label">Promotional Discount Price ($)</label>
+                <label className="seller-form-label">Promotional Discount Price (₹)</label>
                 <input
                   type="number"
                   step="0.01"

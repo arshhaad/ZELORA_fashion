@@ -131,7 +131,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Categories Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+      <div className="seller-categories-grid">
         {filtered.map((cat) => {
           const productCount = products.filter((p) => p.category === cat.name).length;
 

@@ -224,7 +224,7 @@ export default function SellerOrderDetailPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+      <div className="seller-order-detail-grid">
         {/* Left Column: Ordered Garments */}
         <div>
           <div className="seller-card mb-24">
@@ -312,7 +312,7 @@ export default function SellerOrderDetailPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="seller-form-grid-2">
                 <div>
                   <small style={{ color: 'var(--seller-muted)', display: 'block' }}>Specialized Courier Partner</small>
                   <strong style={{ fontSize: '14px', color: 'var(--seller-espresso)' }}>

@@ -212,7 +212,7 @@ export default function AddProductPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+      <div className="seller-product-form-layout">
         {/* Left Column: General Info, Images, Sizes & Inventory */}
         <div>
           {/* 1. General Garment Info */}
@@ -401,11 +401,11 @@ export default function AddProductPage() {
           {/* Pricing Card */}
           <div className="seller-card mb-24">
             <div className="seller-card-title-row">
-              <h3>Pricing ($ USD)</h3>
+              <h3>Pricing (₹ INR)</h3>
             </div>
 
             <div className="seller-form-group">
-              <label className="seller-form-label">Regular Retail Price ($) *</label>
+              <label className="seller-form-label">Regular Retail Price (₹) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -413,14 +413,14 @@ export default function AddProductPage() {
                 name="regular_price"
                 value={formData.regular_price}
                 onChange={handleChange}
-                placeholder="e.g. 320.00"
+                placeholder="e.g. 3200.00"
                 className="seller-input"
                 required
               />
             </div>
 
             <div className="seller-form-group">
-              <label className="seller-form-label">Promotional / Discount Price ($)</label>
+              <label className="seller-form-label">Promotional / Discount Price (₹)</label>
               <input
                 type="number"
                 step="0.01"
@@ -428,7 +428,7 @@ export default function AddProductPage() {
                 name="discount_price"
                 value={formData.discount_price}
                 onChange={handleChange}
-                placeholder="e.g. 260.00 (optional)"
+                placeholder="e.g. 2600.00 (optional)"
                 className="seller-input"
               />
               <small style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: 'var(--seller-muted)' }}>
@@ -448,13 +448,13 @@ export default function AddProductPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span>Est. Atelier Payout (88%):</span>
                   <strong>
-                    ${((formData.discount_price || formData.regular_price) * 0.88).toFixed(2)}
+                    ₹{((formData.discount_price || formData.regular_price) * 0.88).toFixed(2)}
                   </strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--seller-muted)' }}>
                   <span>Platform Fee (12%):</span>
                   <span>
-                    ${((formData.discount_price || formData.regular_price) * 0.12).toFixed(2)}
+                    ₹{((formData.discount_price || formData.regular_price) * 0.12).toFixed(2)}
                   </span>
                 </div>
               </div>

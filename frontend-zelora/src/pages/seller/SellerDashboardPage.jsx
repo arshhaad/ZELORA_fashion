@@ -288,7 +288,7 @@ export default function SellerDashboardPage() {
       </div>
 
       {/* ANALYTICS SECTION: SALES & REVENUE CHARTS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '28px' }}>
+      <div className="seller-dash-analytics-grid">
         {/* Sales Overview Chart Card */}
         <div className="seller-card">
           <div className="seller-card-title-row">
@@ -465,7 +465,7 @@ export default function SellerDashboardPage() {
       </div>
 
       {/* LOWER GRID: RECENT ORDERS & BEST SELLERS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '24px', marginBottom: '28px' }}>
+      <div className="seller-dash-orders-products-grid">
         {/* Recent Orders Table */}
         <div className="seller-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--seller-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -612,7 +612,7 @@ export default function SellerDashboardPage() {
       </div>
 
       {/* LOWER ROW: LOW STOCK ALERTS & RECENT CUSTOMER REVIEWS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div className="seller-dash-alerts-reviews-grid">
         {/* Low Stock Alerts */}
         <div className="seller-card">
           <div className="seller-card-title-row">

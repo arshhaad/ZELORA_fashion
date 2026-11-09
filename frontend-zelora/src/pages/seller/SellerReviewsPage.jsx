@@ -118,7 +118,7 @@ export default function SellerReviewsPage() {
       {/* FILTER & SEARCH ROW */}
       <div className="seller-card mb-24" style={{ padding: '16px 20px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-          <div style={{ position: 'relative', minWidth: '280px', flex: 1 }}>
+          <div className="seller-filter-search-box">
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--seller-muted)' }} />
             <input
               type="text"

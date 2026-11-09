@@ -18,7 +18,8 @@ import {
   Clock,
   Printer,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 
 export default function OrderDetailPage() {
@@ -53,16 +54,44 @@ export default function OrderDetailPage() {
     );
   }
 
-  const trackingSteps = [
-    { title: 'Pending', desc: 'Order placed & awaiting atelier confirmation' },
-    { title: 'Confirmed', desc: 'Order confirmed & payment verified' },
-    { title: 'Processing', desc: 'Garments inspected & packaged at atelier' },
-    { title: 'Shipped', desc: 'Dispatched with priority courier logistics' },
-    { title: 'Out for Delivery', desc: 'Courier out for doorstep arrival' },
-    { title: 'Delivered', desc: 'Successfully handed over to recipient' },
-  ];
+  const isPickup = order.delivery_method?.includes('Pickup') || order.delivery_method?.includes('Visit Shop');
+
+  const trackingSteps = isPickup
+    ? [
+        { title: 'Confirmed', desc: 'Garments reserved in private atelier fitting suite' },
+        { title: 'Processing', desc: 'Hand-steamed & staged for your boutique arrival' },
+        { title: 'Ready for Collection', desc: 'Awaiting your boutique visit (10 AM - 8 PM)' },
+        { title: 'Delivered', desc: 'Visited atelier, inspected & collected in person' },
+      ]
+    : [
+        { title: 'Pending', desc: 'Order placed & awaiting atelier confirmation' },
+        { title: 'Confirmed', desc: 'Order confirmed & payment verified' },
+        { title: 'Processing', desc: 'Garments inspected & packaged at atelier' },
+        { title: 'Shipped', desc: 'Dispatched with priority courier logistics' },
+        { title: 'Out for Delivery', desc: 'Courier out for doorstep arrival' },
+        { title: 'Delivered', desc: 'Successfully handed over to recipient' },
+      ];
 
   const getStepIndex = (status) => {
+    if (isPickup) {
+      switch (status) {
+        case 'Confirmed':
+          return 0;
+        case 'Processing':
+          return 1;
+        case 'Ready for Collection':
+        case 'Shipped':
+        case 'Out for Delivery':
+          return 2;
+        case 'Delivered':
+          return 3;
+        case 'Cancelled':
+        case 'Returned':
+          return -1;
+        default:
+          return 0;
+      }
+    }
     switch (status) {
       case 'Pending':
         return 0;
@@ -168,7 +197,8 @@ export default function OrderDetailPage() {
                 <div className="tracking-title-info">
                   <h3>Fulfillment & Delivery Progress</h3>
                   <p>
-                    Estimated Doorstep Arrival: <strong>{order.estimated_delivery}</strong>
+                    {isPickup ? 'Atelier Collection Window:' : 'Estimated Doorstep Arrival:'}{' '}
+                    <strong>{order.estimated_delivery}</strong>
                   </p>
                 </div>
                 {order.tracking_number && (
@@ -292,21 +322,40 @@ export default function OrderDetailPage() {
 
             {/* Right: Address & Payment Summary Sidebar */}
             <div className="order-meta-col">
-              {/* Delivery Address */}
+              {/* Delivery / Pickup Address */}
               <div className="card-box mb-24">
                 <div className="box-title-row">
-                  <MapPin size={16} />
-                  <h4>Delivery Address</h4>
+                  {isPickup ? <Building2 size={16} /> : <MapPin size={16} />}
+                  <h4>{isPickup ? 'Boutique Collection Location' : 'Delivery Address'}</h4>
                 </div>
-                <div className="address-meta-body">
-                  <strong>{order.shipping_address?.full_name}</strong>
-                  <p>
-                    {order.shipping_address?.house_building}, {order.shipping_address?.street_area}
-                    <br />
-                    {order.shipping_address?.city}, {order.shipping_address?.state} — {order.shipping_address?.pin_code}
-                  </p>
-                  <small>Phone: {order.shipping_address?.mobile_number}</small>
-                </div>
+                {isPickup ? (
+                  <div className="address-meta-body">
+                    <strong>ZELORA Flagship Atelier Boutique</strong>
+                    <p>
+                      Suite 4B, The Monolith Arcade, Colaba Causeway
+                      <br />
+                      Colaba, Mumbai, Maharashtra — 400005
+                    </p>
+                    <div style={{ marginTop: '10px', fontSize: '12.5px', color: 'var(--zelora-text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div><strong>Visiting Hours:</strong> Mon – Sun, 10:00 AM – 8:00 PM</div>
+                      <div><strong>Atelier Direct:</strong> +91 98201 54321</div>
+                      {order.shipping_address?.pickup_slot && (
+                        <div><strong>Reserved Window:</strong> {order.shipping_address.pickup_slot}</div>
+                      )}
+                      <div><strong>Patron Name:</strong> {order.shipping_address?.full_name || 'Valued Patron'} ({order.shipping_address?.mobile_number || 'Registered'})</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="address-meta-body">
+                    <strong>{order.shipping_address?.full_name}</strong>
+                    <p>
+                      {order.shipping_address?.house_building}, {order.shipping_address?.street_area}
+                      <br />
+                      {order.shipping_address?.city}, {order.shipping_address?.state} — {order.shipping_address?.pin_code}
+                    </p>
+                    <small>Phone: {order.shipping_address?.mobile_number}</small>
+                  </div>
+                )}
               </div>
 
               {/* Payment & Charges Breakdown */}

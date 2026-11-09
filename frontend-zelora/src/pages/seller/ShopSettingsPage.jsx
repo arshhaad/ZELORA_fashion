@@ -85,6 +85,8 @@ export default function ShopSettingsPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
               padding: '16px',
               backgroundColor: 'var(--seller-cream-subtle)',
               borderRadius: 'var(--seller-radius)',
@@ -280,7 +282,7 @@ export default function ShopSettingsPage() {
             To update password, banking account references, or multi-factor authentication, please contact concierge or verify credentials.
           </p>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
             <button
               type="button"
               className="btn-seller-secondary"

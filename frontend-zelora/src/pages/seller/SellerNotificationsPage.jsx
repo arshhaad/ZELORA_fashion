@@ -114,6 +114,8 @@ export default function SellerNotificationsPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
                 padding: '16px 20px',
                 backgroundColor: n.is_read ? 'var(--seller-white)' : 'var(--seller-cream-subtle)',
                 borderLeft: n.is_read ? '1px solid var(--seller-border)' : '4px solid var(--seller-gold)',

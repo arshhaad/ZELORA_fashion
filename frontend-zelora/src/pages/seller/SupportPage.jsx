@@ -70,7 +70,7 @@ export default function SupportPage() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '24px' }}>
+      <div className="seller-support-grid">
         {/* Left Column: Tickets List */}
         <div className="seller-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--seller-border)', background: 'var(--seller-cream)' }}>

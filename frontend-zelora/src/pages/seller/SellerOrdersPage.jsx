@@ -102,7 +102,7 @@ export default function SellerOrdersPage() {
           }}
         >
           {/* Search Bar */}
-          <div style={{ position: 'relative', minWidth: '300px', flex: 1 }}>
+          <div className="seller-filter-search-box">
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--seller-muted)' }} />
             <input
               type="text"
@@ -192,7 +192,7 @@ export default function SellerOrdersPage() {
               <th>Customer</th>
               <th>Order Date</th>
               <th>Garments</th>
-              <th>Amount ($)</th>
+              <th>Amount (₹)</th>
               <th>Payment</th>
               <th>Order Status</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
@@ -260,7 +260,7 @@ export default function SellerOrdersPage() {
 
                   <td>
                     <strong style={{ fontSize: '14px', color: 'var(--seller-espresso)' }}>
-                      ${ord.total_amount.toFixed(2)}
+                      ₹{ord.total_amount.toFixed(2)}
                     </strong>
                   </td>
 

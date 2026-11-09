@@ -19,6 +19,7 @@ import {
   LogOut,
   Sparkles,
   ExternalLink,
+  X,
 } from 'lucide-react';
 
 export default function SellerSidebar({ isOpen, onClose }) {
@@ -152,13 +153,23 @@ export default function SellerSidebar({ isOpen, onClose }) {
       <aside className={`seller-sidebar ${isOpen ? 'open' : ''}`}>
         {/* Brand & Atelier Header */}
         <div className="seller-sidebar-header">
-          <Link to="/seller/dashboard" className="seller-brand-link">
-            <h2 className="seller-brand-title">ZELORA</h2>
-            <div className="seller-brand-subtitle">
-              <Sparkles size={11} />
-              <span>SELLER CENTER</span>
-            </div>
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Link to="/seller/dashboard" className="seller-brand-link" onClick={() => onClose && onClose()}>
+              <h2 className="seller-brand-title">ZELORA</h2>
+              <div className="seller-brand-subtitle">
+                <Sparkles size={11} />
+                <span>SELLER CENTER</span>
+              </div>
+            </Link>
+            <button
+              type="button"
+              className="seller-sidebar-close-btn"
+              onClick={onClose}
+              aria-label="Close Navigation Drawer"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
           {/* Live Shop Availability Switch */}
           <div className="seller-shop-status-box">

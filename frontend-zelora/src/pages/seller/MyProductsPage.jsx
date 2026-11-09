@@ -101,7 +101,7 @@ export default function MyProductsPage() {
           }}
         >
           {/* Search Input */}
-          <div style={{ position: 'relative', minWidth: '260px', flex: 1 }}>
+          <div className="seller-filter-search-box">
             <Search
               size={16}
               style={{
@@ -368,7 +368,7 @@ export default function MyProductsPage() {
         </div>
       ) : (
         /* GRID VIEW */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px' }}>
+        <div className="seller-products-catalog-grid">
           {paginatedProducts.map((prod) => (
             <div key={prod.id} className="seller-card" style={{ padding: '16px' }}>
               <div style={{ position: 'relative', width: '100%', height: '260px', borderRadius: 'var(--seller-radius)', overflow: 'hidden', marginBottom: '14px' }}>

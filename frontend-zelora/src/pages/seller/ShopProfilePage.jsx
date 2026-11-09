@@ -83,7 +83,7 @@ export default function ShopProfilePage() {
       <form onSubmit={handleSubmit}>
         {/* Banner Preview & Upload Area */}
         <div className="seller-card mb-24" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ position: 'relative', width: '100%', height: '220px', backgroundColor: '#e5ded5' }}>
+          <div className="seller-shop-banner-wrap">
             {formData.banner ? (
               <img
                 src={formData.banner}
@@ -153,16 +153,7 @@ export default function ShopProfilePage() {
             </div>
 
             {/* Atelier Logo Floating Badge */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '-36px',
-                left: '32px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: '16px',
-              }}
-            >
+            <div className="seller-shop-logo-floating">
               <div
                 style={{
                   width: '90px',
@@ -217,7 +208,7 @@ export default function ShopProfilePage() {
             </div>
           </div>
 
-          <div style={{ padding: '52px 32px 24px' }}>
+          <div className="seller-shop-meta-strip">
             <h3 style={{ margin: '0 0 4px', fontSize: '18px', color: 'var(--seller-espresso)' }}>
               {formData.name || 'Your Atelier Name'}
             </h3>

@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 
 export default function MyOrdersPage() {
@@ -191,10 +192,21 @@ export default function MyOrdersPage() {
                       {/* Fulfillment & Payment Details */}
                       <div className="order-fulfillment-details">
                         <div className="fulfillment-row">
-                          <Truck size={15} />
-                          <span>
-                            <strong>Estimated Delivery:</strong> {order.estimated_delivery}
-                          </span>
+                          {order.delivery_method?.includes('Pickup') || order.delivery_method?.includes('Visit Shop') ? (
+                            <>
+                              <Building2 size={15} />
+                              <span>
+                                <strong>Fulfillment:</strong> Atelier Boutique Pickup (Visit & Collect)
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Truck size={15} />
+                              <span>
+                                <strong>Estimated Delivery:</strong> {order.estimated_delivery}
+                              </span>
+                            </>
+                          )}
                         </div>
                         <div className="fulfillment-row">
                           <CreditCard size={15} />

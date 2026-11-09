@@ -483,11 +483,14 @@ class OrderListCreateView(APIView):
             )
 
         # Create Order Confirmed Notification
-        notification_desc = f'Your order {order.order_id} for ${order.total_amount} has been securely confirmed'
-        if order.razorpay_payment_id:
-            notification_desc += f' via Razorpay (Ref: {order.razorpay_payment_id}).'
+        if 'pickup' in str(order.delivery_method).lower():
+            notification_desc = f'Your atelier reservation {order.order_id} for ₹{order.total_amount} has been securely confirmed. We look forward to welcoming you at our Flagship Boutique.'
         else:
-            notification_desc += ' and will begin dispatch.'
+            notification_desc = f'Your order {order.order_id} for ₹{order.total_amount} has been securely confirmed'
+            if order.razorpay_payment_id:
+                notification_desc += f' via Razorpay (Ref: {order.razorpay_payment_id}).'
+            else:
+                notification_desc += ' and will begin dispatch.'
 
         Notification.objects.create(
             user=request.user,
@@ -732,7 +735,7 @@ class RazorpayPaymentVerifyView(APIView):
                         user=request.user,
                         category='orders',
                         title='Payment Authorized via Razorpay',
-                        description=f'Payment of ${order.total_amount} was successfully captured. Reference: {razorpay_payment_id}'
+                        description=f'Payment of ₹{order.total_amount} was successfully captured. Reference: {razorpay_payment_id}'
                     )
 
         return Response({

@@ -49,7 +49,7 @@ export default function PayoutsPage() {
       setRequestModalOpen(false);
       setRequestAmount('');
     } else {
-      alert(`Please enter an amount between $1 and $${availableBalance.toFixed(2)}.`);
+      alert(`Please enter an amount between ₹1 and ₹${availableBalance.toFixed(2)}.`);
     }
   };
 
@@ -105,7 +105,7 @@ export default function PayoutsPage() {
         <div className="seller-stat-card">
           <span className="stat-label">Net Lifetime Earnings</span>
           <h2 className="stat-value" style={{ color: 'var(--seller-espresso)' }}>
-            ${totalEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₹{totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </h2>
           <span className="stat-subtext">88% net boutique commission</span>
         </div>
@@ -113,7 +113,7 @@ export default function PayoutsPage() {
         <div className="seller-stat-card" style={{ borderLeft: '4px solid var(--seller-gold)' }}>
           <span className="stat-label">Available for Withdrawal</span>
           <h2 className="stat-value" style={{ color: 'var(--seller-gold-dark)' }}>
-            ${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₹{availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </h2>
           <span className="stat-subtext">Ready for immediate settlement</span>
         </div>
@@ -121,7 +121,7 @@ export default function PayoutsPage() {
         <div className="seller-stat-card">
           <span className="stat-label">Pending In Escrow</span>
           <h2 className="stat-value" style={{ color: 'var(--seller-warning)' }}>
-            ${pendingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₹{pendingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </h2>
           <span className="stat-subtext">Awaiting clearance or delivery confirmation</span>
         </div>
@@ -129,14 +129,14 @@ export default function PayoutsPage() {
         <div className="seller-stat-card">
           <span className="stat-label">Total Settled & Paid Out</span>
           <h2 className="stat-value" style={{ color: 'var(--seller-success)' }}>
-            ${totalPaidOut.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₹{totalPaidOut.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </h2>
           <span className="stat-subtext">Disbursed via automated bank transfer</span>
         </div>
       </div>
 
       {/* BANK ACCOUNT & ESCROW SCHEDULE ROW */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '24px', marginBottom: '28px' }}>
+      <div className="seller-payouts-grid">
         {/* Verified Bank Account Card */}
         <div className="seller-card">
           <div className="seller-card-title-row">
@@ -237,7 +237,7 @@ export default function PayoutsPage() {
             <tr>
               <th>Payout ID</th>
               <th>Date Cleared</th>
-              <th>Amount ($)</th>
+              <th>Amount (₹)</th>
               <th>Disbursement Method</th>
               <th>Banking Reference</th>
               <th>Status</th>
@@ -256,7 +256,7 @@ export default function PayoutsPage() {
                 </td>
                 <td>
                   <strong style={{ fontSize: '14px', color: 'var(--seller-gold-dark)' }}>
-                    ${p.amount.toFixed(2)}
+                    ₹{p.amount.toFixed(2)}
                   </strong>
                 </td>
                 <td>
@@ -308,12 +308,12 @@ export default function PayoutsPage() {
                     Maximum Available Balance:
                   </span>
                   <strong style={{ fontSize: '20px', color: 'var(--seller-gold-dark)' }}>
-                    ${availableBalance.toFixed(2)}
+                    ₹{availableBalance.toFixed(2)}
                   </strong>
                 </div>
 
                 <div className="seller-form-group">
-                  <label className="seller-form-label">Withdrawal Amount ($ USD) *</label>
+                  <label className="seller-form-label">Withdrawal Amount (₹ INR) *</label>
                   <input
                     type="number"
                     step="0.01"

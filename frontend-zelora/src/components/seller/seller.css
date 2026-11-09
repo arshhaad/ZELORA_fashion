@@ -1180,15 +1180,143 @@
 }
 
 /* ==========================================================================
-   RESPONSIVE DESIGN
+   RESPONSIVE LAYOUT GRIDS & UTILITIES
+   ========================================================================== */
+.seller-sidebar-close-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid rgba(232, 222, 209, 0.2);
+  color: var(--seller-beige);
+  padding: 6px;
+  border-radius: var(--seller-radius-sm);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: var(--seller-transition);
+}
+
+.seller-sidebar-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--seller-white);
+}
+
+.seller-dash-analytics-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.seller-dash-orders-products-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.seller-dash-alerts-reviews-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.seller-product-form-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.seller-payouts-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr;
+  gap: 24px;
+  margin-bottom: 28px;
+  align-items: flex-start;
+}
+
+.seller-support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.seller-order-detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.seller-filter-search-box {
+  position: relative;
+  min-width: 240px;
+  flex: 1;
+}
+
+.seller-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.seller-products-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.seller-shop-banner-wrap {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  background-color: #e5ded5;
+}
+
+.seller-shop-logo-floating {
+  position: absolute;
+  bottom: -36px;
+  left: 32px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.seller-shop-meta-strip {
+  padding: 52px 32px 24px;
+}
+
+@media (max-width: 640px) {
+  .seller-shop-banner-wrap {
+    height: 160px;
+  }
+  .seller-shop-logo-floating {
+    left: 16px;
+    bottom: -30px;
+    gap: 10px;
+  }
+  .seller-shop-meta-strip {
+    padding: 44px 16px 20px;
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS
    ========================================================================== */
 @media (max-width: 1024px) {
   .seller-sidebar {
     transform: translateX(-100%);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
   }
 
   .seller-sidebar.open {
     transform: translateX(0);
+  }
+
+  .seller-sidebar-close-btn {
+    display: flex;
   }
 
   .seller-main-wrapper {
@@ -1200,16 +1328,205 @@
   }
 
   .seller-content-body {
-    padding: 20px 16px;
+    padding: 24px 20px;
   }
 
   .seller-header {
-    padding: 0 16px;
+    padding: 0 20px;
   }
 
   .seller-form-grid-2,
   .seller-form-grid-3 {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .seller-dash-analytics-grid,
+  .seller-dash-orders-products-grid,
+  .seller-dash-alerts-reviews-grid,
+  .seller-product-form-layout,
+  .seller-payouts-grid,
+  .seller-support-grid,
+  .seller-order-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .seller-header {
+    height: 64px;
+    padding: 0 16px;
+  }
+
+  .seller-header-search {
+    display: none;
+  }
+
+  .shop-status-badge span:not(.dot) {
+    display: none;
+  }
+
+  .shop-status-badge {
+    padding: 6px;
+  }
+
+  .btn-header-add-product span {
+    display: none;
+  }
+
+  .btn-header-add-product {
+    padding: 8px 10px;
+  }
+
+  .header-action-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .seller-content-body {
+    padding: 20px 16px;
+  }
+
+  .seller-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .seller-page-title-group h1 {
+    font-size: 20px;
+  }
+
+  .seller-page-subtitle {
+    font-size: 12.5px;
+  }
+
+  .seller-page-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .seller-page-actions a,
+  .seller-page-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .seller-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .seller-stat-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .stat-icon-wrapper {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stat-trend-pill {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .seller-filter-search-box {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .seller-card {
+    padding: 18px 16px;
+  }
+
+  .seller-table-container {
+    margin: 0 -16px;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
+
+  .seller-table th,
+  .seller-table td {
+    padding: 11px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .seller-modal-dialog {
+    max-width: 100%;
+    margin: 12px;
+    max-height: 85vh;
+  }
+
+  .seller-modal-header {
+    padding: 16px 20px;
+  }
+
+  .seller-modal-body {
+    padding: 18px 20px;
+  }
+
+  .seller-modal-footer {
+    padding: 14px 20px;
+  }
+
+  .seller-auth-page {
+    padding: 20px 14px;
+  }
+
+  .seller-auth-card {
+    padding: 26px 18px;
+  }
+
+  .seller-auth-brand h1 {
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .seller-content-body {
+    padding: 14px 10px;
+  }
+
+  .seller-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .seller-card {
+    padding: 14px 12px;
+    border-radius: var(--seller-radius);
+  }
+
+  .size-stock-matrix {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .uploaded-previews-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .seller-categories-grid,
+  .seller-products-catalog-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
 

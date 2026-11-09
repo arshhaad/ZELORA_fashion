@@ -333,9 +333,13 @@ export function CustomerProvider({ children }) {
       created_at: new Date().toISOString(),
       status: 'Confirmed',
       status_updated_at: new Date().toISOString(),
-      estimated_delivery: orderPayload.delivery_method?.includes('Express')
-        ? 'Within 48 Hours'
-        : '3 - 5 Business Days',
+      estimated_delivery: orderPayload.estimated_delivery || (
+        (orderPayload.delivery_method?.includes('Pickup') || orderPayload.delivery_method?.includes('Visit Shop'))
+          ? 'Ready for Boutique Visit'
+          : orderPayload.delivery_method?.includes('Express')
+            ? 'Within 48 Hours'
+            : '3 - 5 Business Days'
+      ),
       tracking_number: `TRK-ZEL-${Math.floor(1000000 + Math.random() * 9000000)}`,
       ...orderPayload,
     };
@@ -344,7 +348,7 @@ export function CustomerProvider({ children }) {
       if (user) {
         const created = await authApi.createOrder(orderPayload);
         setOrders((prev) => [created, ...prev]);
-        addOrderNotification(created.order_id, created.total_amount, created.razorpay_payment_id || orderPayload.razorpay_payment_id);
+        addOrderNotification(created.order_id, created.total_amount, created.razorpay_payment_id || orderPayload.razorpay_payment_id, created.delivery_method || orderPayload.delivery_method);
         return created;
       }
     } catch (e) {
@@ -352,18 +356,24 @@ export function CustomerProvider({ children }) {
     }
 
     setOrders((prev) => [newOrder, ...prev]);
-    addOrderNotification(newOrder.order_id, newOrder.total_amount, newOrder.razorpay_payment_id);
+    addOrderNotification(newOrder.order_id, newOrder.total_amount, newOrder.razorpay_payment_id, newOrder.delivery_method);
     return newOrder;
   };
 
-  const addOrderNotification = (orderId, total, paymentId) => {
+  const addOrderNotification = (orderId, total, paymentId, deliveryMethod = '') => {
+    const isPickup = deliveryMethod?.includes('Pickup') || deliveryMethod?.includes('Visit Shop');
+    let description = `Your order for ₹${total} has been confirmed. You will receive dispatch updates.`;
+    if (isPickup) {
+      description = `Your atelier reservation for ₹${total} has been confirmed. Visit our flagship boutique to inspect, try on, and collect.`;
+    } else if (paymentId) {
+      description = `Payment of ₹${total} authorized via Razorpay (Ref: ${paymentId}).`;
+    }
+
     const notif = {
       id: Date.now(),
       category: 'orders',
-      title: `Order Placed & Confirmed (${orderId})`,
-      description: paymentId
-        ? `Payment of ₹${total} authorized via Razorpay (Ref: ${paymentId}).`
-        : `Your order for ₹${total} has been confirmed. You will receive dispatch updates.`,
+      title: isPickup ? `Atelier Reservation Confirmed (${orderId})` : `Order Placed & Confirmed (${orderId})`,
+      description,
       is_read: false,
       created_at: new Date().toISOString(),
     };

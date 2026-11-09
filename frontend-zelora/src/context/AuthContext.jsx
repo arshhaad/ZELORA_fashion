@@ -111,6 +111,27 @@ export function AuthProvider({ children }) {
       // Continue client cleanup
     }
     clearTokens();
+
+    // Notify all context providers to wipe in-memory state
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('zelora_logout'));
+    }
+
+    // Clean up any legacy or guest storage keys to prevent data bleeding
+    try {
+      localStorage.removeItem('zelora_cart');
+      localStorage.removeItem('zelora_cart_guest');
+      localStorage.removeItem('zelora_wishlist');
+      localStorage.removeItem('zelora_wishlist_guest');
+      localStorage.removeItem('zelora_recently_viewed');
+      localStorage.removeItem('zelora_recently_viewed_guest');
+      localStorage.removeItem('zelora_addresses');
+      localStorage.removeItem('zelora_orders');
+      localStorage.removeItem('zelora_notifications');
+    } catch (e) {
+      console.warn('Error purging session storage on logout', e);
+    }
+
     setUser(null);
     window.location.replace('/');
   };

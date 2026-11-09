@@ -1,11 +1,23 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext(null);
 
+export const getCartStorageKey = (user) => {
+  if (user?.id) return `zelora_cart_user_${user.id}`;
+  if (user?.email) return `zelora_cart_${user.email.toLowerCase().trim()}`;
+  return 'zelora_cart_guest';
+};
+
 export function CartProvider({ children }) {
+  const { user } = useAuth();
+  const currentKey = getCartStorageKey(user);
+
   const [cartItems, setCartItems] = useState(() => {
     try {
-      const stored = localStorage.getItem('zelora_cart');
+      // Purge old un-scoped legacy key if present
+      localStorage.removeItem('zelora_cart');
+      const stored = localStorage.getItem(currentKey);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -13,15 +25,76 @@ export function CartProvider({ children }) {
   });
 
   const [toast, setToast] = useState(null);
+  const prevUserRef = useRef(user);
 
-  // Sync with localStorage
+  // Listen for global logout events for instant state wipe
+  useEffect(() => {
+    const handleLogout = () => {
+      setCartItems([]);
+      try {
+        localStorage.removeItem('zelora_cart');
+        localStorage.removeItem('zelora_cart_guest');
+      } catch (e) {
+        console.warn('Error clearing cart on logout', e);
+      }
+    };
+    window.addEventListener('zelora_logout', handleLogout);
+    return () => window.removeEventListener('zelora_logout', handleLogout);
+  }, []);
+
+  // Sync / switch cart when user changes (login, logout, account switch, new registration)
+  useEffect(() => {
+    const prevUser = prevUserRef.current;
+    prevUserRef.current = user;
+
+    // Purge legacy key
+    localStorage.removeItem('zelora_cart');
+
+    if (!user) {
+      // User logged out: clear memory cart so guest starts completely empty
+      localStorage.removeItem('zelora_cart_guest');
+      setCartItems([]);
+    } else {
+      // User logged in / registered
+      const targetKey = getCartStorageKey(user);
+      const userStored = localStorage.getItem(targetKey);
+      const userItems = userStored ? JSON.parse(userStored) : [];
+
+      // Check if user came from a guest session that had items
+      const guestStored = localStorage.getItem('zelora_cart_guest');
+      const guestItems = guestStored ? JSON.parse(guestStored) : [];
+
+      // Only migrate if user transitioned from guest AND guest had items
+      if (!prevUser && guestItems.length > 0) {
+        const merged = [...userItems];
+        guestItems.forEach((gItem) => {
+          const existingIndex = merged.findIndex((m) => m.id === gItem.id);
+          if (existingIndex > -1) {
+            merged[existingIndex].quantity += gItem.quantity;
+          } else {
+            merged.push(gItem);
+          }
+        });
+        localStorage.removeItem('zelora_cart_guest');
+        localStorage.setItem(targetKey, JSON.stringify(merged));
+        setCartItems(merged);
+      } else {
+        // Different user or new user: load strictly this user's cart (empty for new users)
+        setCartItems(userItems);
+      }
+    }
+  }, [user]);
+
+  // Persist cart to user-scoped storage key
   useEffect(() => {
     try {
-      localStorage.setItem('zelora_cart', JSON.stringify(cartItems));
+      if (currentKey) {
+        localStorage.setItem(currentKey, JSON.stringify(cartItems));
+      }
     } catch (e) {
       console.warn('Could not persist cart to storage', e);
     }
-  }, [cartItems]);
+  }, [cartItems, currentKey]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type, id: Date.now() });
@@ -111,6 +184,13 @@ export function CartProvider({ children }) {
 
   const clearCart = () => {
     setCartItems([]);
+    try {
+      localStorage.removeItem(currentKey);
+      localStorage.removeItem('zelora_cart');
+      localStorage.removeItem('zelora_cart_guest');
+    } catch (e) {
+      console.warn('Could not clear cart storage', e);
+    }
   };
 
   // Calculations
@@ -163,4 +243,3 @@ export const useCart = () => {
   }
   return context;
 };
-

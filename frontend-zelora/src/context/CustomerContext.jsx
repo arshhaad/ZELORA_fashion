@@ -1,177 +1,32 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useCart } from './CartContext';
 import { authApi } from '../services/api';
 
 const CustomerContext = createContext(null);
 
-const INITIAL_ADDRESSES = [
-  {
-    id: 1,
-    full_name: 'Helena Vance',
-    mobile_number: '+91 98765 43210',
-    house_building: 'Apartment 14B, The Monolith Residences',
-    street_area: '42 Crescent Avenue, Bandra West',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    pin_code: '400050',
-    address_type: 'Home',
-    is_default: true,
-  },
-  {
-    id: 2,
-    full_name: 'Helena Vance (Studio)',
-    mobile_number: '+91 98765 43211',
-    house_building: 'Atelier Floor 3, Design Quarter',
-    street_area: '18 Rue de Couture, Indiranagar',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pin_code: '560038',
-    address_type: 'Work',
-    is_default: false,
-  },
-];
-
-const INITIAL_ORDERS = [
-  {
-    id: 101,
-    order_id: 'ZEL-92841-A',
-    created_at: '2026-11-04T10:30:00Z',
-    status: 'Shipped',
-    status_updated_at: '2026-11-05T14:20:00Z',
-    estimated_delivery: 'Nov 08, 2026',
-    subtotal: 544,
-    discount: 54,
-    delivery_charges: 0,
-    tax: 24.5,
-    total_amount: 514.5,
-    payment_method: 'Credit / Debit Card',
-    payment_status: 'Paid',
-    delivery_method: 'Standard Delivery',
-    tracking_number: 'ZEL-IND-9948291',
-    shipping_address: {
-      full_name: 'Helena Vance',
-      mobile_number: '+91 98765 43210',
-      house_building: 'Apartment 14B, The Monolith Residences',
-      street_area: '42 Crescent Avenue, Bandra West',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pin_code: '400050',
-      address_type: 'Home',
-    },
-    items: [
-      {
-        id: 1,
-        product_id: 'zel-001',
-        product_name: 'Structured Double-Breasted Wool Overcoat',
-        product_image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80&sat=-100',
-        brand: 'ZELORA Atelier',
-        size: 'M',
-        color: 'Noir Black',
-        quantity: 1,
-        price: 349,
-      },
-      {
-        id: 2,
-        product_id: 'zel-004',
-        product_name: 'Pleated High-Rise Wide Trousers',
-        product_image: 'https://images.unsplash.com/photo-1508427953056-b00b8d78ebf5?auto=format&fit=crop&w=800&q=80&sat=-100',
-        brand: 'ZELORA Atelier',
-        size: 'S',
-        color: 'Charcoal Black',
-        quantity: 1,
-        price: 195,
-      },
-    ],
-  },
-  {
-    id: 102,
-    order_id: 'ZEL-83192-M',
-    created_at: '2026-10-22T16:15:00Z',
-    status: 'Delivered',
-    status_updated_at: '2026-10-25T11:45:00Z',
-    estimated_delivery: 'Delivered on Oct 25, 2026',
-    subtotal: 260,
-    discount: 26,
-    delivery_charges: 0,
-    tax: 11.7,
-    total_amount: 245.7,
-    payment_method: 'UPI',
-    payment_status: 'Paid',
-    delivery_method: 'Express Delivery',
-    tracking_number: 'ZEL-IND-8812304',
-    shipping_address: {
-      full_name: 'Helena Vance',
-      mobile_number: '+91 98765 43210',
-      house_building: 'Apartment 14B, The Monolith Residences',
-      street_area: '42 Crescent Avenue, Bandra West',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pin_code: '400050',
-      address_type: 'Home',
-    },
-    items: [
-      {
-        id: 3,
-        product_id: 'zel-002',
-        product_name: 'Draped Silk Evening Slip Gown',
-        product_image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100',
-        brand: 'ZELORA Noir',
-        size: 'S',
-        color: 'Midnight Onyx',
-        quantity: 1,
-        price: 260,
-      },
-    ],
-  },
-];
-
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: 1,
-    category: 'orders',
-    title: 'Order Dispatched (ZEL-92841-A)',
-    description: 'Your tailored wool garments have departed our central Mumbai atelier via express courier.',
-    is_read: false,
-    created_at: '2026-11-05T14:20:00Z',
-  },
-  {
-    id: 2,
-    category: 'orders',
-    title: 'Payment Confirmed',
-    description: 'Payment of $514.50 was authorized via 256-bit encrypted checkout gateway.',
-    is_read: true,
-    created_at: '2026-11-04T10:31:00Z',
-  },
-  {
-    id: 3,
-    category: 'promotions',
-    title: 'Private Winter Archive Access',
-    description: 'Complimentary private runway invitations now unlocked for verified ZELORA customers.',
-    is_read: false,
-    created_at: '2026-11-03T09:00:00Z',
-  },
-  {
-    id: 4,
-    category: 'promotions',
-    title: 'New Cashmere Knitwear Drop',
-    description: 'Heavy gauge Mongolian cashmere pieces added to the seasonal catalog.',
-    is_read: true,
-    created_at: '2026-10-30T12:00:00Z',
-  },
-];
+export const getCustomerStorageKey = (prefix, user) => {
+  if (user?.id) return `zelora_${prefix}_user_${user.id}`;
+  if (user?.email) return `zelora_${prefix}_${user.email.toLowerCase().trim()}`;
+  return null;
+};
 
 export function CustomerProvider({ children }) {
   const { user } = useAuth();
   const { addToCart, showToast } = useCart();
 
+  const prevUserRef = useRef(user);
+
   // Addresses State
   const [addresses, setAddresses] = useState(() => {
     try {
-      const stored = localStorage.getItem('zelora_addresses');
-      return stored ? JSON.parse(stored) : INITIAL_ADDRESSES;
+      localStorage.removeItem('zelora_addresses'); // purge legacy
+      const key = getCustomerStorageKey('addresses', user);
+      if (!key) return [];
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return INITIAL_ADDRESSES;
+      return [];
     }
   });
 
@@ -184,80 +39,187 @@ export function CustomerProvider({ children }) {
   // Orders State
   const [orders, setOrders] = useState(() => {
     try {
-      const stored = localStorage.getItem('zelora_orders');
-      return stored ? JSON.parse(stored) : INITIAL_ORDERS;
+      localStorage.removeItem('zelora_orders'); // purge legacy
+      const key = getCustomerStorageKey('orders', user);
+      if (!key) return [];
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return INITIAL_ORDERS;
+      return [];
     }
   });
 
   // Notifications State
   const [notifications, setNotifications] = useState(() => {
     try {
-      const stored = localStorage.getItem('zelora_notifications');
-      return stored ? JSON.parse(stored) : INITIAL_NOTIFICATIONS;
+      localStorage.removeItem('zelora_notifications'); // purge legacy
+      const key = getCustomerStorageKey('notifications', user);
+      if (!key) return [];
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return INITIAL_NOTIFICATIONS;
+      return [];
     }
   });
 
   // Notification Preferences
   const [notificationPrefs, setNotificationPrefs] = useState(() => {
     try {
-      const stored = localStorage.getItem('zelora_notif_prefs');
+      const key = getCustomerStorageKey('notif_prefs', user);
+      if (!key) return { orderUpdates: true, promotions: true };
+      const stored = localStorage.getItem(key);
       return stored ? JSON.parse(stored) : { orderUpdates: true, promotions: true };
     } catch {
       return { orderUpdates: true, promotions: true };
     }
   });
 
-  // Sync to localStorage
+  // Listen for global logout events for instant state wipe
   useEffect(() => {
-    localStorage.setItem('zelora_addresses', JSON.stringify(addresses));
-  }, [addresses]);
+    const handleLogout = () => {
+      setAddresses([]);
+      setOrders([]);
+      setNotifications([]);
+      setSelectedAddressId(null);
+      try {
+        localStorage.removeItem('zelora_addresses');
+        localStorage.removeItem('zelora_orders');
+        localStorage.removeItem('zelora_notifications');
+      } catch (e) {
+        console.warn('Error clearing customer data on logout', e);
+      }
+    };
+    window.addEventListener('zelora_logout', handleLogout);
+    return () => window.removeEventListener('zelora_logout', handleLogout);
+  }, []);
 
+  // When user changes (login, logout, new registration)
   useEffect(() => {
-    localStorage.setItem('zelora_orders', JSON.stringify(orders));
-  }, [orders]);
+    prevUserRef.current = user;
 
-  useEffect(() => {
-    localStorage.setItem('zelora_notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    // Always purge legacy un-scoped keys
+    localStorage.removeItem('zelora_addresses');
+    localStorage.removeItem('zelora_orders');
+    localStorage.removeItem('zelora_notifications');
 
-  useEffect(() => {
-    localStorage.setItem('zelora_notif_prefs', JSON.stringify(notificationPrefs));
-  }, [notificationPrefs]);
+    if (!user) {
+      // Logged out: immediately clear everything
+      setAddresses([]);
+      setOrders([]);
+      setNotifications([]);
+      setSelectedAddressId(null);
+    } else {
+      // User is logged in: load user-scoped cached data first
+      const addrKey = getCustomerStorageKey('addresses', user);
+      const ordersKey = getCustomerStorageKey('orders', user);
+      const notifKey = getCustomerStorageKey('notifications', user);
+      const prefsKey = getCustomerStorageKey('notif_prefs', user);
 
-  // Load from backend API if authenticated
-  useEffect(() => {
-    if (user) {
+      try {
+        if (addrKey) {
+          const cachedAddr = localStorage.getItem(addrKey);
+          if (cachedAddr) {
+            const parsed = JSON.parse(cachedAddr);
+            setAddresses(parsed);
+            const def = parsed.find((a) => a.is_default) || parsed[0];
+            setSelectedAddressId(def ? def.id : null);
+          } else {
+            setAddresses([]);
+            setSelectedAddressId(null);
+          }
+        }
+        if (ordersKey) {
+          const cachedOrders = localStorage.getItem(ordersKey);
+          setOrders(cachedOrders ? JSON.parse(cachedOrders) : []);
+        } else {
+          setOrders([]);
+        }
+        if (notifKey) {
+          const cachedNotifs = localStorage.getItem(notifKey);
+          setNotifications(cachedNotifs ? JSON.parse(cachedNotifs) : []);
+        } else {
+          setNotifications([]);
+        }
+        if (prefsKey) {
+          const cachedPrefs = localStorage.getItem(prefsKey);
+          if (cachedPrefs) setNotificationPrefs(JSON.parse(cachedPrefs));
+        }
+      } catch (e) {
+        console.warn('Could not read user customer storage', e);
+      }
+
+      // Fetch fresh, authentic data from backend for this authenticated user
       authApi.getAddresses()
         .then((res) => {
-          if (Array.isArray(res) && res.length > 0) {
+          if (Array.isArray(res)) {
             setAddresses(res);
             const def = res.find((a) => a.is_default) || res[0];
-            setSelectedAddressId(def.id);
+            setSelectedAddressId(def ? def.id : null);
+            if (addrKey) localStorage.setItem(addrKey, JSON.stringify(res));
           }
         })
         .catch(() => {});
 
       authApi.getOrders()
         .then((res) => {
-          if (Array.isArray(res) && res.length > 0) {
+          if (Array.isArray(res)) {
             setOrders(res);
+            if (ordersKey) localStorage.setItem(ordersKey, JSON.stringify(res));
           }
         })
         .catch(() => {});
 
       authApi.getNotifications()
         .then((res) => {
-          if (Array.isArray(res) && res.length > 0) {
+          if (Array.isArray(res)) {
             setNotifications(res);
+            if (notifKey) localStorage.setItem(notifKey, JSON.stringify(res));
           }
         })
         .catch(() => {});
     }
   }, [user]);
+
+  // Persist to user-scoped storage when states change
+  useEffect(() => {
+    if (!user) return;
+    const addrKey = getCustomerStorageKey('addresses', user);
+    if (addrKey) {
+      try {
+        localStorage.setItem(addrKey, JSON.stringify(addresses));
+      } catch (e) {}
+    }
+  }, [addresses, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const ordersKey = getCustomerStorageKey('orders', user);
+    if (ordersKey) {
+      try {
+        localStorage.setItem(ordersKey, JSON.stringify(orders));
+      } catch (e) {}
+    }
+  }, [orders, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const notifKey = getCustomerStorageKey('notifications', user);
+    if (notifKey) {
+      try {
+        localStorage.setItem(notifKey, JSON.stringify(notifications));
+      } catch (e) {}
+    }
+  }, [notifications, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const prefsKey = getCustomerStorageKey('notif_prefs', user);
+    if (prefsKey) {
+      try {
+        localStorage.setItem(prefsKey, JSON.stringify(notificationPrefs));
+      } catch (e) {}
+    }
+  }, [notificationPrefs, user]);
 
   // Address Actions
   const addAddress = async (data) => {
@@ -470,7 +432,6 @@ export function CustomerProvider({ children }) {
     if (!order || !order.items) return;
     let count = 0;
     order.items.forEach((item) => {
-      // Reconstruct minimal product object
       const productObj = {
         id: item.product_id,
         name: item.product_name,
@@ -564,4 +525,3 @@ export const useCustomer = () => {
   }
   return context;
 };
-

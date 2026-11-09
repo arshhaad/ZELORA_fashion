@@ -37,11 +37,7 @@ export default function AdminCategoriesPage() {
         </button>
       }
     >
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: '20px'
-      }}>
+      <div className="admin-grid-auto-cards">
         {categoriesList.map((cat) => (
           <div
             key={cat.id || cat.slug}

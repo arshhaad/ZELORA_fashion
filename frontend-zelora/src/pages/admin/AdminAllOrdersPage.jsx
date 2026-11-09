@@ -82,7 +82,7 @@ export default function AdminAllOrdersPage() {
       <div className="admin-card">
         {/* Search & Status Filters */}
         <div className="admin-card-header">
-          <div className="admin-header-search" style={{ width: '380px' }}>
+          <div className="admin-header-search admin-search-responsive">
             <Search size={15} color="#9E9EA8" />
             <input
               type="text"
@@ -179,7 +179,7 @@ export default function AdminAllOrdersPage() {
               <h3>Order Inspection — {selectedOrder.id}</h3>
             </div>
             <div className="admin-modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div className="admin-grid-2" style={{ marginBottom: '16px' }}>
                 <div>
                   <span className="admin-label">Customer Details</span>
                   <strong style={{ color: '#F6F6F9', display: 'block' }}>{selectedOrder.customer_name}</strong>
@@ -202,6 +202,8 @@ export default function AdminAllOrdersPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px',
                       borderBottom: idx < (selectedOrder.items.length - 1) ? '1px solid #23232C' : 'none'
                     }}
                   >
@@ -211,15 +213,15 @@ export default function AdminAllOrdersPage() {
                         {item.brand} • Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
                       </span>
                     </div>
-                    <strong style={{ color: '#C6A664' }}>${Number(item.price * item.quantity).toFixed(2)}</strong>
+                    <strong style={{ color: '#C6A664' }}>₹{Number(item.price * item.quantity).toFixed(2)}</strong>
                   </div>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: '#F6F6F9' }}>Final Payable Amount:</span>
                 <span style={{ fontSize: '20px', fontWeight: 800, color: '#C6A664' }}>
-                  ${Number(selectedOrder.amount).toFixed(2)}
+                  ₹{Number(selectedOrder.amount).toFixed(2)}
                 </span>
               </div>
             </div>

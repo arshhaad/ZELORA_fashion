@@ -63,12 +63,7 @@ export default function AdminPaymentsPage() {
       subtitle="Reconcile incoming payment streams, Razorpay transaction references, and settlement statuses."
     >
       {/* Gateway Status Strip */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
+      <div className="admin-grid-3">
         <div style={{
           backgroundColor: '#16161D',
           border: '1px solid #23232C',
@@ -108,7 +103,7 @@ export default function AdminPaymentsPage() {
               Total Captured Volume
             </span>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#C6A664', marginTop: '2px' }}>
-              $148,250.00
+              ₹1,48,250.00
             </div>
           </div>
         </div>
@@ -138,7 +133,7 @@ export default function AdminPaymentsPage() {
 
       <div className="admin-card">
         <div className="admin-card-header">
-          <div className="admin-header-search" style={{ width: '380px' }}>
+          <div className="admin-header-search admin-search-responsive">
             <Search size={15} color="#9E9EA8" />
             <input
               type="text"
@@ -181,7 +176,7 @@ export default function AdminPaymentsPage() {
                   </td>
 
                   <td>
-                    <strong style={{ color: '#F6F6F9' }}>${Number(pay.amount).toFixed(2)}</strong>
+                    <strong style={{ color: '#F6F6F9' }}>₹{Number(pay.amount).toFixed(2)}</strong>
                   </td>
 
                   <td>

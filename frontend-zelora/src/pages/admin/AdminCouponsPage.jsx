@@ -19,10 +19,10 @@ export default function AdminCouponsPage() {
     {
       id: 1,
       code: 'FIRST10',
-      description: '10% premier discount on orders exceeding $100',
+      description: '10% premier discount on orders exceeding ₹1,000',
       discount_type: 'percentage',
       discount_value: 10,
-      min_purchase: 100,
+      min_purchase: 1000,
       used_count: 142,
       usage_limit: 5000,
       is_active: true
@@ -30,10 +30,10 @@ export default function AdminCouponsPage() {
     {
       id: 2,
       code: 'NOIRVIP',
-      description: '$50 VIP credit on haute couture orders over $300',
+      description: '₹500 VIP credit on haute couture orders over ₹3,000',
       discount_type: 'fixed',
-      discount_value: 50,
-      min_purchase: 300,
+      discount_value: 500,
+      min_purchase: 3000,
       used_count: 88,
       usage_limit: 1000,
       is_active: true
@@ -108,13 +108,13 @@ export default function AdminCouponsPage() {
 
                   <td>
                     <strong style={{ color: '#F6F6F9', fontSize: '14px' }}>
-                      {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% OFF` : `$${coupon.discount_value} OFF`}
+                      {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% OFF` : `₹${coupon.discount_value} OFF`}
                     </strong>
                   </td>
 
                   <td>
                     <span style={{ fontSize: '12px', color: '#9E9EA8' }}>
-                      ${coupon.min_purchase} min
+                      ₹{coupon.min_purchase} min
                     </span>
                   </td>
 
@@ -166,7 +166,7 @@ export default function AdminCouponsPage() {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="admin-grid-2">
                   <div className="admin-input-group">
                     <label className="admin-label">Discount Type</label>
                     <select
@@ -175,7 +175,7 @@ export default function AdminCouponsPage() {
                       className="admin-select"
                     >
                       <option value="percentage">Percentage (%)</option>
-                      <option value="fixed">Fixed Currency ($)</option>
+                      <option value="fixed">Fixed Currency (₹)</option>
                     </select>
                   </div>
 

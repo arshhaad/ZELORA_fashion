@@ -69,7 +69,7 @@ export default function AdminBannersPage() {
         </button>
       }
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '20px' }}>
+      <div className="admin-grid-auto-cards">
         {displayBanners.map((banner) => (
           <div
             key={banner.id}
@@ -165,7 +165,7 @@ export default function AdminBannersPage() {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="admin-grid-2">
                   <div className="admin-input-group">
                     <label className="admin-label">Button CTA Text</label>
                     <input

@@ -45,7 +45,7 @@ export default function AdminPayoutsPage() {
     >
       <div className="admin-card">
         <div className="admin-card-header">
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['all', 'pending', 'approved', 'completed'].map((tab) => (
               <button
                 key={tab}
@@ -82,7 +82,7 @@ export default function AdminPayoutsPage() {
 
                   <td>
                     <strong style={{ fontSize: '15px', color: '#C6A664' }}>
-                      ${Number(payout.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      ₹{Number(payout.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </strong>
                   </td>
 

@@ -124,12 +124,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* 2. Secondary Revenue & Commission Strip */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '16px',
-        marginBottom: '28px'
-      }}>
+      <div className="admin-grid-3">
         <div style={{
           backgroundColor: '#16161D',
           border: '1px solid #23232C',
@@ -285,7 +280,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* 4. Two Columns: Pending Shop Approvals & Recent Platform Orders */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div className="admin-grid-2">
         {/* Left Column: Pending Shop Approvals */}
         <div className="admin-card">
           <div className="admin-card-header">
@@ -317,14 +312,16 @@ export default function AdminDashboardPage() {
                     padding: '14px 16px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', flex: '1 1 auto' }}>
                     <img
                       src={shop.logo}
                       alt={shop.name}
-                      style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #23232C' }}
+                      style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #23232C', flexShrink: 0 }}
                     />
                     <div>
                       <strong style={{ display: 'block', fontSize: '13px', color: '#F6F6F9' }}>{shop.name}</strong>
@@ -332,7 +329,7 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       className="btn-admin-success"

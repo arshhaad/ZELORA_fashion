@@ -58,7 +58,7 @@ export default function AdminReviewsPage() {
     >
       <div className="admin-card">
         <div className="admin-card-header">
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['all', 'approved', 'pending', 'flagged'].map((st) => (
               <button
                 key={st}

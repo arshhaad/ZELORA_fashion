@@ -11,6 +11,13 @@ export default function AdminLayout({ children, title, subtitle, actionButton })
     <div className="admin-shell">
       <Toast />
 
+      {/* Mobile Sidebar Backdrop Overlay */}
+      <div
+        className={`admin-sidebar-backdrop ${sidebarOpen ? 'active' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
       {/* Responsive Sidebar */}
       <AdminSidebar
         isOpen={sidebarOpen}

@@ -97,12 +97,7 @@ export default function AdminRolesPage() {
       )}
 
       {/* Role Definitions Overview */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
+      <div className="admin-grid-3">
         <div style={{
           backgroundColor: '#16161D',
           border: '1px solid #23232C',

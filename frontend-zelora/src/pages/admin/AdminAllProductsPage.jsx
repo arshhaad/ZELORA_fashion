@@ -29,7 +29,7 @@ export default function AdminAllProductsPage() {
       <div className="admin-card">
         {/* Filter bar */}
         <div className="admin-card-header">
-          <div className="admin-header-search" style={{ width: '380px' }}>
+          <div className="admin-header-search admin-search-responsive">
             <Search size={15} color="#9E9EA8" />
             <input
               type="text"
@@ -39,7 +39,7 @@ export default function AdminAllProductsPage() {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['all', 'approved', 'pending', 'rejected'].map((filter) => (
               <button
                 key={filter}

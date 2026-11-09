@@ -78,7 +78,7 @@ export default function AdminSellersPage() {
     >
       <div className="admin-card">
         <div className="admin-card-header">
-          <div className="admin-header-search" style={{ width: '380px' }}>
+          <div className="admin-header-search admin-search-responsive">
             <Search size={15} color="#9E9EA8" />
             <input
               type="text"

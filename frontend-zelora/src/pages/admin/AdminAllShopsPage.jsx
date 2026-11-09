@@ -21,7 +21,7 @@ export default function AdminAllShopsPage() {
     >
       <div className="admin-card">
         <div className="admin-card-header">
-          <div className="admin-header-search" style={{ width: '380px' }}>
+          <div className="admin-header-search admin-search-responsive">
             <Search size={15} color="#9E9EA8" />
             <input
               type="text"
@@ -77,7 +77,7 @@ export default function AdminAllShopsPage() {
 
                   <td>
                     <strong style={{ color: '#C6A664' }}>
-                      ${Number(shop.total_sales).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      ₹{Number(shop.total_sales).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </strong>
                   </td>
 

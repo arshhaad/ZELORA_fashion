@@ -11,12 +11,12 @@ export default function AdminReportsPage() {
     const csvContent =
       "data:text/csv;charset=utf-8," +
       "Metric,Value,Period\n" +
-      `Gross Merchandise Value,$${dashboardMetrics.total_sales},${timeframe}\n` +
-      `Platform Net Commission,$${dashboardMetrics.platform_net_revenue},${timeframe}\n` +
+      `Gross Merchandise Value,₹${dashboardMetrics.total_sales},${timeframe}\n` +
+      `Platform Net Commission,₹${dashboardMetrics.platform_net_revenue},${timeframe}\n` +
       `Total Completed Orders,${dashboardMetrics.total_orders},${timeframe}\n` +
       `Active Customer Accounts,${dashboardMetrics.total_customers},${timeframe}\n` +
       `Active Seller Boutiques,${dashboardMetrics.total_shops},${timeframe}\n` +
-      `Average Order Value,$${dashboardMetrics.average_order_value},${timeframe}\n`;
+      `Average Order Value,₹${dashboardMetrics.average_order_value},${timeframe}\n`;
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -43,7 +43,7 @@ export default function AdminReportsPage() {
       }
     >
       {/* Timeframe Switcher */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
         {[
           { id: 'week', label: 'Past 7 Days' },
           { id: 'month', label: 'Current Month (Nov 2026)' },
@@ -71,7 +71,7 @@ export default function AdminReportsPage() {
               <DollarSign size={18} />
             </div>
           </div>
-          <div className="kpi-value">${dashboardMetrics.total_sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+          <div className="kpi-value">₹{dashboardMetrics.total_sales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
           <div className="kpi-subtext">Verified Gross Sales</div>
         </div>
 
@@ -82,7 +82,7 @@ export default function AdminReportsPage() {
               <TrendingUp size={18} />
             </div>
           </div>
-          <div className="kpi-value">${dashboardMetrics.platform_net_revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+          <div className="kpi-value">₹{dashboardMetrics.platform_net_revenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
           <div className="kpi-subtext">Direct Platform Earnings</div>
         </div>
 
@@ -140,10 +140,10 @@ export default function AdminReportsPage() {
                   </td>
                   <td>{row.units} garments</td>
                   <td>
-                    <strong style={{ color: '#C6A664' }}>${row.gross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                    <strong style={{ color: '#C6A664' }}>₹{row.gross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
                   </td>
                   <td>
-                    <span style={{ color: '#30A46C', fontWeight: 600 }}>${row.net.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: '#30A46C', fontWeight: 600 }}>₹{row.net.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </td>
                   <td>
                     <span style={{ color: '#30A46C', fontWeight: 700 }}>{row.growth}</span>

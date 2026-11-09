@@ -38,7 +38,7 @@ export default function AdminCommissionsPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
+      <div className="admin-grid-split-rev">
         {/* Left: Global Platform Default Commission */}
         <div className="admin-card">
           <div className="admin-card-header">

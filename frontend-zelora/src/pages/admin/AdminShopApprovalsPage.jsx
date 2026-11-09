@@ -44,35 +44,22 @@ export default function AdminShopApprovalsPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {pendingShops.map((shop) => (
-              <div
-                key={shop.id}
-                style={{
-                  backgroundColor: '#0B0B0E',
-                  border: '1px solid #23232C',
-                  borderRadius: '10px',
-                  padding: '20px 24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '20px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', maxWidth: '600px' }}>
+              <div key={shop.id} className="admin-approval-card">
+                <div className="admin-approval-main">
                   <img
                     src={shop.logo}
                     alt={shop.name}
-                    style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #23232C' }}
+                    style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #23232C', flexShrink: 0 }}
                   />
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#F6F6F9', margin: 0 }}>{shop.name}</h3>
                       <span className="status-pill pending">Pending Review</span>
                     </div>
-                    <p style={{ fontSize: '12px', color: '#9E9EA8', margin: '4px 0 6px' }}>
+                    <p style={{ fontSize: '12px', color: '#9E9EA8', margin: '4px 0 6px', lineHeight: 1.5 }}>
                       {shop.description}
                     </p>
-                    <div style={{ display: 'flex', gap: '14px', fontSize: '11px', color: '#9E9EA8' }}>
+                    <div className="admin-approval-meta">
                       <span><strong>Category:</strong> {shop.category}</span>
                       <span><strong>Owner:</strong> {shop.owner_name} ({shop.owner_email})</span>
                       <span><strong>Submitted:</strong> {shop.created_at}</span>
@@ -80,7 +67,7 @@ export default function AdminShopApprovalsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="admin-approval-actions">
                   <button
                     type="button"
                     className="btn-admin-danger"

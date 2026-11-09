@@ -8,8 +8,8 @@ export default function AdminSettingsPage() {
   const [formData, setFormData] = useState({
     site_name: 'ZELORA Luxury Fashion',
     support_email: 'concierge@zelora.luxury',
-    currency: 'USD',
-    currency_symbol: '$',
+    currency: 'INR',
+    currency_symbol: '₹',
     default_commission_rate: 12.5,
     maintenance_mode: false,
     allow_seller_registration: true,
@@ -24,8 +24,8 @@ export default function AdminSettingsPage() {
       setFormData({
         site_name: platformSettings.site_name || 'ZELORA Luxury Fashion',
         support_email: platformSettings.support_email || 'concierge@zelora.luxury',
-        currency: platformSettings.currency || 'USD',
-        currency_symbol: platformSettings.currency_symbol || '$',
+        currency: platformSettings.currency || 'INR',
+        currency_symbol: platformSettings.currency_symbol || '₹',
         default_commission_rate: platformSettings.default_commission_rate || 12.5,
         maintenance_mode: Boolean(platformSettings.maintenance_mode),
         allow_seller_registration: platformSettings.allow_seller_registration !== false,
@@ -74,7 +74,7 @@ export default function AdminSettingsPage() {
             <h3 className="admin-card-title">Platform Identity & Concierge</h3>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="admin-grid-2">
             <div className="admin-input-group">
               <label className="admin-label">Store Brand Name</label>
               <input
@@ -98,7 +98,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="admin-grid-2">
             <div className="admin-input-group">
               <label className="admin-label">Default Base Currency</label>
               <input

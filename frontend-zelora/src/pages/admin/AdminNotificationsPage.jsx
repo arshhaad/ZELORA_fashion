@@ -65,7 +65,7 @@ export default function AdminNotificationsPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div className="admin-grid-2">
         {/* Compose Broadcast Form */}
         <div className="admin-card">
           <div className="admin-card-header">

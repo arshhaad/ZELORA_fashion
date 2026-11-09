@@ -27,7 +27,7 @@ export default function AdminCustomersPage() {
       <div className="admin-card">
         {/* Filter & Search Bar */}
         <div className="admin-card-header">
-          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '420px' }}>
+          <div className="admin-search-responsive">
             <div className="admin-header-search" style={{ width: '100%' }}>
               <Search size={15} color="#9E9EA8" />
               <input
@@ -39,7 +39,7 @@ export default function AdminCustomersPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['all', 'active', 'blocked'].map((filter) => (
               <button
                 key={filter}
@@ -112,7 +112,7 @@ export default function AdminCustomersPage() {
 
                     <td>
                       <strong style={{ color: '#C6A664' }}>
-                        ${Number(cust.total_spent).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        ₹{Number(cust.total_spent).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </strong>
                     </td>
 

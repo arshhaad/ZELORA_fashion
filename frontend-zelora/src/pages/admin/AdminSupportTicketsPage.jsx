@@ -214,7 +214,7 @@ export default function AdminSupportTicketsPage() {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn-admin-secondary"

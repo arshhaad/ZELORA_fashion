@@ -113,9 +113,9 @@ export default function AdminSidebar({ isOpen, onClose }) {
         {onClose && (
           <button
             type="button"
-            className="btn-admin-logout-icon"
+            className="admin-sidebar-close-btn"
             onClick={onClose}
-            style={{ display: 'none' }}
+            aria-label="Close navigation sidebar"
           >
             <X size={18} />
           </button>

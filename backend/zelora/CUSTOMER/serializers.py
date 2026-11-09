@@ -120,6 +120,7 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
 class GoogleAuthSerializer(serializers.Serializer):
     credential = serializers.CharField(required=False, allow_blank=True)
     access_token = serializers.CharField(required=False, allow_blank=True)
+    is_seller = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
         if not attrs.get('credential') and not attrs.get('access_token'):

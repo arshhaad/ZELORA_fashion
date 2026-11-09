@@ -181,39 +181,65 @@ class GoogleAuthView(APIView):
 
         credential = serializer.validated_data.get('credential')
         access_token = serializer.validated_data.get('access_token')
+        is_seller = serializer.validated_data.get('is_seller', False)
 
         google_user_data = None
+        client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '') or ''
+        if isinstance(client_id, str):
+            client_id = client_id.strip()
 
-        # 1. Try verifying ID token credential
+        # 1. If credential provided (OIDC ID token)
         if credential:
+            # 1a. Try verifying with google.oauth2 library
             try:
                 from google.oauth2 import id_token
                 from google.auth.transport import requests as google_requests
 
-                client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
                 id_info = id_token.verify_oauth2_token(
                     credential,
                     google_requests.Request(),
-                    client_id,
+                    client_id if client_id else None,
                     clock_skew_in_seconds=10
                 )
-                google_user_data = id_info
+                if id_info and id_info.get('email'):
+                    google_user_data = id_info
             except Exception as e:
                 logger.warning(f"Google ID token verification failed with library: {e}. Trying tokeninfo endpoint...")
+
+            # 1b. Fallback to Google's public tokeninfo endpoint
+            if not google_user_data:
                 try:
                     resp = requests.get(
                         f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}",
                         timeout=10
                     )
                     if resp.status_code == 200:
-                        google_user_data = resp.json()
+                        data = resp.json()
+                        if data.get('email'):
+                            google_user_data = data
                     else:
-                        logger.error(f"Google tokeninfo endpoint failed: {resp.text}")
+                        logger.warning(f"Google tokeninfo endpoint failed: {resp.status_code} {resp.text}")
                 except Exception as ex:
                     logger.error(f"Google tokeninfo request error: {ex}")
 
-        # 2. If access_token provided instead
+            # 1c. Cross-fallback: what if credential was passed as an access token?
+            if not google_user_data:
+                try:
+                    resp = requests.get(
+                        "https://www.googleapis.com/oauth2/v3/userinfo",
+                        headers={"Authorization": f"Bearer {credential}"},
+                        timeout=10
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get('email'):
+                            google_user_data = data
+                except Exception as ex:
+                    logger.error(f"Google userinfo fallback error: {ex}")
+
+        # 2. If access_token provided (OAuth 2.0 Userinfo)
         if not google_user_data and access_token:
+            # 2a. Fetch userinfo from Google API
             try:
                 resp = requests.get(
                     "https://www.googleapis.com/oauth2/v3/userinfo",
@@ -221,26 +247,50 @@ class GoogleAuthView(APIView):
                     timeout=10
                 )
                 if resp.status_code == 200:
-                    google_user_data = resp.json()
+                    data = resp.json()
+                    if data.get('email'):
+                        google_user_data = data
                 else:
-                    logger.error(f"Google userinfo endpoint failed: {resp.text}")
+                    logger.warning(f"Google userinfo endpoint failed: {resp.status_code} {resp.text}")
             except Exception as ex:
                 logger.error(f"Google userinfo request error: {ex}")
 
+            # 2b. Cross-fallback: what if access_token was passed as an ID token?
+            if not google_user_data:
+                try:
+                    resp = requests.get(
+                        f"https://oauth2.googleapis.com/tokeninfo?id_token={access_token}",
+                        timeout=10
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get('email'):
+                            google_user_data = data
+                except Exception as ex:
+                    logger.error(f"Google tokeninfo cross-fallback error: {ex}")
+
         if not google_user_data or not google_user_data.get('email'):
             return Response(
-                {"detail": "Unable to verify Google credentials. Please try again."},
+                {"detail": "Unable to verify Google credentials. Please verify your Google account and try again."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         email = google_user_data['email'].lower().strip()
-        first_name = google_user_data.get('given_name') or google_user_data.get('name', '').split(' ')[0] or ''
+        first_name = (
+            google_user_data.get('given_name')
+            or (google_user_data.get('name', '').split(' ')[0] if google_user_data.get('name') else '')
+            or email.split('@')[0]
+        )
         last_name = google_user_data.get('family_name') or ''
         picture = google_user_data.get('picture')
 
         user = User.objects.filter(email=email).first()
         if user:
-            # User already exists - update details if needed
+            if not user.is_active:
+                return Response(
+                    {"detail": "This account is inactive. Please contact concierge support."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
             user.is_email_verified = True
             if picture and not user.avatar_url:
                 user.avatar_url = picture
@@ -248,6 +298,8 @@ class GoogleAuthView(APIView):
                 user.first_name = first_name
             if not user.last_name and last_name:
                 user.last_name = last_name
+            if is_seller and not user.is_seller:
+                user.is_seller = True
             user.save()
         else:
             # Create new user via Google
@@ -257,7 +309,8 @@ class GoogleAuthView(APIView):
                 last_name=last_name,
                 is_email_verified=True,
                 auth_provider='google',
-                avatar_url=picture
+                avatar_url=picture,
+                is_seller=is_seller
             )
 
         tokens = get_tokens_for_user(user)

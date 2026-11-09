@@ -114,3 +114,44 @@ class AuthenticationTests(TestCase):
 
         logout_resp = self.client.post(self.logout_url, {'refresh': refresh_token})
         self.assertEqual(logout_resp.status_code, status.HTTP_200_OK)
+
+    def test_google_auth_validation_and_flow(self):
+        google_url = reverse('auth-google')
+
+        # 1. Missing both credential and access_token -> 400
+        empty_resp = self.client.post(google_url, {})
+        self.assertEqual(empty_resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 2. Mocking Google userinfo response
+        from unittest.mock import patch, MagicMock
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            'email': 'google_user@zelora.luxury',
+            'given_name': 'Genevieve',
+            'family_name': 'Laurent',
+            'picture': 'https://lh3.googleusercontent.com/avatar.jpg'
+        }
+
+        with patch('requests.get', return_value=mock_resp):
+            resp = self.client.post(google_url, {
+                'access_token': 'mock-valid-google-access-token'
+            })
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertIn('tokens', resp.data)
+            self.assertEqual(resp.data['user']['email'], 'google_user@zelora.luxury')
+            self.assertEqual(resp.data['user']['first_name'], 'Genevieve')
+
+            # Verify user exists in database
+            user = User.objects.get(email='google_user@zelora.luxury')
+            self.assertTrue(user.is_email_verified)
+            self.assertEqual(user.auth_provider, 'google')
+
+        # 3. Repeat login with existing Google user
+        with patch('requests.get', return_value=mock_resp):
+            resp2 = self.client.post(google_url, {
+                'credential': 'mock-valid-id-token'
+            })
+            self.assertEqual(resp2.status_code, status.HTTP_200_OK)
+            self.assertIn('tokens', resp2.data)

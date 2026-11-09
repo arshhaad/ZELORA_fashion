@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
-import { Search, Store, Star, DollarSign, Package, Check, X, Sliders } from 'lucide-react';
+import { Search, Store, Star, DollarSign, Package, Check, X, Sliders, MessageSquare } from 'lucide-react';
 
 export default function AdminAllShopsPage() {
   const { shops, toggleShopStatus, updateShopCommission } = useAdmin();
@@ -50,7 +51,11 @@ export default function AdminAllShopsPage() {
               {filteredShops.map((shop) => (
                 <tr key={shop.id}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Link
+                      to={`/admin/users/sellers/${shop.id}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
+                      title="View Boutique Dossier & Direct Message Box"
+                    >
                       <img
                         src={shop.logo}
                         alt={shop.name}
@@ -60,7 +65,7 @@ export default function AdminAllShopsPage() {
                         <strong style={{ fontSize: '13px', color: '#F6F6F9', display: 'block' }}>{shop.name}</strong>
                         <span style={{ fontSize: '11px', color: '#9E9EA8' }}>{shop.category}</span>
                       </div>
-                    </div>
+                    </Link>
                   </td>
 
                   <td>
@@ -99,13 +104,25 @@ export default function AdminAllShopsPage() {
                   </td>
 
                   <td style={{ textAlign: 'right' }}>
-                    <button
-                      type="button"
-                      className={shop.is_open ? 'btn-admin-danger' : 'btn-admin-success'}
-                      onClick={() => toggleShopStatus(shop.id)}
-                    >
-                      {shop.is_open ? 'Pause Shop' : 'Open Shop'}
-                    </button>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <Link
+                        to={`/admin/users/sellers/${shop.id}`}
+                        className="btn-admin-gold"
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        title="Open Boutique Dossier & Direct Message Box"
+                      >
+                        <MessageSquare size={12} />
+                        Dossier & Msg
+                      </Link>
+                      <button
+                        type="button"
+                        className={shop.is_open ? 'btn-admin-danger' : 'btn-admin-success'}
+                        onClick={() => toggleShopStatus(shop.id)}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                      >
+                        {shop.is_open ? 'Pause' : 'Open'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

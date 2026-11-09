@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
-import { Search, Ban, CheckCircle, ShieldCheck, Mail, Phone, ShoppingBag, DollarSign } from 'lucide-react';
+import { Search, Ban, CheckCircle, ShieldCheck, Mail, Phone, ShoppingBag, DollarSign, MessageSquare, ExternalLink } from 'lucide-react';
 
 export default function AdminCustomersPage() {
   const { customers, toggleCustomerBlock } = useAdmin();
@@ -79,7 +80,10 @@ export default function AdminCustomersPage() {
                 filteredCustomers.map((cust) => (
                   <tr key={cust.id}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <Link
+                        to={`/admin/users/customers/${cust.id}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
+                      >
                         <img
                           src={cust.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"}
                           alt={cust.name}
@@ -89,7 +93,7 @@ export default function AdminCustomersPage() {
                           <strong style={{ display: 'block', fontSize: '13px', color: '#F6F6F9' }}>{cust.name}</strong>
                           <span style={{ fontSize: '11px', color: '#9E9EA8' }}>ID: CUST-{cust.id}</span>
                         </div>
-                      </div>
+                      </Link>
                     </td>
 
                     <td>
@@ -127,23 +131,35 @@ export default function AdminCustomersPage() {
                     </td>
 
                     <td style={{ textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className={cust.is_active ? 'btn-admin-danger' : 'btn-admin-success'}
-                        onClick={() => toggleCustomerBlock(cust.id)}
-                      >
-                        {cust.is_active ? (
-                          <>
-                            <Ban size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                            Block Account
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                            Unblock
-                          </>
-                        )}
-                      </button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <Link
+                          to={`/admin/users/customers/${cust.id}`}
+                          className="btn-admin-secondary"
+                          style={{ padding: '6px 12px', fontSize: '12px' }}
+                          title="Open full profile and message box"
+                        >
+                          <MessageSquare size={12} />
+                          Profile & Msg
+                        </Link>
+                        <button
+                          type="button"
+                          className={cust.is_active ? 'btn-admin-danger' : 'btn-admin-success'}
+                          onClick={() => toggleCustomerBlock(cust.id)}
+                          style={{ padding: '6px 12px', fontSize: '12px' }}
+                        >
+                          {cust.is_active ? (
+                            <>
+                              <Ban size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                              Block
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                              Unblock
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

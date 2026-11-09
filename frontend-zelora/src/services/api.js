@@ -272,10 +272,20 @@ export const adminApi = {
 
   // 3. User Management
   getCustomers: (search) => adminRequest(`/users/customers/${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  getCustomerDetail: (userId) => adminRequest(`/users/customers/${userId}/`),
+  sendCustomerNotification: (userId, payload) => adminRequest(`/users/customers/${userId}/notify/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
   toggleCustomerBlock: (userId) => adminRequest(`/users/customers/${userId}/toggle-block/`, {
     method: 'POST',
   }),
   getSellers: () => adminRequest('/users/sellers/'),
+  getSellerDetail: (sellerId) => adminRequest(`/users/sellers/${sellerId}/`),
+  sendSellerNotification: (sellerId, payload) => adminRequest(`/users/sellers/${sellerId}/notify/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
   getAdminUsers: () => adminRequest('/users/admins/'),
   createAdminUser: (payload) => adminRequest('/users/admins/', {
     method: 'POST',

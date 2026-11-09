@@ -68,7 +68,9 @@ import SupportPage from './pages/seller/SupportPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminCustomersPage from './pages/admin/AdminCustomersPage';
+import AdminCustomerProfilePage from './pages/admin/AdminCustomerProfilePage';
 import AdminSellersPage from './pages/admin/AdminSellersPage';
+import AdminSellerProfilePage from './pages/admin/AdminSellerProfilePage';
 import AdminRolesPage from './pages/admin/AdminRolesPage';
 import AdminShopApprovalsPage from './pages/admin/AdminShopApprovalsPage';
 import AdminAllShopsPage from './pages/admin/AdminAllShopsPage';
@@ -397,10 +399,26 @@ export default function App() {
                     }
                   />
                   <Route
+                    path="/admin/users/customers/:id"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminCustomerProfilePage />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/admin/users/sellers"
                     element={
                       <AdminProtectedRoute>
                         <AdminSellersPage />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/users/sellers/:id"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminSellerProfilePage />
                       </AdminProtectedRoute>
                     }
                   />

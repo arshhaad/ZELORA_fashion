@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
-import { Search, Store, Percent, Star, CheckCircle, Mail, Phone, ExternalLink } from 'lucide-react';
+import { Search, Store, Percent, Star, CheckCircle, Mail, Phone, ExternalLink, MessageSquare } from 'lucide-react';
 
 export default function AdminSellersPage() {
   const { sellers, shops, updateShopCommission } = useAdmin();
@@ -106,18 +107,28 @@ export default function AdminSellersPage() {
               {filtered.map((seller) => (
                 <tr key={seller.id}>
                   <td>
-                    <strong style={{ color: '#F6F6F9', display: 'block' }}>{seller.name}</strong>
-                    <span style={{ fontSize: '11px', color: '#9E9EA8' }}>
-                      <Mail size={11} style={{ display: 'inline', marginRight: '3px' }} />
-                      {seller.email}
-                    </span>
+                    <Link
+                      to={`/admin/users/sellers/${seller.id}`}
+                      style={{ textDecoration: 'none' }}
+                      title="View Seller Profile Dossier"
+                    >
+                      <strong style={{ color: '#F6F6F9', display: 'block' }}>{seller.name}</strong>
+                      <span style={{ fontSize: '11px', color: '#9E9EA8' }}>
+                        <Mail size={11} style={{ display: 'inline', marginRight: '3px' }} />
+                        {seller.email}
+                      </span>
+                    </Link>
                   </td>
 
                   <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                    <Link
+                      to={`/admin/users/sellers/${seller.id}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: '#C6A664', textDecoration: 'none' }}
+                      title="View Boutique Dossier"
+                    >
                       <Store size={14} color="#C6A664" />
                       {seller.shop_name}
-                    </span>
+                    </Link>
                   </td>
 
                   <td>
@@ -144,15 +155,26 @@ export default function AdminSellersPage() {
                   </td>
 
                   <td style={{ textAlign: 'right' }}>
-                    <button
-                      type="button"
-                      className="btn-admin-secondary"
-                      style={{ padding: '6px 12px', fontSize: '12px' }}
-                      onClick={() => handleOpenCommissionModal(seller)}
-                    >
-                      <Percent size={12} />
-                      Set Rate
-                    </button>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <Link
+                        to={`/admin/users/sellers/${seller.id}`}
+                        className="btn-admin-gold"
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        title="Open Atelier Dossier & Direct Message Box"
+                      >
+                        <MessageSquare size={12} />
+                        Profile & Msg
+                      </Link>
+                      <button
+                        type="button"
+                        className="btn-admin-secondary"
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => handleOpenCommissionModal(seller)}
+                      >
+                        <Percent size={12} />
+                        Rate
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -4,8 +4,12 @@ from .views import (
     AdminMeView,
     AdminDashboardMetricsView,
     AdminCustomersView,
+    AdminCustomerDetailView,
+    AdminCustomerNotifyView,
     AdminToggleCustomerBlockView,
     AdminSellersView,
+    AdminSellerDetailView,
+    AdminSellerNotifyView,
     AdminRolesView,
     AdminShopApprovalsView,
     AdminShopDecisionView,
@@ -31,8 +35,12 @@ urlpatterns = [
 
     # 3. User Management
     path('users/customers/', AdminCustomersView.as_view(), name='admin-customers'),
+    path('users/customers/<int:user_id>/', AdminCustomerDetailView.as_view(), name='admin-customer-detail'),
+    path('users/customers/<int:user_id>/notify/', AdminCustomerNotifyView.as_view(), name='admin-customer-notify'),
     path('users/customers/<int:user_id>/toggle-block/', AdminToggleCustomerBlockView.as_view(), name='admin-customer-block'),
     path('users/sellers/', AdminSellersView.as_view(), name='admin-sellers'),
+    path('users/sellers/<int:seller_id>/', AdminSellerDetailView.as_view(), name='admin-seller-detail'),
+    path('users/sellers/<int:seller_id>/notify/', AdminSellerNotifyView.as_view(), name='admin-seller-notify'),
     path('users/admins/', AdminRolesView.as_view(), name='admin-admins'),
 
     # 4. Shop Management

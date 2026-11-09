@@ -27,7 +27,7 @@ export default function SellerSidebar({ isOpen, onClose }) {
   const {
     shop,
     seller,
-    logoutSeller,
+    requestLogoutSeller,
     pendingOrdersCount,
     lowStockProductsCount,
     unreadNotifsCount,
@@ -265,7 +265,7 @@ export default function SellerSidebar({ isOpen, onClose }) {
             <button
               type="button"
               className="btn-sidebar-logout"
-              onClick={logoutSeller}
+              onClick={requestLogoutSeller}
               title="Sign Out from Seller Center"
             >
               <LogOut size={16} />

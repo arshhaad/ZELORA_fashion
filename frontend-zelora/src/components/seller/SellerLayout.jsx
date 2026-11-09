@@ -2,12 +2,12 @@ import { useState } from 'react';
 import SellerSidebar from './SellerSidebar';
 import SellerHeader from './SellerHeader';
 import { useSeller } from '../../context/SellerContext';
-import { Sparkles, CheckCircle, X } from 'lucide-react';
+import { Sparkles, CheckCircle, X, LogOut } from 'lucide-react';
 import './seller.css';
 
 export default function SellerLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { toastMessage } = useSeller();
+  const { toastMessage, seller, shop, showLogoutConfirm, cancelLogoutSeller, confirmLogoutSeller } = useSeller();
 
   return (
     <div className="seller-app-root">
@@ -58,6 +58,142 @@ export default function SellerLayout({ children }) {
         {/* Main Routed Page Content */}
         <main className="seller-content-body">{children}</main>
       </div>
+
+      {/* Luxury Seller Sign Out Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div
+          className="seller-modal-overlay"
+          onClick={cancelLogoutSeller}
+          style={{
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.82)',
+            backdropFilter: 'blur(5px)',
+            padding: '20px',
+            position: 'fixed',
+            inset: 0,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#111115',
+              border: '1px solid #292932',
+              borderRadius: '12px',
+              padding: '28px 24px',
+              width: '100%',
+              maxWidth: '440px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9)',
+              textAlign: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: 'linear-gradient(90deg, #C6A664 0%, #DFBE7C 100%)',
+              }}
+            />
+
+            <div
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(198, 166, 100, 0.12)',
+                border: '1px solid rgba(198, 166, 100, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}
+            >
+              <LogOut size={24} color="#C6A664" />
+            </div>
+
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#F6F6F9', marginBottom: '8px' }}>
+              Confirm Sign Out
+            </h3>
+            <p style={{ fontSize: '13px', color: '#9E9EA8', lineHeight: 1.5, marginBottom: '20px' }}>
+              Are you sure you want to log out of the Seller Center? Any unsaved edits will remain pending until your next session.
+            </p>
+
+            {(seller || shop) && (
+              <div
+                style={{
+                  backgroundColor: '#0B0B0E',
+                  border: '1px solid #23232C',
+                  borderRadius: '6px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '24px',
+                  textAlign: 'left',
+                }}
+              >
+                <img
+                  src={shop?.logo || seller?.avatar || "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=300&q=80"}
+                  alt={shop?.name || seller?.name}
+                  style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #23232C' }}
+                />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <strong style={{ display: 'block', fontSize: '12px', color: '#F6F6F9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {shop?.name || seller?.name || 'Boutique Atelier'}
+                  </strong>
+                  <span style={{ fontSize: '11px', color: '#C6A664' }}>
+                    {seller?.email || 'Seller Account'}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={cancelLogoutSeller}
+                style={{
+                  backgroundColor: '#1E1E26',
+                  color: '#F6F6F9',
+                  border: '1px solid #2E2E38',
+                  borderRadius: '6px',
+                  padding: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Stay Signed In
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogoutSeller}
+                style={{
+                  backgroundColor: '#E5484D',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Yes, Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

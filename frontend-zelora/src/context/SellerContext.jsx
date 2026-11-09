@@ -639,12 +639,28 @@ export function SellerProvider({ children }) {
     return { user: sellerUser, shop: shopData };
   };
 
+  // Seller Logout & Confirmation State
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const requestLogoutSeller = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const cancelLogoutSeller = () => {
+    setShowLogoutConfirm(false);
+  };
+
   const logoutSeller = () => {
     setIsSellerAuthenticated(false);
     localStorage.removeItem('zelora_seller_auth');
     localStorage.removeItem('zelora_seller_access_token');
     localStorage.removeItem('zelora_seller_refresh_token');
+    setShowLogoutConfirm(false);
     showToast("Signed out from Seller Center.");
+  };
+
+  const confirmLogoutSeller = () => {
+    logoutSeller();
   };
 
   // Shop Profile & Settings Operations
@@ -897,6 +913,10 @@ export function SellerProvider({ children }) {
         loginSeller,
         registerSeller,
         logoutSeller,
+        showLogoutConfirm,
+        requestLogoutSeller,
+        cancelLogoutSeller,
+        confirmLogoutSeller,
         // Shop
         updateShopProfile,
         updateShopSettings,

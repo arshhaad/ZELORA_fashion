@@ -18,7 +18,7 @@ export default function SellerHeader({ onToggleSidebar }) {
     shop,
     seller,
     unreadNotifsCount,
-    logoutSeller,
+    requestLogoutSeller,
   } = useSeller();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -235,7 +235,7 @@ export default function SellerHeader({ onToggleSidebar }) {
                 }}
                 onClick={() => {
                   setProfileDropdownOpen(false);
-                  logoutSeller();
+                  requestLogoutSeller();
                 }}
               >
                 <LogOut size={15} />

@@ -3,7 +3,7 @@ import { useAdmin } from '../../context/AdminContext';
 import { Menu, Search, ExternalLink, Store, LogOut } from 'lucide-react';
 
 export default function AdminHeader({ onToggleSidebar }) {
-  const { adminUser, logoutAdmin } = useAdmin();
+  const { adminUser, requestLogoutAdmin } = useAdmin();
 
   return (
     <header className="admin-header">
@@ -58,7 +58,7 @@ export default function AdminHeader({ onToggleSidebar }) {
         {/* Logout Quick Action */}
         <button
           type="button"
-          onClick={logoutAdmin}
+          onClick={requestLogoutAdmin}
           className="btn-admin-danger"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           title="Sign Out"

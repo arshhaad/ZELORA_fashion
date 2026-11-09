@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminSidebar({ isOpen, onClose }) {
-  const { adminUser, logoutAdmin, dashboardMetrics } = useAdmin();
+  const { adminUser, requestLogoutAdmin, dashboardMetrics } = useAdmin();
   const location = useLocation();
 
   const navGroups = [
@@ -172,7 +172,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
         <button
           type="button"
           className="btn-admin-logout-icon"
-          onClick={logoutAdmin}
+          onClick={requestLogoutAdmin}
           title="Sign Out from Admin Panel"
         >
           <LogOut size={16} />

@@ -401,11 +401,26 @@ export function AdminProvider({ children }) {
     }
   };
 
-  // Admin Logout
+  // Admin Logout & Confirmation State
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const requestLogoutAdmin = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const cancelLogoutAdmin = () => {
+    setShowLogoutConfirm(false);
+  };
+
   const logoutAdmin = () => {
     clearAdminTokens();
     setAdminUser(null);
     setToken(null);
+    setShowLogoutConfirm(false);
+  };
+
+  const confirmLogoutAdmin = () => {
+    logoutAdmin();
   };
 
   // 1. Customer Actions
@@ -962,6 +977,10 @@ export function AdminProvider({ children }) {
     isAuthenticated,
     loginAdmin,
     logoutAdmin,
+    showLogoutConfirm,
+    requestLogoutAdmin,
+    cancelLogoutAdmin,
+    confirmLogoutAdmin,
     dashboardMetrics,
     loadDashboardData,
     // Collections & Handlers

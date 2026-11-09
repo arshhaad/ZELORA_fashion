@@ -208,8 +208,8 @@ export function CartProvider({ children }) {
 
   const discountTotal = subtotal - discountedSubtotal;
   
-  // Free delivery above $150
-  const deliveryCharge = discountedSubtotal > 150 || discountedSubtotal === 0 ? 0 : 15;
+  // Free delivery above ₹500
+  const deliveryCharge = discountedSubtotal > 500 || discountedSubtotal === 0 ? 0 : 50;
   const totalAmount = discountedSubtotal + deliveryCharge;
 
   return (

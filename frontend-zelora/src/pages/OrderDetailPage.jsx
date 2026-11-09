@@ -246,8 +246,8 @@ export default function OrderDetailPage() {
                       </div>
 
                       <div className="item-detailed-price">
-                        <span className="unit-price">${item.price} each</span>
-                        <strong className="total-item-price">${item.price * item.quantity}</strong>
+                        <span className="unit-price">₹{item.price} each</span>
+                        <strong className="total-item-price">₹{item.price * item.quantity}</strong>
                       </div>
                     </div>
                   ))}
@@ -336,28 +336,28 @@ export default function OrderDetailPage() {
                 <div className="financials-breakdown">
                   <div className="summary-line">
                     <span>Items Subtotal</span>
-                    <span>${order.subtotal}</span>
+                    <span>₹{order.subtotal}</span>
                   </div>
                   {order.discount > 0 && (
                     <div className="summary-line text-discount">
                       <span>Discount</span>
-                      <span>-${order.discount}</span>
+                      <span>-₹{order.discount}</span>
                     </div>
                   )}
                   <div className="summary-line">
                     <span>Delivery Charges</span>
-                    <span>{order.delivery_charges === 0 ? 'FREE' : `$${order.delivery_charges}`}</span>
+                    <span>{order.delivery_charges === 0 ? 'FREE' : `₹${order.delivery_charges}`}</span>
                   </div>
                   <div className="summary-line">
                     <span>Tax (5% VAT)</span>
-                    <span>${Number(order.tax).toFixed(2)}</span>
+                    <span>₹{Number(order.tax).toFixed(2)}</span>
                   </div>
 
                   <hr className="summary-divider" />
 
                   <div className="summary-total-line">
                     <span className="total-label">Grand Total</span>
-                    <span className="total-value">${Number(order.total_amount).toFixed(2)}</span>
+                    <span className="total-value">₹{Number(order.total_amount).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

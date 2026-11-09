@@ -362,8 +362,8 @@ export function CustomerProvider({ children }) {
       category: 'orders',
       title: `Order Placed & Confirmed (${orderId})`,
       description: paymentId
-        ? `Payment of $${total} authorized via Razorpay (Ref: ${paymentId}).`
-        : `Your order for $${total} has been confirmed. You will receive dispatch updates.`,
+        ? `Payment of ₹${total} authorized via Razorpay (Ref: ${paymentId}).`
+        : `Your order for ₹${total} has been confirmed. You will receive dispatch updates.`,
       is_read: false,
       created_at: new Date().toISOString(),
     };
@@ -443,7 +443,7 @@ export function CustomerProvider({ children }) {
       addToCart(productObj, item.size, item.color, item.quantity);
       count += item.quantity;
     });
-    showToast(`Added ${count} piece(s) from order ${order.order_id} back to bag.`);
+    showToast(`Added ${count} piece(s) from order ${order.order_id} back to cart.`);
   };
 
   // Notification Actions

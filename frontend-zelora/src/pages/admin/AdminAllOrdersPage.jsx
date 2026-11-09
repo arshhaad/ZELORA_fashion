@@ -140,7 +140,7 @@ export default function AdminAllOrdersPage() {
                   </td>
 
                   <td>
-                    <strong style={{ color: '#F6F6F9' }}>${Number(order.amount).toFixed(2)}</strong>
+                    <strong style={{ color: '#F6F6F9' }}>₹{Number(order.amount).toFixed(2)}</strong>
                   </td>
 
                   <td>

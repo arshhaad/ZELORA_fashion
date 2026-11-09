@@ -44,19 +44,19 @@ export default function SellerDashboardPage() {
       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       sales: [180, 420, 260, 580, 390, 750, 620],
       revenue: [158, 369, 228, 510, 343, 660, 545],
-      total: '$3,200',
+      total: '₹3,200',
     },
     weekly: {
       labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
       sales: [3400, 4100, 5200, 4800],
       revenue: [2992, 3608, 4576, 4224],
-      total: '$17,500',
+      total: '₹17,500',
     },
     monthly: {
       labels: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
       sales: [11200, 14500, 16800, 19200, 23400, 28600],
       revenue: [9856, 12760, 14784, 16896, 20592, 25168],
-      total: '$113,700',
+      total: '₹113,700',
     },
   };
 
@@ -115,7 +115,7 @@ export default function SellerDashboardPage() {
             </span>
           </div>
           <span className="stat-label">Total Sales</span>
-          <h2 className="stat-value">${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h2>
+          <h2 className="stat-value">₹{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
           <span className="stat-subtext">Gross customer order volume</span>
         </div>
 
@@ -157,7 +157,7 @@ export default function SellerDashboardPage() {
           </div>
           <span className="stat-label">Net Atelier Earnings</span>
           <h2 className="stat-value" style={{ color: 'var(--seller-gold-dark)' }}>
-            ${totalEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₹{totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </h2>
           <span className="stat-subtext">Post 12% marketplace commission</span>
         </div>
@@ -387,7 +387,7 @@ export default function SellerDashboardPage() {
                     />
 
                     {/* Value on hover tooltip */}
-                    <title>{`${currentDataset.labels[idx]}: Gross $${val} | Net $${netVal}`}</title>
+                    <title>{`${currentDataset.labels[idx]}: Gross ₹${val} | Net ₹${netVal}`}</title>
 
                     {/* Label */}
                     <text
@@ -515,7 +515,7 @@ export default function SellerDashboardPage() {
                     </td>
                     <td>
                       <strong style={{ color: 'var(--seller-espresso)' }}>
-                        ${ord.total_amount.toFixed(2)}
+                        ₹{ord.total_amount.toFixed(2)}
                       </strong>
                     </td>
                     <td>
@@ -602,7 +602,7 @@ export default function SellerDashboardPage() {
 
                 <div style={{ textAlign: 'right' }}>
                   <strong style={{ fontSize: '13px', color: 'var(--seller-espresso)' }}>
-                    ${prod.discount_price || prod.regular_price}
+                    ₹{prod.discount_price || prod.regular_price}
                   </strong>
                 </div>
               </div>

@@ -273,10 +273,10 @@ export default function SellerOrderDetailPage() {
 
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: '11.5px', color: 'var(--seller-muted)', display: 'block' }}>
-                      ${item.price} each
+                      ₹{item.price} each
                     </span>
                     <strong style={{ fontSize: '15px', color: 'var(--seller-espresso)' }}>
-                      ${(item.price * item.quantity).toFixed(2)}
+                      ₹{(item.price * item.quantity).toFixed(2)}
                     </strong>
                   </div>
                 </div>
@@ -287,16 +287,16 @@ export default function SellerOrderDetailPage() {
             <div style={{ marginTop: '24px', borderTop: '1px solid var(--seller-border)', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                 <span style={{ color: 'var(--seller-muted)' }}>Subtotal</span>
-                <span>${order.total_amount?.toFixed(2)}</span>
+                <span>₹{order.total_amount?.toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                 <span style={{ color: 'var(--seller-muted)' }}>Marketplace Commission (12%)</span>
-                <span>-${(order.total_amount * 0.12).toFixed(2)}</span>
+                <span>-₹{(order.total_amount * 0.12).toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 800, marginTop: '10px' }}>
                 <span style={{ color: 'var(--seller-espresso)' }}>Atelier Net Payout (88%)</span>
                 <span style={{ color: 'var(--seller-gold-dark)' }}>
-                  ${(order.total_amount * 0.88).toFixed(2)}
+                  ₹{(order.total_amount * 0.88).toFixed(2)}
                 </span>
               </div>
             </div>

@@ -234,7 +234,7 @@ export default function MyProductsPage() {
                 <th style={{ width: '80px' }}>Photo</th>
                 <th>Product Name & SKU</th>
                 <th>Category</th>
-                <th>Price ($)</th>
+                <th>Price (₹)</th>
                 <th>Units In Stock</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -281,7 +281,7 @@ export default function MyProductsPage() {
                     {prod.discount_price ? (
                       <div>
                         <strong style={{ color: 'var(--seller-espresso)', fontSize: '14px' }}>
-                          ${prod.discount_price}
+                          ₹{prod.discount_price}
                         </strong>
                         <small
                           style={{
@@ -291,12 +291,12 @@ export default function MyProductsPage() {
                             fontSize: '11px',
                           }}
                         >
-                          ${prod.regular_price}
+                          ₹{prod.regular_price}
                         </small>
                       </div>
                     ) : (
                       <strong style={{ color: 'var(--seller-espresso)', fontSize: '14px' }}>
-                        ${prod.regular_price}
+                        ₹{prod.regular_price}
                       </strong>
                     )}
                   </td>
@@ -394,7 +394,7 @@ export default function MyProductsPage() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
                 <strong style={{ fontSize: '16px', color: 'var(--seller-espresso)' }}>
-                  ${prod.discount_price || prod.regular_price}
+                  ₹{prod.discount_price || prod.regular_price}
                 </strong>
                 <span style={{ fontSize: '12px', color: prod.stock_quantity <= 5 ? 'var(--seller-warning)' : 'var(--seller-muted)', fontWeight: 600 }}>
                   {prod.stock_quantity} in stock

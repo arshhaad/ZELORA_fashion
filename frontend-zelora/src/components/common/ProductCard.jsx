@@ -149,9 +149,9 @@ export default function ProductCard({ product }) {
         </h3>
 
         <div className="product-card-price-row">
-          <span className="product-current-price">${product.price}</span>
+          <span className="product-current-price">₹{product.price}</span>
           {product.originalPrice && product.originalPrice > product.price && (
-            <span className="product-original-price">${product.originalPrice}</span>
+            <span className="product-original-price">₹{product.originalPrice}</span>
           )}
         </div>
       </div>

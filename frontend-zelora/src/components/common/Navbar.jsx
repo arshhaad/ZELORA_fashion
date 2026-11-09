@@ -58,7 +58,7 @@ export default function Navbar() {
       <div className="zelora-top-strip">
         <div className="top-strip-inner">
           <span className="top-strip-announcement">
-            COMPLIMENTARY SHIPPING OVER $150 &nbsp;•&nbsp; 30-DAY CONCIERGE RETURNS &nbsp;•&nbsp; ETHICAL COUTURE
+            COMPLIMENTARY SHIPPING OVER ₹500 &nbsp;•&nbsp; 30-DAY CONCIERGE RETURNS &nbsp;•&nbsp; ETHICAL COUTURE
           </span>
         </div>
       </div>

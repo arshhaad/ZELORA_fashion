@@ -93,10 +93,10 @@ export default function WishlistPage() {
                     </div>
 
                     <div className="wishlist-price-row">
-                      <span className="current-price">${product.price}</span>
+                      <span className="current-price">₹{product.price}</span>
                       {product.originalPrice && product.originalPrice > product.price && (
                         <>
-                          <span className="original-price">${product.originalPrice}</span>
+                          <span className="original-price">₹{product.originalPrice}</span>
                           <span className="discount-tag">-{product.discount}%</span>
                         </>
                       )}
@@ -110,7 +110,7 @@ export default function WishlistPage() {
                         onClick={() => handleAddToCartFromWishlist(product)}
                       >
                         <ShoppingBag size={15} />
-                        <span>Move to Bag</span>
+                        <span>Add to Cart</span>
                       </button>
 
                       <Link
@@ -133,7 +133,7 @@ export default function WishlistPage() {
               </div>
               <h2>Your Wishlist is Empty</h2>
               <p>
-                Save items you covet while browsing. Review, curate, or move them directly to your shopping bag anytime.
+                Save items you covet while browsing. Review, curate, or add them directly to your shopping cart anytime.
               </p>
               <Link to="/products" className="btn-hero-primary">
                 <span>Start Curating</span>

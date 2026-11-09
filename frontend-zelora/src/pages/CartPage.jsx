@@ -143,7 +143,7 @@ export default function CartPage() {
                               Color: <strong>{item.color}</strong>
                             </span>
                             <span className="attr-pill unit-price">
-                              Unit: <strong>${item.product.price}</strong>
+                              Unit: <strong>₹{item.product.price}</strong>
                             </span>
                           </div>
 
@@ -191,10 +191,10 @@ export default function CartPage() {
 
                         {/* Price */}
                         <div className="cart-item-price-col">
-                          <span className="cart-item-total-price">${itemTotal}</span>
+                          <span className="cart-item-total-price">₹{itemTotal}</span>
                           {item.product.originalPrice && item.product.originalPrice > item.product.price && (
                             <span className="cart-item-strike-price">
-                              ${item.product.originalPrice * item.quantity}
+                              ₹{item.product.originalPrice * item.quantity}
                             </span>
                           )}
                         </div>
@@ -227,13 +227,13 @@ export default function CartPage() {
                   <div className="summary-breakdown-list">
                     <div className="summary-line">
                       <span>Subtotal ({cartCount} items)</span>
-                      <span>${subtotal}</span>
+                      <span>₹{subtotal}</span>
                     </div>
 
                     {discountTotal > 0 && (
                       <div className="summary-line text-discount">
                         <span>Catalogue Discount</span>
-                        <span>-${discountTotal}</span>
+                        <span>-₹{discountTotal}</span>
                       </div>
                     )}
 
@@ -241,7 +241,7 @@ export default function CartPage() {
                       <div className="summary-line text-discount">
                         <span>Promo ({appliedPromo.code} -{appliedPromo.percent}%)</span>
                         <div className="promo-applied-tag">
-                          <span>-${appliedPromo.discount}</span>
+                          <span>-₹{appliedPromo.discount}</span>
                           <X size={12} onClick={handleRemovePromo} className="remove-promo-icon" />
                         </div>
                       </div>
@@ -253,15 +253,15 @@ export default function CartPage() {
                         {deliveryCharge === 0 ? (
                           <span className="free-shipping-tag">FREE</span>
                         ) : (
-                          `$${deliveryCharge}`
+                          `₹${deliveryCharge}`
                         )}
                       </span>
                     </div>
 
-                    {discountedSubtotal < 150 && (
+                    {discountedSubtotal < 500 && (
                       <div className="shipping-progress-box">
                         <small>
-                          Add <strong>${150 - discountedSubtotal}</strong> more for complimentary delivery.
+                          Add <strong>₹{500 - discountedSubtotal}</strong> more for complimentary delivery.
                         </small>
                       </div>
                     )}
@@ -270,7 +270,7 @@ export default function CartPage() {
 
                     <div className="summary-total-line">
                       <span className="total-label">Total Amount</span>
-                      <span className="total-value">${finalTotal}</span>
+                      <span className="total-value">₹{finalTotal}</span>
                     </div>
                   </div>
 

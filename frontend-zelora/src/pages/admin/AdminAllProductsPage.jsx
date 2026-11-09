@@ -95,10 +95,10 @@ export default function AdminAllProductsPage() {
                     </td>
 
                     <td>
-                      <strong style={{ color: '#F6F6F9' }}>${prod.price}</strong>
+                      <strong style={{ color: '#F6F6F9' }}>₹{prod.price}</strong>
                       {prod.originalPrice && (
                         <span style={{ fontSize: '11px', color: '#9E9EA8', textDecoration: 'line-through', marginLeft: '6px' }}>
-                          ${prod.originalPrice}
+                          ₹{prod.originalPrice}
                         </span>
                       )}
                     </td>

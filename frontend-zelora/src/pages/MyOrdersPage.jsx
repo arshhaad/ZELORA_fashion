@@ -160,7 +160,7 @@ export default function MyOrdersPage() {
                         </div>
                         <div className="meta-block">
                           <span className="meta-label">TOTAL AMOUNT</span>
-                          <strong className="meta-val">${order.total_amount}</strong>
+                          <strong className="meta-val">₹{order.total_amount}</strong>
                         </div>
                       </div>
 

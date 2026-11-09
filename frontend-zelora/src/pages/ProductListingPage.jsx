@@ -421,7 +421,7 @@ export default function ProductListingPage() {
             <div className="filter-group">
               <div className="filter-header-flex">
                 <h4 className="filter-group-title">MAX PRICE</h4>
-                <span className="price-val-indicator">${maxPrice}</span>
+                <span className="price-val-indicator">₹{maxPrice}</span>
               </div>
               <input
                 type="range"
@@ -433,8 +433,8 @@ export default function ProductListingPage() {
                 className="zelora-range-slider"
               />
               <div className="slider-limits">
-                <span>$50</span>
-                <span>$500</span>
+                <span>₹50</span>
+                <span>₹500</span>
               </div>
             </div>
 

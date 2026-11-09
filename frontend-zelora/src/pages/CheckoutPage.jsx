@@ -433,7 +433,7 @@ export default function CheckoutPage() {
                         <div className="delivery-title-row">
                           <strong>Standard Concierge Delivery</strong>
                           <span className="delivery-cost">
-                            {discountedSubtotal > 150 ? 'FREE' : '$15.00'}
+                            {discountedSubtotal > 500 ? 'FREE' : '₹50.00'}
                           </span>
                         </div>
                         <p>Estimated arrival: 3 - 5 business days with tracked courier service.</p>
@@ -452,7 +452,7 @@ export default function CheckoutPage() {
                       <div className="delivery-opt-info">
                         <div className="delivery-title-row">
                           <strong>Priority Express Delivery</strong>
-                          <span className="delivery-cost">$25.00</span>
+                          <span className="delivery-cost">₹150.00</span>
                         </div>
                         <p>Guaranteed arrival within 48 hours. Direct flight courier handling.</p>
                       </div>
@@ -629,7 +629,7 @@ export default function CheckoutPage() {
                             <strong>{item.product.name}</strong>
                             <span>Size: {item.size} • Color: {item.color} • Qty: {item.quantity}</span>
                           </div>
-                          <span className="review-item-price">${item.product.price * item.quantity}</span>
+                          <span className="review-item-price">₹{item.product.price * item.quantity}</span>
                         </div>
                       ))}
                     </div>
@@ -656,9 +656,9 @@ export default function CheckoutPage() {
                             <span className="spinner"></span> Securing Order...
                           </span>
                         ) : paymentMethod === 'Razorpay' ? (
-                          <span>Authorize & Pay ${finalPayable} via Razorpay</span>
+                          <span>Authorize & Pay ₹{finalPayable} via Razorpay</span>
                         ) : (
-                          <span>Place Order (${finalPayable} COD)</span>
+                          <span>Place Order (₹{finalPayable} COD)</span>
                         )}
                       </button>
 
@@ -691,31 +691,31 @@ export default function CheckoutPage() {
                 <div className="summary-breakdown-list">
                   <div className="summary-line">
                     <span>Product Subtotal</span>
-                    <span>${subtotal}</span>
+                    <span>₹{subtotal}</span>
                   </div>
 
                   {discountTotal > 0 && (
                     <div className="summary-line text-discount">
                       <span>Catalogue Discount</span>
-                      <span>-${discountTotal}</span>
+                      <span>-₹{discountTotal}</span>
                     </div>
                   )}
 
                   <div className="summary-line">
                     <span>Delivery Charges</span>
-                    <span>{deliveryCharge === 0 ? 'FREE' : `$${deliveryCharge}.00`}</span>
+                    <span>{deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}.00`}</span>
                   </div>
 
                   <div className="summary-line">
                     <span>Estimated Tax (5% VAT)</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>₹{tax.toFixed(2)}</span>
                   </div>
 
                   <hr className="summary-divider" />
 
                   <div className="summary-total-line">
                     <span className="total-label">Final Payable</span>
-                    <span className="total-value">${finalPayable.toFixed(2)}</span>
+                    <span className="total-value">₹{finalPayable.toFixed(2)}</span>
                   </div>
                 </div>
 

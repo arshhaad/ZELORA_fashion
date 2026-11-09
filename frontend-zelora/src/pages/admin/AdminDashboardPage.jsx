@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="kpi-value">
-            ${dashboardMetrics.total_sales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{dashboardMetrics.total_sales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="kpi-subtext">
             <TrendingUp size={13} />
@@ -118,7 +118,7 @@ export default function AdminDashboardPage() {
           <div className="kpi-value">{dashboardMetrics.total_orders}</div>
           <div className="kpi-subtext">
             <TrendingUp size={13} />
-            <span>Avg Order: ${dashboardMetrics.average_order_value}</span>
+            <span>Avg Order: ₹{dashboardMetrics.average_order_value}</span>
           </div>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function AdminDashboardPage() {
               Platform Net Commission (12.5% Avg)
             </span>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#C6A664', marginTop: '4px' }}>
-              ${dashboardMetrics.platform_net_revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{dashboardMetrics.platform_net_revenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
           <Sparkles size={24} color="#C6A664" />
@@ -164,7 +164,7 @@ export default function AdminDashboardPage() {
               Pending Seller Payouts
             </span>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#F6F6F9', marginTop: '4px' }}>
-              {dashboardMetrics.pending_payouts} Requests ($7,140.00)
+              {dashboardMetrics.pending_payouts} Requests (₹7,140.00)
             </div>
           </div>
           <Link to="/admin/payouts" style={{ fontSize: '12px', color: '#C6A664', textDecoration: 'none' }}>
@@ -275,11 +275,11 @@ export default function AdminDashboardPage() {
         <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', marginTop: '14px', fontSize: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '12px', height: '12px', backgroundColor: '#C6A664', borderRadius: '3px' }} />
-            <span style={{ color: '#F6F6F9', fontWeight: 600 }}>Total GMV ($)</span>
+            <span style={{ color: '#F6F6F9', fontWeight: 600 }}>Total GMV (₹)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '12px', height: '12px', backgroundColor: '#30A46C', borderRadius: '3px' }} />
-            <span style={{ color: '#F6F6F9', fontWeight: 600 }}>Net Commission Intake ($)</span>
+            <span style={{ color: '#F6F6F9', fontWeight: 600 }}>Net Commission Intake (₹)</span>
           </div>
         </div>
       </div>
@@ -390,7 +390,7 @@ export default function AdminDashboardPage() {
                       <strong style={{ color: '#C6A664' }}>{order.id}</strong>
                     </td>
                     <td>{order.customer_name || 'Customer'}</td>
-                    <td>${Number(order.amount).toFixed(2)}</td>
+                    <td>₹{Number(order.amount).toFixed(2)}</td>
                     <td>
                       <span className={`status-pill ${order.order_status?.toLowerCase().replace(/\s+/g, '_')}`}>
                         {order.order_status}

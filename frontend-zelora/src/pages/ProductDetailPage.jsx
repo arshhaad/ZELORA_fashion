@@ -84,7 +84,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       setSizeError(true);
-      showToast('Please select a garment size before adding to bag.', 'error');
+      showToast('Please select a garment size before adding to cart.', 'error');
       return;
     }
 
@@ -193,10 +193,10 @@ export default function ProductDetailPage() {
             {/* Price & Rating Row */}
             <div className="pdp-price-rating-row">
               <div className="pdp-price-box">
-                <span className="pdp-current-price">${product.price}</span>
+                <span className="pdp-current-price">₹{product.price}</span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <>
-                    <span className="pdp-original-price">${product.originalPrice}</span>
+                    <span className="pdp-original-price">₹{product.originalPrice}</span>
                     <span className="pdp-discount-badge">SAVE {product.discount}%</span>
                   </>
                 )}
@@ -347,7 +347,7 @@ export default function ProductDetailPage() {
                 <Truck size={18} />
                 <div>
                   <strong>Free Express Delivery</strong>
-                  <span>Complimentary on orders over $150. Tracked courier.</span>
+                  <span>Complimentary on orders over ₹500. Tracked courier.</span>
                 </div>
               </div>
               <div className="assurance-item">

@@ -8,13 +8,11 @@ import { Store, ShieldCheck } from 'lucide-react';
 export const isDemoStockPhoto = (url) => {
   if (!url || typeof url !== 'string') return true;
   return (
-    url.includes('photo-1534528741775-53994a69daeb') ||
-    url.includes('photo-1441986300917-64674bd600d8') ||
-    url.includes('photo-1509631179647-0177331693ae') ||
-    url.includes('photo-1512436991641-6745cdb1723f') ||
-    url.includes('photo-1472851294608-062f824d29cc') ||
-    url.includes('photo-1490481651871-ab68de25d43d') ||
-    url.includes('photo-1544441893-675973e31985')
+    url.includes('unsplash') ||
+    url.includes('photo-') ||
+    url.includes('placeholder') ||
+    url.includes('demo') ||
+    url.includes('avatar-demo')
   );
 };
 

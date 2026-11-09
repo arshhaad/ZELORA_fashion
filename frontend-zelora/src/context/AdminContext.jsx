@@ -48,6 +48,10 @@ const DEMO_NAMES_TO_FILTER = [
   'Elena Rostova',
   'Sebastian Chen',
   'Matteo Rossi',
+  'David Keller',
+  'Aurelia Vance',
+  'david@vanguardleather.de',
+  'aurelia@vancecouture.com',
 ];
 
 const INITIAL_SHOPS = [];
@@ -68,7 +72,11 @@ export function AdminProvider({ children }) {
       if (!stored) return [];
       const parsed = JSON.parse(stored);
       return Array.isArray(parsed)
-        ? parsed.filter((s) => !DEMO_NAMES_TO_FILTER.includes(s.name) && !DEMO_NAMES_TO_FILTER.includes(s.owner_name))
+        ? parsed.filter((s) => 
+            !DEMO_NAMES_TO_FILTER.includes(s.name) && 
+            !DEMO_NAMES_TO_FILTER.includes(s.owner_name) &&
+            !DEMO_NAMES_TO_FILTER.includes(s.owner_email)
+          )
         : [];
     } catch {
       return [];

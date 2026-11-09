@@ -88,7 +88,7 @@ class ContextService:
 
         # Base Persona
         system_prompt = (
-            f"You are the official ZELORA Luxury AI Concierge — an intelligent, elegant, and secure assistant "
+            f"You are the official ZELORA Luxury AI Assistant — an intelligent, elegant, and secure assistant "
             f"for the ZELORA monochrome editorial luxury fashion house.\n"
             f"Current Authenticated User: {first_name} ({user.email}).\n"
             f"User Role: {role_label}.\n"

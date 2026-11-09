@@ -5,6 +5,7 @@ import {
   MessageSquare,
   X,
   Send,
+  ArrowUp,
   RotateCcw,
   Sparkles,
   ShieldCheck,
@@ -65,7 +66,7 @@ export default function ZeloraAIChatWidget() {
         {
           id: 'init-1',
           role: 'assistant',
-          content: `Hi ${firstName}! 👋 Welcome to your private ZELORA Concierge. As a verified ${role}, how may I assist your wardrobe, orders, or atelier today?`,
+          content: `Hi ${firstName}! 👋 Welcome to your private ZELORA Assistant. As a verified ${role}, how may I assist your wardrobe, orders, or boutique today?`,
           provider: 'gemini',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
@@ -146,9 +147,19 @@ export default function ZeloraAIChatWidget() {
 
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
-      const errorReply = err.status === 401
-        ? "Your session has expired. Please log in again to continue."
-        : (err.message || "I apologize, our concierge service is momentarily occupied. Please try again.");
+      let errorReply = "I apologize, our assistant service is momentarily occupied. Please try again.";
+
+      if (err.status === 401) {
+        errorReply = "Your session has expired. Please log in again to continue.";
+      } else if (
+        err.status === 502 ||
+        err.status === 504 ||
+        (err.message && (err.message.includes('502') || err.message.includes('504') || err.message.includes('Failed to fetch')))
+      ) {
+        errorReply = "I am temporarily unable to reach the ZELORA core backend service. Please ensure the Django server is running on port 8000.";
+      } else if (err.message) {
+        errorReply = err.message;
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -223,8 +234,8 @@ export default function ZeloraAIChatWidget() {
           type="button"
           className="zelora-ai-trigger-btn"
           onClick={() => setIsOpen(true)}
-          aria-label="Open ZELORA Luxury AI Concierge"
-          title="Open ZELORA Luxury AI Concierge"
+          aria-label="Open ZELORA Assistant"
+          title="Open ZELORA Assistant"
         >
           <div className="zelora-ai-badge-crest">
             <span className="zelora-ai-crest-text">Z</span>
@@ -232,14 +243,14 @@ export default function ZeloraAIChatWidget() {
           </div>
           <div className="zelora-ai-trigger-text">
             <span className="zelora-ai-trigger-label">ZELORA AI</span>
-            <span className="zelora-ai-trigger-sub">Luxury Concierge</span>
+            <span className="zelora-ai-trigger-sub">Assistant</span>
           </div>
         </button>
       )}
 
       {/* 2. Floating AI Chat Window Drawer */}
       {isOpen && (
-        <div className="zelora-ai-chat-window" role="dialog" aria-label="ZELORA AI Concierge">
+        <div className="zelora-ai-chat-window" role="dialog" aria-label="ZELORA Assistant">
           {/* Header */}
           <div className="zelora-ai-header">
             <div className="zelora-ai-header-left">
@@ -248,7 +259,7 @@ export default function ZeloraAIChatWidget() {
               </div>
               <div className="zelora-ai-title-wrap">
                 <h3>
-                  ZELORA Concierge
+                  ZELORA Assistant
                   <ShieldCheck size={13} color="#C6A664" />
                 </h3>
                 <button
@@ -277,7 +288,7 @@ export default function ZeloraAIChatWidget() {
                 type="button"
                 className="zelora-ai-icon-btn"
                 onClick={() => setIsOpen(false)}
-                title="Close AI Concierge"
+                title="Close ZELORA Assistant"
               >
                 <X size={16} />
               </button>
@@ -351,7 +362,7 @@ export default function ZeloraAIChatWidget() {
             <input
               type="text"
               className="zelora-ai-input"
-              placeholder="Ask about orders, styling, or boutique sales..."
+              placeholder="Ask ZELORA Assistant about orders, styling, or boutique sales..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               disabled={isLoading}
@@ -361,8 +372,9 @@ export default function ZeloraAIChatWidget() {
               className="zelora-ai-send-btn"
               disabled={!inputText.trim() || isLoading}
               title="Send message"
+              aria-label="Send message"
             >
-              <Send size={15} />
+              <ArrowUp size={16} strokeWidth={2.6} />
             </button>
           </form>
         </div>

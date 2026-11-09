@@ -53,9 +53,14 @@ async function aiRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    const errorMsg =
+    let errorMsg =
       (data && (data.detail || data.message || (typeof data === 'object' && JSON.stringify(data)))) ||
       `Request failed with status ${response.status}`;
+
+    if (response.status === 502 || response.status === 504) {
+      errorMsg = "Unable to reach ZELORA backend service. Please ensure the Django server is running on port 8000.";
+    }
+
     const err = new Error(errorMsg);
     err.status = response.status;
     err.data = data;

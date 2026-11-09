@@ -566,7 +566,7 @@ export default function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
 
-                {/* Floating ZELORA Luxury AI Assistant Concierge */}
+                {/* Floating ZELORA Luxury AI Assistant */}
                 <ZeloraAIChatWidget />
               </BrowserRouter>
               </AdminProvider>

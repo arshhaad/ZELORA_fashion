@@ -70,6 +70,20 @@
 }
 
 /* SIDEBAR — STRICTLY HIDE SCROLLBAR SO NO WHITE BROWSER SCROLLBAR EVER APPEARS */
+.admin-sidebar,
+.admin-sidebar * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.admin-sidebar::-webkit-scrollbar,
+.admin-sidebar *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
 .admin-sidebar {
   width: 270px;
   background-color: var(--admin-surface);

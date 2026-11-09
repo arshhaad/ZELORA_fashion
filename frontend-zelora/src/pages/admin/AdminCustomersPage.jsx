@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
+import { UserAvatarBadge } from '../../components/common/BrandBadge';
 import { Search, Ban, CheckCircle, ShieldCheck, Mail, Phone, ShoppingBag, DollarSign, MessageSquare, ExternalLink } from 'lucide-react';
 
 export default function AdminCustomersPage() {
@@ -84,10 +85,11 @@ export default function AdminCustomersPage() {
                         to={`/admin/users/customers/${cust.id}`}
                         style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
                       >
-                        <img
-                          src={cust.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"}
-                          alt={cust.name}
-                          style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #23232C' }}
+                        <UserAvatarBadge
+                          avatar={cust.avatar}
+                          name={cust.name}
+                          email={cust.email}
+                          size={36}
                         />
                         <div>
                           <strong style={{ display: 'block', fontSize: '13px', color: '#F6F6F9' }}>{cust.name}</strong>

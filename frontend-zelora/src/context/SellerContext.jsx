@@ -6,8 +6,8 @@ const SellerContext = createContext();
 // Sample Luxury Fashion Seller Data
 const INITIAL_SHOP = {
   name: "Maison de L'Ombre",
-  logo: "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=300&q=80",
-  banner: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80",
+  logo: null,
+  banner: null,
   description: "Bespoke Parisian tailoring, fine Italian silks, and timeless silhouettes. Handcrafted in our South Mumbai atelier.",
   category: "Haute Couture & Designer Wear",
   contact_email: "atelier@maisondelombre.luxury",
@@ -26,7 +26,7 @@ const INITIAL_SELLER = {
   name: "Eleanor Vance",
   email: "eleanor@maisondelombre.luxury",
   phone: "+91 98201 54321",
-  avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+  avatar: null,
   shop_name: "Maison de L'Ombre",
   shop_category: "Haute Couture & Designer Wear",
   role: "Verified Premier Atelier",
@@ -526,8 +526,20 @@ export function SellerProvider({ children }) {
   };
 
   // State Declarations
-  const [seller, setSeller] = useState(() => loadStored('user', INITIAL_SELLER));
-  const [shop, setShop] = useState(() => loadStored('shop', INITIAL_SHOP));
+  const [seller, setSeller] = useState(() => {
+    const s = loadStored('user', INITIAL_SELLER);
+    if (s && s.avatar && (s.avatar.includes('photo-1534528741775-53994a69daeb') || s.avatar.includes('unsplash'))) {
+      s.avatar = null;
+    }
+    return s;
+  });
+  const [shop, setShop] = useState(() => {
+    const sh = loadStored('shop', INITIAL_SHOP);
+    if (sh && sh.logo && (sh.logo.includes('photo-1534528741775-53994a69daeb') || sh.logo.includes('photo-1544441893-675973e31985') || sh.logo.includes('unsplash'))) {
+      sh.logo = null;
+    }
+    return sh;
+  });
   const [products, setProducts] = useState(() => loadStored('products', INITIAL_PRODUCTS));
   const [orders, setOrders] = useState(() => loadStored('orders', INITIAL_ORDERS));
   const [coupons, setCoupons] = useState(() => loadStored('coupons', INITIAL_COUPONS));

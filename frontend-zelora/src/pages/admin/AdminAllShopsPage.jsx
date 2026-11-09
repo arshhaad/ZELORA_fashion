@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
+import { ShopLogoBadge } from '../../components/common/BrandBadge';
 import { Search, Store, Star, DollarSign, Package, Check, X, Sliders, MessageSquare } from 'lucide-react';
 
 export default function AdminAllShopsPage() {
@@ -56,10 +57,10 @@ export default function AdminAllShopsPage() {
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
                       title="View Boutique Dossier & Direct Message Box"
                     >
-                      <img
-                        src={shop.logo}
-                        alt={shop.name}
-                        style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #23232C' }}
+                      <ShopLogoBadge
+                        logo={shop.logo || shop.logo_url}
+                        name={shop.name}
+                        size={40}
                       />
                       <div>
                         <strong style={{ fontSize: '13px', color: '#F6F6F9', display: 'block' }}>{shop.name}</strong>

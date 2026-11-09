@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
+import { UserAvatarBadge, ShopLogoBadge } from '../../components/common/BrandBadge';
 import { Search, Store, Percent, Star, CheckCircle, Mail, Phone, ExternalLink, MessageSquare } from 'lucide-react';
 
 export default function AdminSellersPage() {
@@ -10,53 +11,13 @@ export default function AdminSellersPage() {
   const [editingShop, setEditingShop] = useState(null);
   const [newCommission, setNewCommission] = useState('');
 
-  const displaySellers = sellers.length > 0 ? sellers : [
-    {
-      id: 201,
-      name: 'Elena Rostova',
-      email: 'atelier@zelora.luxury',
-      phone: '+33 1 42 68 00 00',
-      shop_name: 'ZELORA Atelier Flagship',
-      shop_category: 'Haute Couture & Outerwear',
-      is_open: true,
-      commission_rate: 12.5,
-      is_active: true,
-      rating: 4.98,
-      date_joined: 'Jan 15, 2026'
-    },
-    {
-      id: 202,
-      name: 'Sebastian Chen',
-      email: 'noir@zelora.luxury',
-      phone: '+44 20 7946 0912',
-      shop_name: 'Noir Studio Couture',
-      shop_category: 'Minimalist Drapes & Silk',
-      is_open: true,
-      commission_rate: 12.5,
-      is_active: true,
-      rating: 4.92,
-      date_joined: 'Feb 01, 2026'
-    },
-    {
-      id: 203,
-      name: 'Matteo Rossi',
-      email: 'matteo@linenmilano.com',
-      phone: '+39 02 1234 5678',
-      shop_name: 'Linen & Silk Milano',
-      shop_category: 'Luxury Essentials',
-      is_open: true,
-      commission_rate: 15.0,
-      is_active: true,
-      rating: 4.88,
-      date_joined: 'Feb 20, 2026'
-    }
-  ];
+  const displaySellers = sellers || [];
 
   const filtered = displaySellers.filter(
     (s) =>
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.shop_name.toLowerCase().includes(searchTerm.toLowerCase())
+      (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.shop_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleOpenCommissionModal = (seller) => {
@@ -104,21 +65,36 @@ export default function AdminSellersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((seller) => (
-                <tr key={seller.id}>
-                  <td>
-                    <Link
-                      to={`/admin/users/sellers/${seller.id}`}
-                      style={{ textDecoration: 'none' }}
-                      title="View Seller Profile Dossier"
-                    >
-                      <strong style={{ color: '#F6F6F9', display: 'block' }}>{seller.name}</strong>
-                      <span style={{ fontSize: '11px', color: '#9E9EA8' }}>
-                        <Mail size={11} style={{ display: 'inline', marginRight: '3px' }} />
-                        {seller.email}
-                      </span>
-                    </Link>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#9E9EA8' }}>
+                    No registered vendor accounts match your criteria.
                   </td>
+                </tr>
+              ) : (
+                filtered.map((seller) => (
+                  <tr key={seller.id}>
+                    <td>
+                      <Link
+                        to={`/admin/users/sellers/${seller.id}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+                        title="View Seller Profile Dossier"
+                      >
+                        <UserAvatarBadge
+                          avatar={seller.avatar}
+                          name={seller.name}
+                          email={seller.email}
+                          size={34}
+                        />
+                        <div>
+                          <strong style={{ color: '#F6F6F9', display: 'block' }}>{seller.name}</strong>
+                          <span style={{ fontSize: '11px', color: '#9E9EA8' }}>
+                            <Mail size={11} style={{ display: 'inline', marginRight: '3px' }} />
+                            {seller.email}
+                          </span>
+                        </div>
+                      </Link>
+                    </td>
 
                   <td>
                     <Link
@@ -177,7 +153,7 @@ export default function AdminSellersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

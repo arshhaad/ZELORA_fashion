@@ -19,204 +19,41 @@ export const useAdmin = () => {
   return context;
 };
 
-// Initial Mock data fallbacks for flawless offline/standalone rendering
+// Real platform initial metrics baseline
 const INITIAL_METRICS = {
-  total_sales: 148250.00,
-  total_users: 184,
-  total_customers: 156,
-  total_sellers: 28,
-  total_shops: 22,
-  total_orders: 512,
-  pending_shop_approvals: 3,
-  pending_payouts: 2,
-  open_tickets: 4,
-  average_order_value: 289.50,
-  platform_net_revenue: 18531.25,
+  total_sales: 0.00,
+  total_users: 0,
+  total_customers: 0,
+  total_sellers: 0,
+  total_shops: 0,
+  total_orders: 0,
+  pending_shop_approvals: 0,
+  pending_payouts: 0,
+  open_tickets: 0,
+  average_order_value: 0.00,
+  platform_net_revenue: 0.00,
 };
 
-const INITIAL_SHOPS = [
-  {
-    id: 1,
-    name: 'ZELORA Atelier Flagship',
-    slug: 'zelora-atelier',
-    category: 'Haute Couture & Outerwear',
-    owner_name: 'Elena Rostova',
-    owner_email: 'atelier@zelora.luxury',
-    rating: 4.98,
-    total_products: 42,
-    total_sales: 68400.00,
-    commission_rate: 12.5,
-    is_open: true,
-    status: 'approved',
-    created_at: '2026-01-15',
-    logo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=300&q=80',
-    description: 'Premier artisanal tailoring atelier crafting bespoke monochrome wool overcoats and tailored suiting.'
-  },
-  {
-    id: 2,
-    name: 'Noir Studio Couture',
-    slug: 'noir-studio',
-    category: 'Minimalist Drapes & Silk',
-    owner_name: 'Sebastian Chen',
-    owner_email: 'noir@zelora.luxury',
-    rating: 4.92,
-    total_products: 36,
-    total_sales: 42800.00,
-    commission_rate: 12.5,
-    is_open: true,
-    status: 'approved',
-    created_at: '2026-02-01',
-    logo: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=300&q=80',
-    description: 'Contemporary monochrome silk gowns, tailored pleat trousers and pure linen outerwear.'
-  },
-  {
-    id: 3,
-    name: 'Linen & Silk Milano',
-    slug: 'linen-silk-milano',
-    category: 'Luxury Essentials',
-    owner_name: 'Matteo Rossi',
-    owner_email: 'matteo@linenmilano.com',
-    rating: 4.88,
-    total_products: 28,
-    total_sales: 24500.00,
-    commission_rate: 15.0,
-    is_open: true,
-    status: 'approved',
-    created_at: '2026-02-20',
-    logo: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=300&q=80',
-    description: 'Italian sourced organic linens, double-faced poplin shirts and architectural knitwear.'
-  },
-  {
-    id: 4,
-    name: 'Aurelia Eveningwear',
-    slug: 'aurelia-evening',
-    category: 'Formal & Gala Gowns',
-    owner_name: 'Aurelia Vance',
-    owner_email: 'aurelia@vancecouture.com',
-    rating: 5.0,
-    total_products: 15,
-    total_sales: 12550.00,
-    commission_rate: 12.5,
-    is_open: false,
-    status: 'pending',
-    created_at: '2026-03-01',
-    logo: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=300&q=80',
-    description: 'Hand-pleated monochrome eveningwear, sculptured corsetry and gala attire.'
-  },
-  {
-    id: 5,
-    name: 'Vanguard Leatherworks',
-    slug: 'vanguard-leather',
-    category: 'Accessories & Leather',
-    owner_name: 'David Keller',
-    owner_email: 'david@vanguardleather.de',
-    rating: 4.85,
-    total_products: 19,
-    total_sales: 9800.00,
-    commission_rate: 12.5,
-    is_open: false,
-    status: 'pending',
-    created_at: '2026-03-03',
-    logo: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=300&q=80',
-    description: 'Full-grain vegetable-tanned leather totes, architectural belts and travel bags.'
-  }
+const DEMO_NAMES_TO_FILTER = [
+  'ZELORA Atelier Flagship',
+  'Noir Studio Couture',
+  'Linen & Silk Milano',
+  'Aurelia Eveningwear',
+  'Vanguard Leatherworks',
+  'Genevieve Laurent',
+  'Julian Sterling',
+  'Camilla Hayes',
+  'Vikram Malhotra',
+  'Alexander Stone',
+  'Elena Rostova',
+  'Sebastian Chen',
+  'Matteo Rossi',
 ];
 
-const INITIAL_CUSTOMERS = [
-  {
-    id: 101,
-    name: 'Genevieve Laurent',
-    email: 'genevieve@laurent.fr',
-    phone: '+33 6 12 34 56 78',
-    is_active: true,
-    is_email_verified: true,
-    orders_count: 8,
-    total_spent: 3420.00,
-    date_joined: 'Jan 12, 2026',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'
-  },
-  {
-    id: 102,
-    name: 'Julian Sterling',
-    email: 'julian@sterlingholdings.co.uk',
-    phone: '+44 7700 900123',
-    is_active: true,
-    is_email_verified: true,
-    orders_count: 6,
-    total_spent: 2890.00,
-    date_joined: 'Jan 28, 2026',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
-  },
-  {
-    id: 103,
-    name: 'Camilla Hayes',
-    email: 'camilla.hayes@manhattan.com',
-    phone: '+1 212 555 0192',
-    is_active: true,
-    is_email_verified: true,
-    orders_count: 5,
-    total_spent: 1950.00,
-    date_joined: 'Feb 05, 2026',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80'
-  },
-  {
-    id: 104,
-    name: 'Vikram Malhotra',
-    email: 'vikram.m@malhotragroup.in',
-    phone: '+91 98200 12345',
-    is_active: true,
-    is_email_verified: true,
-    orders_count: 11,
-    total_spent: 5640.00,
-    date_joined: 'Feb 14, 2026',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'
-  },
-  {
-    id: 105,
-    name: 'Alexander Stone',
-    email: 'astone@stonedesign.ch',
-    phone: '+41 79 123 45 67',
-    is_active: false,
-    is_email_verified: true,
-    orders_count: 2,
-    total_spent: 420.00,
-    date_joined: 'Feb 20, 2026',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80'
-  }
-];
-
-const INITIAL_BRANDS = [
-  { id: 'b1', name: 'ZELORA Atelier', origin: 'Paris & Milan', productsCount: 54, active: true },
-  { id: 'b2', name: 'Noir Studio', origin: 'Stockholm', productsCount: 38, active: true },
-  { id: 'b3', name: 'Linen & Silk Milano', origin: 'Milan', productsCount: 32, active: true },
-  { id: 'b4', name: 'Aurelia Couture', origin: 'Florence', productsCount: 22, active: true },
-  { id: 'b5', name: 'Vanguard Leatherworks', origin: 'Munich', productsCount: 19, active: true }
-];
-
-const INITIAL_DIRECT_MESSAGES = [
-  {
-    id: 9001,
-    recipient_type: 'seller',
-    recipient_id: 201,
-    recipient_email: 'atelier@zelora.luxury',
-    recipient_name: 'Elena Rostova (ZELORA Atelier Flagship)',
-    title: 'Autumn/Winter Runway Editorial Curation',
-    message: 'Greetings Elena, your tailored virgin wool outerwear pieces have been selected for prime editorial carousel placement on the platform homepage this Friday.',
-    priority: 'High',
-    sent_at: '2026-11-08T11:45:00Z',
-  },
-  {
-    id: 9002,
-    recipient_type: 'customer',
-    recipient_id: 101,
-    recipient_email: 'genevieve@laurent.fr',
-    recipient_name: 'Genevieve Laurent',
-    title: 'Private Circle Concierge Privilege',
-    message: 'Dear Genevieve, in recognition of your patronage, your account has been elevated to ZELORA Obsidian Tier with complimentary express climate-controlled dispatch on all orders.',
-    priority: 'Normal',
-    sent_at: '2026-11-07T16:20:00Z',
-  },
-];
+const INITIAL_SHOPS = [];
+const INITIAL_CUSTOMERS = [];
+const INITIAL_BRANDS = [];
+const INITIAL_DIRECT_MESSAGES = [];
 
 export function AdminProvider({ children }) {
   const [adminUser, setAdminUser] = useState(() => getStoredAdminUser());
@@ -228,9 +65,13 @@ export function AdminProvider({ children }) {
   const [shops, setShops] = useState(() => {
     try {
       const stored = localStorage.getItem('zelora_admin_shops');
-      return stored ? JSON.parse(stored) : INITIAL_SHOPS;
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed)
+        ? parsed.filter((s) => !DEMO_NAMES_TO_FILTER.includes(s.name) && !DEMO_NAMES_TO_FILTER.includes(s.owner_name))
+        : [];
     } catch {
-      return INITIAL_SHOPS;
+      return [];
     }
   });
 
@@ -256,9 +97,13 @@ export function AdminProvider({ children }) {
   const [directMessages, setDirectMessages] = useState(() => {
     try {
       const stored = localStorage.getItem('zelora_admin_direct_messages');
-      return stored ? JSON.parse(stored) : INITIAL_DIRECT_MESSAGES;
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed)
+        ? parsed.filter((m) => !DEMO_NAMES_TO_FILTER.some((d) => (m.recipient_name || '').includes(d)))
+        : [];
     } catch {
-      return INITIAL_DIRECT_MESSAGES;
+      return [];
     }
   });
 
@@ -274,8 +119,8 @@ export function AdminProvider({ children }) {
   const [platformSettings, setPlatformSettings] = useState({
     site_name: 'ZELORA Luxury Fashion',
     support_email: 'concierge@zelora.luxury',
-    currency: 'USD',
-    currency_symbol: '$',
+    currency: 'INR',
+    currency_symbol: '₹',
     default_commission_rate: 12.50,
     maintenance_mode: false,
     allow_seller_registration: true,
@@ -293,6 +138,7 @@ export function AdminProvider({ children }) {
         metricsRes,
         custRes,
         sellersRes,
+        shopsRes,
         adminsRes,
         ordersRes,
         paymentsRes,
@@ -306,6 +152,7 @@ export function AdminProvider({ children }) {
         adminApi.getMetrics(),
         adminApi.getCustomers(),
         adminApi.getSellers(),
+        adminApi.getShopApprovals(),
         adminApi.getAdminUsers(),
         adminApi.getOrders(),
         adminApi.getPayments(),
@@ -320,11 +167,30 @@ export function AdminProvider({ children }) {
       if (metricsRes.status === 'fulfilled' && metricsRes.value.metrics) {
         setDashboardMetrics(metricsRes.value.metrics);
       }
-      if (custRes.status === 'fulfilled' && Array.isArray(custRes.value) && custRes.value.length > 0) {
+      if (custRes.status === 'fulfilled' && Array.isArray(custRes.value)) {
         setCustomers(custRes.value);
       }
       if (sellersRes.status === 'fulfilled' && Array.isArray(sellersRes.value)) {
         setSellers(sellersRes.value);
+      }
+      if (shopsRes.status === 'fulfilled' && Array.isArray(shopsRes.value)) {
+        const liveShops = shopsRes.value.map((sh) => ({
+          id: sh.id,
+          name: sh.name,
+          category: sh.category || 'Haute Couture & Designer Wear',
+          owner_name: sh.owner_name,
+          owner_email: sh.owner_email,
+          description: sh.description || `Boutique atelier specializing in ${sh.category}.`,
+          is_open: Boolean(sh.is_open),
+          status: sh.is_open ? 'approved' : 'pending',
+          rating: 4.95,
+          total_products: 0,
+          total_sales: 0.0,
+          commission_rate: 12.5,
+          created_at: sh.created_at ? new Date(sh.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 9, 2026',
+          logo: sh.logo_url || null,
+        }));
+        setShops(liveShops);
       }
       if (adminsRes.status === 'fulfilled' && Array.isArray(adminsRes.value)) {
         setAdminUsersList(adminsRes.value);
@@ -389,7 +255,7 @@ export function AdminProvider({ children }) {
           role: 'Super Administrator',
           is_superuser: true,
           is_staff: true,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'
+          avatar: null
         };
         setAdminAccessToken('demo_jwt_token_admin_zelora');
         setStoredAdminUser(fallbackUser);
@@ -713,7 +579,7 @@ export function AdminProvider({ children }) {
         orders_count: 5,
         total_spent: 2450.00,
         date_joined: 'Jan 15, 2026',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        avatar: null,
       };
 
     const localNotifs = [];
@@ -759,7 +625,7 @@ export function AdminProvider({ children }) {
       is_email_verified: found.is_email_verified !== undefined ? found.is_email_verified : true,
       auth_provider: found.auth_provider || 'Email & Security Credentials',
       date_joined: found.date_joined || 'Jan 15, 2026',
-      avatar: found.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+      avatar: (found.avatar && !found.avatar.includes('photo-1534528741775-53994a69daeb')) ? found.avatar : null,
       metrics: {
         orders_count: ordersCountNum,
         total_spent: totalSpentNum,
@@ -857,14 +723,14 @@ export function AdminProvider({ children }) {
       is_active: foundSeller?.is_active !== undefined ? foundSeller.is_active : true,
       is_email_verified: true,
       date_joined: foundSeller?.date_joined || foundShop?.created_at || 'Jan 15, 2026',
-      avatar: foundSeller?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+      avatar: (foundSeller?.avatar && !foundSeller.avatar.includes('photo-1534528741775-53994a69daeb')) ? foundSeller.avatar : null,
       shop: {
         id: foundShop?.id || 1,
         name: shopName,
         category: category,
         description: foundShop?.description || 'Premier artisanal tailoring atelier crafting bespoke monochrome wool overcoats and tailored suiting.',
-        logo_url: foundShop?.logo || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=300&q=80',
-        banner_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80',
+        logo_url: (foundShop?.logo && !foundShop.logo.includes('photo-1441986300917') && !foundShop.logo.includes('photo-1534528741775-53994a69daeb')) ? foundShop.logo : null,
+        banner_url: null,
         contact_email: sellerEmail,
         contact_number: sellerPhone,
         business_address: 'Suite 4B, The Monolith Arcade, Colaba Causeway, Mumbai 400005, India',

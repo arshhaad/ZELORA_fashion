@@ -275,7 +275,7 @@ export const PRODUCTS = [
     ],
     images: [
       'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1000&q=80&sat=-100',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1000&q=80&sat=-100'
+      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=80&sat=-100'
     ],
     reviews: [
       { id: 'r7', user: 'Zoe P.', rating: 5, date: 'November 1, 2026', comment: 'Architectural and functional. Fits all daily essentials cleanly.' }
@@ -423,7 +423,7 @@ export const PRODUCTS = [
     ],
     images: [
       'https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&w=1000&q=80&sat=-100',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1000&q=80&sat=-100'
+      'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=1000&q=80&sat=-100'
     ],
     reviews: [
       { id: 'r11', user: 'Devon F.', rating: 5, date: 'October 28, 2026', comment: 'Matches the editorial look in the hero banner perfectly. Heavy and premium.' }

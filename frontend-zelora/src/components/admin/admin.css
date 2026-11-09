@@ -34,6 +34,7 @@
   background-color: var(--admin-bg);
   color: var(--admin-text-main);
   font-family: var(--admin-font);
+  color-scheme: dark;
 }
 
 /* ==============================================================================
@@ -81,6 +82,8 @@
   left: 0;
   z-index: 100;
   transition: transform 0.25s ease;
+  overflow: hidden;
+  color-scheme: dark;
 }
 
 .admin-sidebar-header {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
+import { ShopLogoBadge, UserAvatarBadge } from '../../components/common/BrandBadge';
 import {
   ArrowLeft,
   Store,
@@ -238,32 +239,27 @@ export default function AdminSellerProfilePage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <div style={{ position: 'relative' }}>
-              <img
-                src={seller.shop?.logo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=300&q=80'}
-                alt={seller.shop?.name}
+              <ShopLogoBadge
+                logo={seller.shop?.logo_url}
+                name={seller.shop?.name || seller.name}
+                size={76}
                 style={{
-                  width: '76px',
-                  height: '76px',
                   borderRadius: '10px',
-                  objectFit: 'cover',
                   border: '2px solid #C6A664',
                   boxShadow: '0 4px 16px rgba(198, 166, 100, 0.25)',
                 }}
               />
-              <img
-                src={seller.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-                alt={seller.name}
+              <UserAvatarBadge
+                avatar={seller.avatar}
+                name={seller.name}
+                email={seller.email}
+                size={32}
                 style={{
                   position: 'absolute',
                   bottom: -6,
                   right: -6,
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
                   border: '2px solid #131318',
-                  objectFit: 'cover',
                 }}
-                title={`Proprietor: ${seller.name}`}
               />
             </div>
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import SellerSidebar from './SellerSidebar';
 import SellerHeader from './SellerHeader';
 import { useSeller } from '../../context/SellerContext';
+import { ShopLogoBadge } from '../common/BrandBadge';
 import { Sparkles, CheckCircle, X, LogOut } from 'lucide-react';
 import './seller.css';
 
@@ -139,10 +140,10 @@ export default function SellerLayout({ children }) {
                   textAlign: 'left',
                 }}
               >
-                <img
-                  src={shop?.logo || seller?.avatar || "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=300&q=80"}
-                  alt={shop?.name || seller?.name}
-                  style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #23232C' }}
+                <ShopLogoBadge
+                  logo={shop?.logo}
+                  name={shop?.name || seller?.name || 'Boutique Atelier'}
+                  size={34}
                 />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <strong style={{ display: 'block', fontSize: '12px', color: '#F6F6F9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

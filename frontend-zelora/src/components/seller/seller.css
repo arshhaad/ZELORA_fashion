@@ -63,6 +63,7 @@
   width: var(--seller-sidebar-width);
   background-color: var(--seller-espresso);
   color: var(--seller-beige);
+  color-scheme: dark;
   display: flex;
   flex-direction: column;
   position: fixed;

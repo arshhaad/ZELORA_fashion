@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
+import { ShopLogoBadge } from '../../components/common/BrandBadge';
 import { CheckCircle, XCircle, Store, Mail, Calendar, FileText, Check, AlertCircle } from 'lucide-react';
 
 export default function AdminShopApprovalsPage() {
@@ -46,10 +47,10 @@ export default function AdminShopApprovalsPage() {
             {pendingShops.map((shop) => (
               <div key={shop.id} className="admin-approval-card">
                 <div className="admin-approval-main">
-                  <img
-                    src={shop.logo}
-                    alt={shop.name}
-                    style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #23232C', flexShrink: 0 }}
+                  <ShopLogoBadge
+                    logo={shop.logo || shop.logo_url}
+                    name={shop.name}
+                    size={60}
                   />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>

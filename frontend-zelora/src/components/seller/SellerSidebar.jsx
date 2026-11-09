@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useSeller } from '../../context/SellerContext';
+import { UserAvatarBadge } from '../common/BrandBadge';
 import {
   LayoutDashboard,
   Store,
@@ -251,10 +252,11 @@ export default function SellerSidebar({ isOpen, onClose }) {
         <div className="seller-sidebar-footer">
           <div className="seller-profile-card">
             <div className="seller-profile-info">
-              <img
-                src={seller.avatar || shop.logo}
-                alt={seller.name}
-                className="seller-avatar-img"
+              <UserAvatarBadge
+                avatar={seller.avatar}
+                name={seller.name}
+                email={seller.email}
+                size={38}
               />
               <div className="seller-owner-meta">
                 <p className="seller-owner-name">{seller.name}</p>

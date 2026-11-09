@@ -109,7 +109,7 @@ class AdminLoginView(APIView):
                 "role": role,
                 "is_superuser": user.is_superuser,
                 "is_staff": user.is_staff,
-                "avatar": user.avatar_url or "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+                "avatar": user.avatar_url or ""
             }
         }, status=status.HTTP_200_OK)
 
@@ -129,7 +129,7 @@ class AdminMeView(APIView):
             "role": role,
             "is_superuser": user.is_superuser,
             "is_staff": user.is_staff,
-            "avatar": user.avatar_url or "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+            "avatar": user.avatar_url or ""
         })
 
 
@@ -142,17 +142,18 @@ class AdminDashboardMetricsView(APIView):
 
     def get(self, request):
         total_sales_aggr = Order.objects.aggregate(total=Sum('total_amount'))
-        total_sales = float(total_sales_aggr['total'] or 48250.00)
+        total_sales = float(total_sales_aggr['total'] or 0.0)
 
-        total_users = User.objects.count() or 142
-        total_customers = User.objects.filter(is_seller=False, is_staff=False).count() or 118
-        total_sellers = User.objects.filter(is_seller=True).count() or 24
-        total_shops = SellerShop.objects.count() or 18
-        total_orders = Order.objects.count() or 342
+        total_users = User.objects.count()
+        total_customers = User.objects.filter(is_seller=False, is_staff=False).count()
+        total_sellers = User.objects.filter(is_seller=True).count()
+        total_shops = SellerShop.objects.count()
+        total_orders = Order.objects.count()
 
-        pending_shops = SellerShop.objects.filter(is_open=False).count() or 3
-        pending_payouts = SellerPayoutRequest.objects.filter(status='pending').count() or 2
-        open_tickets = SupportTicket.objects.filter(status__in=['open', 'in_progress']).count() or 4
+        pending_shops = SellerShop.objects.filter(is_open=False).count()
+        pending_payouts = SellerPayoutRequest.objects.filter(status='pending').count()
+        open_tickets = SupportTicket.objects.filter(status__in=['open', 'in_progress']).count()
+        aov = round(total_sales / total_orders, 2) if total_orders > 0 else 0.0
 
         recent_orders_qs = Order.objects.select_related('user').order_by('-created_at')[:6]
         recent_orders = []
@@ -181,7 +182,7 @@ class AdminDashboardMetricsView(APIView):
                 "pending_shop_approvals": pending_shops,
                 "pending_payouts": pending_payouts,
                 "open_tickets": open_tickets,
-                "average_order_value": round(total_sales / max(total_orders, 1), 2),
+                "average_order_value": aov,
                 "platform_net_revenue": round(total_sales * 0.125, 2)
             },
             "recent_orders": recent_orders
@@ -424,8 +425,8 @@ class AdminSellerDetailView(APIView):
                 "name": shop_name,
                 "category": shop.category if shop else (s.shop_category or "Haute Couture & Designer Wear"),
                 "description": shop.description if shop else "Artisanal luxury craftsmanship specializing in bespoke monochrome fashion and structured silhouettes.",
-                "logo_url": shop.logo_url if shop else "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=300&q=80",
-                "banner_url": shop.banner_url if shop else "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80",
+                "logo_url": shop.logo_url if shop else None,
+                "banner_url": shop.banner_url if shop else None,
                 "contact_email": shop.contact_email if shop else s.email,
                 "contact_number": shop.contact_number if shop else s.phone_number,
                 "business_address": shop.business_address if shop else "Suite 4B, The Monolith Arcade, Colaba Causeway, Mumbai 400005, India",
@@ -434,11 +435,11 @@ class AdminSellerDetailView(APIView):
                 "rating": 4.95,
             },
             "metrics": {
-                "total_sales": total_sales if total_sales > 0 else 68400.00,
+                "total_sales": total_sales,
                 "commission_rate": 12.5,
-                "net_commission": round((total_sales if total_sales > 0 else 68400.00) * 0.125, 2),
-                "total_orders": orders_count if orders_count > 0 else 42,
-                "total_products": 28,
+                "net_commission": round(total_sales * 0.125, 2),
+                "total_orders": orders_count,
+                "total_products": 0,
             },
             "recent_orders": [
                 {

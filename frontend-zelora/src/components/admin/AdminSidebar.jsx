@@ -1,5 +1,6 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
+import { UserAvatarBadge } from '../common/BrandBadge';
 import {
   LayoutDashboard,
   Users,
@@ -159,10 +160,12 @@ export default function AdminSidebar({ isOpen, onClose }) {
       {/* Admin User Footer */}
       <div className="admin-sidebar-footer">
         <div className="admin-user-info">
-          <img
-            src={adminUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"}
-            alt="Admin"
-            className="admin-avatar-small"
+          <UserAvatarBadge
+            avatar={adminUser?.avatar}
+            name={adminUser?.name || 'Zelora SuperAdmin'}
+            email={adminUser?.email}
+            role={adminUser?.role || 'Super Admin'}
+            size={34}
           />
           <div>
             <p className="admin-user-name">{adminUser?.name || 'Administrator'}</p>

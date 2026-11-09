@@ -3,6 +3,7 @@ import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 import Toast from '../common/Toast';
 import { useAdmin } from '../../context/AdminContext';
+import { UserAvatarBadge } from '../common/BrandBadge';
 import { LogOut } from 'lucide-react';
 import './admin.css';
 
@@ -116,10 +117,12 @@ export default function AdminLayout({ children, title, subtitle, actionButton })
                   textAlign: 'left',
                 }}
               >
-                <img
-                  src={adminUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"}
-                  alt={adminUser?.name}
-                  style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #23232C' }}
+                <UserAvatarBadge
+                  avatar={adminUser?.avatar}
+                  name={adminUser?.name || 'Administrator'}
+                  email={adminUser?.email}
+                  role={adminUser?.role || 'Super Admin'}
+                  size={34}
                 />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <strong style={{ display: 'block', fontSize: '12px', color: '#F6F6F9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSeller } from '../../context/SellerContext';
+import { UserAvatarBadge } from '../common/BrandBadge';
 import {
   Menu,
   Search,
@@ -97,14 +98,12 @@ export default function SellerHeader({ onToggleSidebar }) {
             }}
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
           >
-            <img
-              src={seller.avatar || shop.logo}
-              alt={seller.name}
+            <UserAvatarBadge
+              avatar={seller.avatar}
+              name={seller.name}
+              email={seller.email}
+              size={38}
               style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '50%',
-                objectFit: 'cover',
                 border: '2px solid var(--seller-gold)',
               }}
             />

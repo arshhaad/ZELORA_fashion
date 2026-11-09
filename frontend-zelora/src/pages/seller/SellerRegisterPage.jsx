@@ -237,7 +237,7 @@ export default function SellerRegisterPage() {
         sales_count: 0,
         commission_rate: 15,
         created_at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        logo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        logo: null,
       };
       adminShops.unshift(newShopSubmission);
       localStorage.setItem('zelora_admin_shops', JSON.stringify(adminShops));

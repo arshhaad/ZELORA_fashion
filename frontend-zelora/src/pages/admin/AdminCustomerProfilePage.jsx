@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
+import { UserAvatarBadge } from '../../components/common/BrandBadge';
 import {
   ArrowLeft,
   User,
@@ -207,14 +208,12 @@ export default function AdminCustomerProfilePage() {
         />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <img
-              src={customer.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}
-              alt={customer.name}
+            <UserAvatarBadge
+              avatar={customer.avatar}
+              name={customer.name}
+              email={customer.email}
+              size={76}
               style={{
-                width: '76px',
-                height: '76px',
-                borderRadius: '50%',
-                objectFit: 'cover',
                 border: '2px solid #C6A664',
                 boxShadow: '0 4px 16px rgba(198, 166, 100, 0.25)',
               }}

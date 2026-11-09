@@ -212,7 +212,13 @@ export const clearAdminTokens = () => {
 export const getStoredAdminUser = () => {
   try {
     const raw = localStorage.getItem('zelora_admin_user');
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    if (user && user.avatar && (user.avatar.includes('photo-1534528741775-53994a69daeb') || user.avatar.includes('unsplash'))) {
+      user.avatar = null;
+      localStorage.setItem('zelora_admin_user', JSON.stringify(user));
+    }
+    return user;
   } catch {
     return null;
   }

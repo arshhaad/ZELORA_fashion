@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import {
   MessageSquare,
   X,
@@ -12,14 +13,16 @@ import {
   Zap,
   ShoppingBag,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { aiApi, getActivePortalAuth } from '../../services/aiApi';
-import zeloraAiLogo from '../../assets/zelora-ai-logo.jpg';
+import zeloraAiLogo from '../../assets/zelora-tshirt-emblem.jpg';
 import './aiChat.css';
 
 export default function ZeloraAIChatWidget() {
   const { user: authUser } = useAuth();
+  const { addToCart, showToast } = useCart();
   const location = useLocation();
 
   const [portalAuth, setPortalAuth] = useState(() => getActivePortalAuth(location.pathname));
@@ -27,9 +30,10 @@ export default function ZeloraAIChatWidget() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [addingCartId, setAddingCartId] = useState(null);
   const [conversationId, setConversationId] = useState(null);
-  const [preferredProvider, setPreferredProvider] = useState('gemini'); // 'gemini' | 'groq'
-  const [activeProviderBadge, setActiveProviderBadge] = useState('Gemini 3.5');
+  const [preferredProvider, setPreferredProvider] = useState('groq'); // 'groq' | 'gemini'
+  const [activeProviderBadge, setActiveProviderBadge] = useState('Groq Fast');
   const messagesEndRef = useRef(null);
 
   // Synchronize authenticated user state whenever route, storage, or auth context updates
@@ -198,6 +202,36 @@ export default function ZeloraAIChatWidget() {
     setActiveProviderBadge(next === 'groq' ? 'Groq Fast' : 'Gemini 3.5');
   };
 
+  const handleAddToCart = (e, prod) => {
+    e.stopPropagation();
+    try {
+      const cartItem = {
+        id: prod.id,
+        name: prod.name,
+        price: prod.price,
+        originalPrice: prod.original_price || prod.price,
+        category: prod.category,
+        brand: prod.brand || 'ZELORA Atelier',
+        images: [prod.image],
+        sizes: ['XS', 'S', 'M', 'L', 'XL'],
+        colors: [{ name: 'Noir Black', hex: '#0a0a0a' }],
+        inStock: prod.in_stock,
+      };
+      const res = addToCart(cartItem, 'M', 'Noir Black', 1);
+      if (res !== false) {
+        setAddingCartId(prod.id);
+        if (showToast) {
+          showToast(`Added "${prod.name}" to your shopping bag.`, 'success');
+        }
+        setTimeout(() => {
+          setAddingCartId(null);
+        }, 2200);
+      }
+    } catch (err) {
+      console.error('Error adding to cart from AI Concierge:', err);
+    }
+  };
+
   // Role-Aware Quick Suggestion Chips for Authenticated User
   const getSuggestions = () => {
     if (activeUser?.is_staff || activeUser?.role?.toLowerCase().includes('admin')) {
@@ -322,35 +356,81 @@ export default function ZeloraAIChatWidget() {
                               src={prod.image}
                               alt={prod.name}
                               loading="lazy"
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80&sat=-100';
+                              }}
                             />
                             {prod.category && (
                               <span className="zelora-ai-prod-category">{prod.category}</span>
                             )}
+                            {!prod.in_stock && (
+                              <span className="zelora-ai-prod-soldout">Unavailable</span>
+                            )}
                           </div>
                           <div className="zelora-ai-prod-body">
-                            {prod.brand && (
-                              <span className="zelora-ai-prod-brand">{prod.brand}</span>
-                            )}
-                            <h4 className="zelora-ai-prod-title" title={prod.name}>
-                              {prod.name}
-                            </h4>
-                            <div className="zelora-ai-prod-price-row">
-                              <span className="zelora-ai-prod-price">₹{prod.price}</span>
-                              {prod.original_price && prod.original_price > prod.price && (
-                                <span className="zelora-ai-prod-orig-price">₹{prod.original_price}</span>
+                            <div className="zelora-ai-prod-meta-row">
+                              {prod.brand && (
+                                <span className="zelora-ai-prod-brand">{prod.brand}</span>
                               )}
                               {prod.rating && (
                                 <span className="zelora-ai-prod-rating">★ {prod.rating}</span>
                               )}
                             </div>
-                            <Link
-                              to={`/products/${prod.id}`}
-                              className="zelora-ai-prod-action-btn"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <span>View Piece</span>
-                              <ExternalLink size={11} />
-                            </Link>
+                            <h4 className="zelora-ai-prod-title" title={prod.name}>
+                              {prod.name}
+                            </h4>
+                            {prod.description && (
+                              <p className="zelora-ai-prod-desc" title={prod.description}>
+                                {prod.description}
+                              </p>
+                            )}
+                            <div className="zelora-ai-prod-price-row">
+                              <span className="zelora-ai-prod-price">₹{prod.price}</span>
+                              {prod.original_price && prod.original_price > prod.price && (
+                                <span className="zelora-ai-prod-orig-price">₹{prod.original_price}</span>
+                              )}
+                            </div>
+                            <div className="zelora-ai-prod-actions-row">
+                              <Link
+                                to={`/products/${prod.id}`}
+                                className="zelora-ai-prod-action-btn view"
+                                onClick={() => setIsOpen(false)}
+                                title="View Product Details"
+                              >
+                                <span>View Piece</span>
+                                <ExternalLink size={11} />
+                              </Link>
+                              {prod.in_stock ? (
+                                <button
+                                  type="button"
+                                  className={`zelora-ai-prod-action-btn cart ${addingCartId === prod.id ? 'added' : ''}`}
+                                  onClick={(e) => handleAddToCart(e, prod)}
+                                  disabled={addingCartId === prod.id}
+                                  title="Add to Shopping Bag"
+                                >
+                                  {addingCartId === prod.id ? (
+                                    <>
+                                      <Check size={11} />
+                                      <span>Added ✓</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ShoppingBag size={11} />
+                                      <span>Add to Cart</span>
+                                    </>
+                                  )}
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="zelora-ai-prod-action-btn cart disabled"
+                                  disabled
+                                  title="Item is currently out of stock"
+                                >
+                                  <span>Out of Stock</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}

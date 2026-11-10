@@ -225,3 +225,56 @@ class SellerShop(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.owner.email})"
+
+
+class Product(models.Model):
+    GENDER_CHOICES = [
+        ('men', 'Men'),
+        ('women', 'Women'),
+        ('unisex', 'Unisex'),
+    ]
+
+    id = models.CharField(max_length=50, primary_key=True)
+    name = models.CharField(max_length=255, db_index=True)
+    slug = models.SlugField(max_length=255, unique=True)
+    brand = models.CharField(max_length=150, default='ZELORA Atelier')
+    category = models.CharField(max_length=100, db_index=True)  # outerwear, dresses, tops, trousers, knitwear, accessories
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='unisex', db_index=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, db_index=True)
+    original_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    discount = models.PositiveIntegerField(default=0)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=4.80)
+    review_count = models.PositiveIntegerField(default=0)
+    in_stock = models.BooleanField(default=True, db_index=True)
+    stock_quantity = models.PositiveIntegerField(default=10)
+    description = models.TextField()
+    image = models.URLField(max_length=1000)
+    is_featured = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} (₹{self.price})"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "slug": self.slug,
+            "brand": self.brand,
+            "category": self.category,
+            "gender": self.gender,
+            "price": float(self.price),
+            "original_price": float(self.original_price) if self.original_price else float(self.price),
+            "discount": self.discount,
+            "rating": float(self.rating),
+            "review_count": self.review_count,
+            "in_stock": bool(self.in_stock and self.stock_quantity > 0),
+            "stock_quantity": self.stock_quantity,
+            "description": self.description,
+            "image": self.image,
+        }
+

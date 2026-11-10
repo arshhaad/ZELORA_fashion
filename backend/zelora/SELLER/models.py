@@ -1,3 +1,4 @@
 from django.db import models
+from CUSTOMER.models import Product
 
-# Create your models here.
+__all__ = ['Product']

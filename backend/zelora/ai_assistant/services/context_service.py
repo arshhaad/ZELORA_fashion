@@ -61,19 +61,28 @@ class ContextService:
         ]):
             return "customer_address"
 
-        # Product Recommendations & Style Advice
-        if any(term in msg for term in [
-            "recommend", "what should i wear", "suggestion", "suggest", "style", "outfit",
-            "wool overcoat", "gown", "dress", "trench", "cashmere", "shoes", "jacket",
-            "pants", "trousers", "boots", "bag", "shirt", "collection", "pieces", "buy",
-            "products", "look"
-        ]):
+        # Product Recommendations & Shopping Advice
+        product_terms = [
+            "recommend", "recommendation", "suggestion", "suggest", "style", "outfit",
+            "wool overcoat", "gown", "gowns", "dress", "dresses", "trench", "cashmere",
+            "shoes", "jacket", "jackets", "pants", "trouser", "trousers", "boots", "bag", "bags",
+            "shirt", "shirts", "tee", "tees", "t-shirt", "tshirts", "top", "tops",
+            "collection", "piece", "pieces", "buy", "product", "products", "producrt", "garment",
+            "garments", "item", "items", "clothes", "clothing", "wear", "look", "catalog",
+            "budget", "affordable", "cheap", "under", "below", "between", "price", "cost",
+            "give me", "show me", "what should i wear", "casual", "formal", "evening",
+            "unavailable", "out of stock", "sold out"
+        ]
+        if any(term in msg for term in product_terms):
+            return "product_recommendation"
+
+        if re.search(r'\b\d+\s*(?:rs|inr|rupees)\b', msg) or re.search(r'₹\s*\d+', msg):
             return "product_recommendation"
 
         return "general_concierge"
 
     @classmethod
-    def build_user_context(cls, user: User, message: str) -> Tuple[str, Dict[str, Any], str]:
+    def build_user_context(cls, user: User, message: str, past_messages: list = None) -> Tuple[str, Dict[str, Any], str]:
         """
         Builds the authorized context and prompt.
         Returns: (system_prompt, telemetry_metadata, detected_intent)
@@ -197,15 +206,55 @@ class ContextService:
             )
 
         elif intent == "product_recommendation":
-            products = RetrievalService.get_product_recommendations(message, limit=3)
+            search_query = message
+            if past_messages:
+                recent_user_msgs = [m['content'] for m in past_messages if m.get('role') == 'user']
+                if recent_user_msgs and len(message.split()) <= 6:
+                    search_query = f"{recent_user_msgs[-1]} {message}"
+
+            products, parsed_query = RetrievalService.get_product_recommendations(search_query)
             retrieved_data["products"] = products
-            prod_summary = ", ".join([f"{p['name']} (₹{p['price']})" for p in products])
-            system_prompt += (
-                f"--- PRODUCT RECOMMENDATIONS ATTACHED ---\n"
-                f"Curated pieces: {prod_summary}\n"
-                f"DIRECTIVE: Give a very brief, chic 1-sentence recommendation introducing these pieces. "
-                f"Do NOT list prices or product descriptions in your text — the UI automatically renders interactive product cards with images and links right below your message.\n"
-                f"----------------------------------------\n\n"
-            )
+            retrieved_data["query_meta"] = parsed_query
+
+            if products:
+                prod_summary = "\n".join([
+                    f"{i+1}. ID: {p['id']} | Name: {p['name']} | Price: ₹{p['price']} | Category: {p['category']} | Gender: {p['gender']} | Status: {'In Stock' if p['in_stock'] else 'Unavailable'}\n   Description: {p['description']}"
+                    for i, p in enumerate(products)
+                ])
+                system_prompt += (
+                    f"--- VERIFIED LIVE DATABASE PRODUCTS (GROUND TRUTH) ---\n"
+                    f"Found {len(products)} matching piece(s):\n"
+                    f"{prod_summary}\n"
+                    f"-------------------------------------------------------\n"
+                    f"DIRECTIVE FOR PRODUCT RECOMMENDATIONS:\n"
+                    f"- Give ONLY a very brief, elegant response (strictly 1 to 2 sentences maximum).\n"
+                    f"- Politely introduce the curated pieces.\n"
+                    f"- NEVER invent fake products, models, or prices.\n"
+                    f"- Do NOT output markdown bullet lists of product names or descriptions in text — the frontend will automatically render rich interactive cards with photos, prices, 'View Piece', and 'Add to Cart' buttons below your message.\n\n"
+                )
+            else:
+                budget_max = parsed_query.get("budget_max")
+                if budget_max is not None:
+                    system_prompt += (
+                        f"--- VERIFIED LIVE DATABASE PRODUCTS (EMPTY RESULT) ---\n"
+                        f"No products in the database match the requested budget (₹{budget_max:,.0f}).\n"
+                        f"The lowest-priced luxury garment in the ZELORA catalog starts at ₹110.\n"
+                        f"-------------------------------------------------------\n"
+                        f"DIRECTIVE: In strictly 1 friendly sentence, inform the user that ZELORA currently does not have pieces under ₹{budget_max:,.0f}, and that our curated collection begins at ₹110.\n\n"
+                    )
+                elif parsed_query.get("only_unavailable"):
+                    system_prompt += (
+                        f"--- VERIFIED LIVE DATABASE PRODUCTS (EMPTY RESULT) ---\n"
+                        f"All pieces in the atelier are currently in stock.\n"
+                        f"-------------------------------------------------------\n"
+                        f"DIRECTIVE: In strictly 1 sentence, inform the user that all items are currently in stock.\n\n"
+                    )
+                else:
+                    system_prompt += (
+                        f"--- VERIFIED LIVE DATABASE PRODUCTS (EMPTY RESULT) ---\n"
+                        f"No products matched the exact criteria in our atelier catalog.\n"
+                        f"-------------------------------------------------------\n"
+                        f"DIRECTIVE: In strictly 1 sentence, politely let the user know and invite them to explore our main collection.\n\n"
+                    )
 
         return system_prompt, retrieved_data, intent

@@ -72,7 +72,8 @@ class AIChatView(APIView):
         try:
             system_prompt, retrieved_data, detected_intent = ContextService.build_user_context(
                 user=user,
-                message=user_message
+                message=user_message,
+                past_messages=past_messages
             )
 
             # 4. Generate AI Response via Primary/Fallback Provider

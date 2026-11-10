@@ -1,8 +1,10 @@
 import re
 from decimal import Decimal
+from typing import Dict, Any, List, Tuple
 from django.db.models import Sum, Count, Q
-from CUSTOMER.models import Order, OrderItem, Address, SellerShop, User
+from CUSTOMER.models import Order, OrderItem, Address, SellerShop, User, Product
 from ADMIN.models import SupportTicket, SellerPayoutRequest
+
 
 
 class SecurityViolationError(Exception):
@@ -117,31 +119,165 @@ class RetrievalService:
     Never trusts parameters sent from the frontend.
     """
 
-    @staticmethod
-    def get_product_recommendations(message: str = "", limit: int = 3):
+    @classmethod
+    def parse_product_query(cls, message: str) -> Dict[str, Any]:
         """
-        Retrieves matching luxury products based on keywords, or returns top trending editorial pieces.
+        Extracts structured shopping filters from natural language queries.
+        Supports budget ranges, specific prices, gender, category, availability, occasion, and counts.
         """
-        query = message.lower()
-        scored_products = []
-        for p in ZELORA_CATALOG:
-            score = 0
-            for kw in p["keywords"]:
-                if kw in query:
-                    score += 2
-            if p["category"].lower() in query:
-                score += 3
-            if p["brand"].lower() in query:
-                score += 3
-            if score > 0:
-                scored_products.append((score, p))
+        msg = message.lower().strip()
+        parsed = {
+            "budget_min": None,
+            "budget_max": None,
+            "gender": None,
+            "category": None,
+            "only_unavailable": False,
+            "occasion": None,
+            "limit": None,
+            "keywords": [],
+            "raw_query": msg,
+        }
 
-        if scored_products:
-            scored_products.sort(key=lambda x: x[0], reverse=True)
-            return [item[1] for item in scored_products[:limit]]
+        # 1. Availability check (e.g., "products that are currently unavailable")
+        if re.search(r'\b(unavailable|out of stock|sold out|not available|un-available)\b', msg):
+            parsed["only_unavailable"] = True
 
-        # Default curated editorial recommendations
-        return ZELORA_CATALOG[:limit]
+        # 2. Count / Limit extraction (e.g. "show 5 products", "recommend 3 pieces")
+        limit_match = re.search(r'\b(?:show|give|recommend|display|list|find)?\s*(\d+)\s*(?:products|items|pieces|options|garments|recommendations|clothes)\b', msg)
+        if limit_match:
+            try:
+                val = int(limit_match.group(1))
+                if 1 <= val <= 20:
+                    parsed["limit"] = val
+            except ValueError:
+                pass
+
+        # 3. Budget Range: between X and Y / from X to Y
+        range_match = re.search(r'(?:between|from)\s*(?:rs\.?|inr|rupees|₹)?\s*(\d+(?:,\d+)?)\s*(?:and|to|-)\s*(?:rs\.?|inr|rupees|₹)?\s*(\d+(?:,\d+)?)', msg)
+        if range_match:
+            val1 = float(range_match.group(1).replace(',', ''))
+            val2 = float(range_match.group(2).replace(',', ''))
+            parsed["budget_min"] = min(val1, val2)
+            parsed["budget_max"] = max(val1, val2)
+        else:
+            # Under / Below / Less than / Upto / Max budget
+            under_match = re.search(r'(?:under|below|less\s+than|within|upto|up\s+to|max(?:imum)?|budget\s+(?:of|is)?)\s*(?:rs\.?|inr|rupees|₹)?\s*(\d+(?:,\d+)?)', msg)
+            if under_match:
+                parsed["budget_max"] = float(under_match.group(1).replace(',', ''))
+            else:
+                # Direct format: "1000 rs", "1000rs product", "₹1000 product"
+                direct_rs = re.search(r'(\d+(?:,\d+)?)\s*(?:rs|inr|rupees)', msg)
+                direct_symbol = re.search(r'₹\s*(\d+(?:,\d+)?)', msg)
+                if direct_rs:
+                    parsed["budget_max"] = float(direct_rs.group(1).replace(',', ''))
+                elif direct_symbol:
+                    parsed["budget_max"] = float(direct_symbol.group(1).replace(',', ''))
+
+            # Min budget / Above / More than
+            above_match = re.search(r'(?:above|over|more\s+than|greater\s+than|min(?:imum)?)\s*(?:rs\.?|inr|rupees|₹)?\s*(\d+(?:,\d+)?)', msg)
+            if above_match:
+                parsed["budget_min"] = float(above_match.group(1).replace(',', ''))
+
+        # 4. Gender Extraction
+        if re.search(r'\b(men|mens|men\'s|male|gentleman|gentlemen|guy|guys|boy|boys)\b', msg):
+            parsed["gender"] = "men"
+        elif re.search(r'\b(women|womens|women\'s|female|ladies|lady|girl|girls)\b', msg):
+            parsed["gender"] = "women"
+        elif re.search(r'\b(unisex)\b', msg):
+            parsed["gender"] = "unisex"
+
+        # 5. Category Extraction
+        if re.search(r'\b(shirt|shirts|t-shirt|tshirts|tee|tees|top|tops|blouse|poplin|linen shirt)\b', msg):
+            parsed["category"] = "tops"
+            parsed["keywords"].append("shirt")
+        elif re.search(r'\b(dress|dresses|gown|gowns|slip|skirt|skirts)\b', msg):
+            parsed["category"] = "dresses"
+            parsed["keywords"].append("dress")
+        elif re.search(r'\b(coat|coats|overcoat|trench|jacket|jackets|blazer|blazers|bomber|outerwear)\b', msg):
+            parsed["category"] = "outerwear"
+            parsed["keywords"].append("coat")
+        elif re.search(r'\b(trouser|trousers|pant|pants|denim|jeans|bottoms|slacks)\b', msg):
+            parsed["category"] = "trousers"
+            parsed["keywords"].append("trouser")
+        elif re.search(r'\b(knit|knitwear|sweater|sweaters|cardigan|cardigans|cashmere|turtleneck)\b', msg):
+            parsed["category"] = "knitwear"
+            parsed["keywords"].append("knit")
+        elif re.search(r'\b(bag|bags|tote|purse|shoes|boots|sunglasses|eyewear|accessories)\b', msg):
+            parsed["category"] = "accessories"
+            parsed["keywords"].append("accessories")
+
+        # 6. Occasion Extraction
+        if re.search(r'\b(casual|everyday|relaxed|daily|streetwear)\b', msg):
+            parsed["occasion"] = "casual"
+            parsed["keywords"].extend(["cotton", "tee", "shirt", "denim", "relaxed"])
+        elif re.search(r'\b(formal|evening|gala|party|wedding|cocktail|couture)\b', msg):
+            parsed["occasion"] = "formal"
+            parsed["keywords"].extend(["silk", "gown", "blazer", "dress", "wool"])
+        elif re.search(r'\b(winter|cold|warm|heavyweight)\b', msg):
+            parsed["occasion"] = "winter"
+            parsed["keywords"].extend(["wool", "cashmere", "coat", "jacket"])
+
+        return parsed
+
+    @classmethod
+    def get_product_recommendations(cls, message: str = "", limit: int = 4) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Retrieves matching luxury products from Django PostgreSQL/SQLite Product model.
+        Dynamically applies budget ranges, category, gender, availability, and occasion filters.
+        Never fabricates product details or prices.
+        """
+        parsed = cls.parse_product_query(message)
+        eff_limit = parsed.get("limit") or limit
+
+        qs = Product.objects.all()
+
+        # 1. Product Availability
+        if parsed.get("only_unavailable"):
+            qs = qs.filter(Q(in_stock=False) | Q(stock_quantity=0))
+        else:
+            qs = qs.filter(in_stock=True, stock_quantity__gt=0)
+
+        # 2. Budget Bounds
+        if parsed.get("budget_max") is not None:
+            qs = qs.filter(price__lte=Decimal(str(parsed["budget_max"])))
+        if parsed.get("budget_min") is not None:
+            qs = qs.filter(price__gte=Decimal(str(parsed["budget_min"])))
+
+        # 3. Category Filter
+        if parsed.get("category"):
+            qs = qs.filter(category__iexact=parsed["category"])
+
+        # 4. Gender Filter (includes unisex items for male/female shoppers)
+        if parsed.get("gender"):
+            qs = qs.filter(Q(gender=parsed["gender"]) | Q(gender="unisex"))
+
+        # 5. Occasion & Keywords Filter
+        if parsed.get("keywords"):
+            keyword_filter = Q()
+            for kw in parsed["keywords"]:
+                keyword_filter |= (
+                    Q(name__icontains=kw) |
+                    Q(description__icontains=kw) |
+                    Q(category__icontains=kw) |
+                    Q(brand__icontains=kw)
+                )
+            qs_kw = qs.filter(keyword_filter)
+            # If keyword filter yields matches, apply it; otherwise keep broader category/budget results
+            if qs_kw.exists():
+                qs = qs_kw
+
+        # 6. Sorting Order
+        if parsed.get("budget_max") is not None:
+            # Sort closest to budget or highest rating
+            qs = qs.order_by("-price", "-rating")
+        else:
+            qs = qs.order_by("-is_featured", "-rating", "-price")
+
+        products = list(qs[:eff_limit])
+        product_dicts = [p.to_dict() for p in products]
+
+        return product_dicts, parsed
+
 
     @staticmethod
     def detect_unauthorized_cross_tenant_intent(message: str, user: User) -> bool:

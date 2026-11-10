@@ -534,14 +534,16 @@ export function SellerProvider({ children }) {
   const [seller, setSeller] = useState(() => {
     const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
     if (!isAuth) return null;
-    const s = loadStored('user', INITIAL_SELLER);
+    const s = loadStored('user', null);
     if (s && s.avatar && (s.avatar.includes('photo-1534528741775-53994a69daeb') || s.avatar.includes('unsplash'))) {
       s.avatar = null;
     }
     return s ? { ...s, is_seller: true, role: 'Boutique Seller' } : null;
   });
   const [shop, setShop] = useState(() => {
-    const sh = loadStored('shop', INITIAL_SHOP);
+    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
+    if (!isAuth) return null;
+    const sh = loadStored('shop', null);
     if (sh && sh.logo && (sh.logo.includes('photo-1534528741775-53994a69daeb') || sh.logo.includes('photo-1544441893-675973e31985') || sh.logo.includes('unsplash'))) {
       sh.logo = null;
     }
@@ -592,24 +594,23 @@ export function SellerProvider({ children }) {
 
     const sellerUser = {
       id: res.user?.id || `sel-${Date.now()}`,
-      name: `${res.user?.first_name || ''} ${res.user?.last_name || ''}`.trim() || res.user?.email?.split('@')[0] || 'Eleanor Vance',
+      name: `${res.user?.first_name || ''} ${res.user?.last_name || ''}`.trim() || res.user?.email?.split('@')[0] || 'Seller',
       email: res.user?.email || email,
-      phone: res.user?.phone_number || '+91 98201 54321',
-      avatar: res.user?.avatar_url || INITIAL_SELLER.avatar,
-      shop_name: res.shop?.name || res.user?.shop_name || "Maison de L'Ombre",
+      phone: res.user?.phone_number || '',
+      avatar: res.user?.avatar_url || null,
+      shop_name: res.shop?.name || res.user?.shop_name || "My Atelier",
       shop_category: res.shop?.category || res.user?.shop_category || "Haute Couture & Designer Wear",
       role: "Boutique Seller",
       is_seller: true,
     };
 
     const shopData = {
-      ...INITIAL_SHOP,
       name: res.shop?.name || sellerUser.shop_name,
       category: res.shop?.category || sellerUser.shop_category,
       contact_email: res.shop?.contact_email || res.user?.email || email,
       contact_number: res.shop?.contact_number || sellerUser.phone,
-      business_address: res.shop?.business_address || INITIAL_SHOP.business_address,
-      description: res.shop?.description || INITIAL_SHOP.description,
+      business_address: res.shop?.business_address || '',
+      description: res.shop?.description || '',
       is_open: res.shop?.is_open ?? true,
     };
 
@@ -641,7 +642,7 @@ export function SellerProvider({ children }) {
       name: `${res.user?.first_name || ''} ${res.user?.last_name || ''}`.trim() || formData.owner_name,
       email: res.user?.email || formData.email,
       phone: res.user?.phone_number || formData.mobile_number,
-      avatar: res.user?.avatar_url || INITIAL_SELLER.avatar,
+      avatar: res.user?.avatar_url || null,
       shop_name: res.shop?.name || formData.shop_name,
       shop_category: res.shop?.category || formData.shop_category,
       role: "Boutique Seller",
@@ -649,11 +650,13 @@ export function SellerProvider({ children }) {
     };
 
     const shopData = {
-      ...INITIAL_SHOP,
       name: res.shop?.name || formData.shop_name,
       category: res.shop?.category || formData.shop_category,
       contact_email: res.shop?.contact_email || formData.email,
       contact_number: res.shop?.contact_number || formData.mobile_number,
+      business_address: '',
+      description: '',
+      is_open: true,
     };
 
     setSeller(sellerUser);

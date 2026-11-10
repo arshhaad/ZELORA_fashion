@@ -86,13 +86,6 @@ export default function SellerLoginPage() {
     }
   };
 
-  const handleDemoFill = () => {
-    setEmail('atelier@maisondelombre.luxury');
-    setPassword('Couture2026!');
-    setFieldErrors({ email: '', password: '' });
-    setErrorMsg('');
-  };
-
   const handleGoogleSellerSuccess = async ({ credential, access_token }) => {
     setErrorMsg('');
     setIsSubmitting(true);
@@ -154,33 +147,6 @@ export default function SellerLoginPage() {
             <span>{errorMsg}</span>
           </div>
         )}
-
-        {/* Demo Quick-Fill Pill */}
-        <div
-          style={{
-            background: 'var(--seller-beige-light)',
-            border: '1px dashed var(--seller-gold)',
-            borderRadius: 'var(--seller-radius)',
-            padding: '10px 14px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '12px',
-          }}
-        >
-          <div style={{ color: 'var(--seller-espresso)' }}>
-            <strong>Demo Atelier:</strong> <span>Maison de L'Ombre</span>
-          </div>
-          <button
-            type="button"
-            className="btn-status-toggle"
-            onClick={handleDemoFill}
-            style={{ color: 'var(--seller-espresso)', borderColor: 'var(--seller-gold)' }}
-          >
-            Fill Demo
-          </button>
-        </div>
 
         {/* Google Continue */}
         <div style={{ marginBottom: '8px' }}>

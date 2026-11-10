@@ -9,8 +9,8 @@ export default function AdminLoginPage() {
   const location = useLocation();
   const { loginAdmin } = useAdmin();
 
-  const [email, setEmail] = useState('admin@zelora.luxury');
-  const [password, setPassword] = useState('Admin@12345');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,11 +29,6 @@ export default function AdminLoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFillDemo = (demoEmail, demoPw) => {
-    setEmail(demoEmail);
-    setPassword(demoPw);
   };
 
   return (
@@ -105,45 +100,6 @@ export default function AdminLoginPage() {
             )}
           </button>
         </form>
-
-        {/* Superuser Quick Assist Card */}
-        <div style={{
-          marginTop: '24px',
-          padding: '14px',
-          backgroundColor: '#0B0B0E',
-          borderRadius: '8px',
-          border: '1px solid #23232C'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '8px'
-          }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#C6A664', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-              <ShieldCheck size={13} style={{ display: 'inline', marginRight: '4px' }} />
-              Django Superuser Credentials
-            </span>
-            <button
-              type="button"
-              onClick={() => handleFillDemo('admin@zelora.luxury', 'Admin@12345')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#C6A664',
-                fontSize: '11px',
-                cursor: 'pointer',
-                textDecoration: 'underline'
-              }}
-            >
-              Autofill
-            </button>
-          </div>
-          <div style={{ fontSize: '12px', color: '#9E9EA8', lineHeight: 1.5 }}>
-            <div><strong>Email:</strong> admin@zelora.luxury</div>
-            <div><strong>Password:</strong> Admin@12345</div>
-          </div>
-        </div>
 
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
           <Link to="/" style={{ fontSize: '12px', color: '#9E9EA8', textDecoration: 'none' }}>

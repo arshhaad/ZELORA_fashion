@@ -29,7 +29,8 @@ const INITIAL_SELLER = {
   avatar: null,
   shop_name: "Maison de L'Ombre",
   shop_category: "Haute Couture & Designer Wear",
-  role: "Verified Premier Atelier",
+  role: "Boutique Seller",
+  is_seller: true,
 };
 
 const INITIAL_PRODUCTS = [
@@ -526,12 +527,18 @@ export function SellerProvider({ children }) {
   };
 
   // State Declarations
+  const [isSellerAuthenticated, setIsSellerAuthenticated] = useState(() => {
+    return localStorage.getItem('zelora_seller_auth') === 'true';
+  });
+
   const [seller, setSeller] = useState(() => {
+    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
+    if (!isAuth) return null;
     const s = loadStored('user', INITIAL_SELLER);
     if (s && s.avatar && (s.avatar.includes('photo-1534528741775-53994a69daeb') || s.avatar.includes('unsplash'))) {
       s.avatar = null;
     }
-    return s;
+    return s ? { ...s, is_seller: true, role: 'Boutique Seller' } : null;
   });
   const [shop, setShop] = useState(() => {
     const sh = loadStored('shop', INITIAL_SHOP);
@@ -547,12 +554,15 @@ export function SellerProvider({ children }) {
   const [notifications, setNotifications] = useState(() => loadStored('notifs', INITIAL_NOTIFICATIONS));
   const [payouts, setPayouts] = useState(() => loadStored('payouts', INITIAL_PAYOUTS));
   const [tickets, setTickets] = useState(() => loadStored('tickets', INITIAL_TICKETS));
-  const [isSellerAuthenticated, setIsSellerAuthenticated] = useState(() => {
-    return localStorage.getItem('zelora_seller_auth') === 'true';
-  });
 
   // Sync to local storage
-  useEffect(() => saveStored('user', seller), [seller]);
+  useEffect(() => {
+    if (seller && isSellerAuthenticated) {
+      saveStored('user', seller);
+    } else {
+      localStorage.removeItem('zelora_seller_user');
+    }
+  }, [seller, isSellerAuthenticated]);
   useEffect(() => saveStored('shop', shop), [shop]);
   useEffect(() => saveStored('products', products), [products]);
   useEffect(() => saveStored('orders', orders), [orders]);
@@ -588,7 +598,8 @@ export function SellerProvider({ children }) {
       avatar: res.user?.avatar_url || INITIAL_SELLER.avatar,
       shop_name: res.shop?.name || res.user?.shop_name || "Maison de L'Ombre",
       shop_category: res.shop?.category || res.user?.shop_category || "Haute Couture & Designer Wear",
-      role: "Verified Atelier",
+      role: "Boutique Seller",
+      is_seller: true,
     };
 
     const shopData = {
@@ -608,6 +619,9 @@ export function SellerProvider({ children }) {
     localStorage.setItem('zelora_seller_auth', 'true');
     saveStored('user', sellerUser);
     saveStored('shop', shopData);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+    }
     showToast(`Welcome back, ${sellerUser.name}!`);
     return { user: sellerUser, shop: shopData };
   };
@@ -630,7 +644,8 @@ export function SellerProvider({ children }) {
       avatar: res.user?.avatar_url || INITIAL_SELLER.avatar,
       shop_name: res.shop?.name || formData.shop_name,
       shop_category: res.shop?.category || formData.shop_category,
-      role: "Verified Boutique",
+      role: "Boutique Seller",
+      is_seller: true,
     };
 
     const shopData = {
@@ -647,6 +662,9 @@ export function SellerProvider({ children }) {
     localStorage.setItem('zelora_seller_auth', 'true');
     saveStored('user', sellerUser);
     saveStored('shop', shopData);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+    }
     showToast("Seller registration complete! Welcome to ZELORA Atelier.");
     return { user: sellerUser, shop: shopData };
   };
@@ -667,6 +685,12 @@ export function SellerProvider({ children }) {
     localStorage.removeItem('zelora_seller_auth');
     localStorage.removeItem('zelora_seller_access_token');
     localStorage.removeItem('zelora_seller_refresh_token');
+    localStorage.removeItem('zelora_seller_user');
+    setSeller(null);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('zelora_logout'));
+    }
     setShowLogoutConfirm(false);
     showToast("Signed out from Seller Center.");
   };

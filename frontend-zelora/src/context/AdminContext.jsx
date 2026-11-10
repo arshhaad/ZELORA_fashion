@@ -250,6 +250,9 @@ export function AdminProvider({ children }) {
       setStoredAdminUser(user);
       setAdminUser(user);
       setToken(accessToken);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
       setLoading(false);
       return { success: true, user };
     } catch (error) {

@@ -2,27 +2,74 @@
 
 const AI_API_BASE = '/api/ai';
 
+/**
+ * Checks whether the current route is an unauthenticated login, register, or auth flow.
+ * The AI concierge must NEVER be shown on any authentication or onboarding pages.
+ */
+export const isAuthenticationRoute = (pathname = '') => {
+  const path = (pathname || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+  const authRoutes = [
+    '/auth',
+    '/login',
+    '/register',
+    '/verify-email',
+    '/forgot-password',
+    '/reset-password',
+    '/seller/login',
+    '/seller/register',
+    '/seller/verify-otp',
+    '/admin/login',
+    '/admin/register',
+  ];
+  return authRoutes.some((route) => path === route || path.startsWith(`${route}/`));
+};
+
+/**
+ * Resolves the active portal context, JWT token, and authenticated user.
+ * Strictly enforces that:
+ * 1. On auth routes, no user/token is returned.
+ * 2. On /admin routes, only admin credentials are used.
+ * 3. On /seller routes, only seller credentials are used.
+ * 4. On general routes, only customer credentials are used.
+ */
 export const getActivePortalAuth = (pathname = '') => {
   const path = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
 
-  // 1. Admin Portal
+  // 0. If on an authentication route, strictly return null session
+  if (isAuthenticationRoute(path)) {
+    return { token: null, user: null, role: null };
+  }
+
+  // 1. Admin Portal (/admin/...)
   if (path.startsWith('/admin')) {
     const token = localStorage.getItem('zelora_admin_token');
     const raw = localStorage.getItem('zelora_admin_user');
     let user = null;
     try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
-    if (token && user) return { token, user, role: 'admin' };
+    if (token && user) {
+      return {
+        token,
+        user: { ...user, is_staff: true, role: 'Administrator' },
+        role: 'admin',
+      };
+    }
     return { token: null, user: null, role: null };
   }
 
-  // 2. Seller Portal
+  // 2. Seller Portal (/seller/...)
   if (path.startsWith('/seller')) {
     const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
     const token = localStorage.getItem('zelora_seller_access_token');
     const raw = localStorage.getItem('zelora_seller_user');
     let user = null;
     try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
-    if (isAuth && token && user) return { token, user, role: 'seller' };
+    if (isAuth && token && user) {
+      return {
+        token,
+        user: { ...user, is_seller: true, role: 'Boutique Seller' },
+        role: 'seller',
+      };
+    }
     return { token: null, user: null, role: null };
   }
 
@@ -31,7 +78,13 @@ export const getActivePortalAuth = (pathname = '') => {
   const raw = localStorage.getItem('customer_user');
   let user = null;
   try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
-  if (token && user) return { token, user, role: 'customer' };
+  if (token && user) {
+    return {
+      token,
+      user: { ...user, role: user.role || 'Valued Client' },
+      role: 'customer',
+    };
+  }
 
   return { token: null, user: null, role: null };
 };
@@ -116,4 +169,3 @@ export const aiApi = {
     return aiRequest('/conversations/clear-all/', { method: 'POST' });
   },
 };
-

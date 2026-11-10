@@ -18,7 +18,7 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
-import { aiApi, getActivePortalAuth } from '../../services/aiApi';
+import { aiApi, getActivePortalAuth, isAuthenticationRoute } from '../../services/aiApi';
 import zeloraAiLogo from '../../assets/zelora-tshirt-emblem.jpg';
 import './aiChat.css';
 
@@ -44,18 +44,44 @@ export default function ZeloraAIChatWidget() {
     const checkAuth = () => {
       const current = getActivePortalAuth(location.pathname);
       setPortalAuth(current);
-      if (!current.token || !current.user) {
+      if (!current.token || !current.user || isAuthenticationRoute(location.pathname)) {
         setIsOpen(false);
       }
     };
 
     checkAuth();
     window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
+    window.addEventListener('zelora_logout', checkAuth);
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('zelora_logout', checkAuth);
+    };
   }, [authUser, location.pathname]);
 
   const activeUser = portalAuth.user;
   const activeToken = portalAuth.token;
+
+  const isAdminRole =
+    portalAuth.role === 'admin' ||
+    Boolean(activeUser?.is_staff) ||
+    Boolean(activeUser?.is_superuser) ||
+    Boolean(activeUser?.role?.toLowerCase().includes('admin'));
+
+  const isSellerRole =
+    portalAuth.role === 'seller' ||
+    Boolean(activeUser?.is_seller) ||
+    Boolean(activeUser?.role?.toLowerCase().includes('seller')) ||
+    Boolean(activeUser?.role?.toLowerCase().includes('atelier'));
+
+  const roleLabel = isAdminRole
+    ? 'Administrator'
+    : (isSellerRole ? 'Boutique Seller' : 'Valued Client');
+
+  // Reset conversation thread memory when switching user accounts or portal contexts
+  useEffect(() => {
+    setConversationId(null);
+    setMessages([]);
+  }, [portalAuth.role, activeUser?.id, activeUser?.email]);
 
   // Seed personalized greeting when chat is first opened by authenticated user
   useEffect(() => {
@@ -65,25 +91,27 @@ export default function ZeloraAIChatWidget() {
         activeUser.name?.split(' ')[0] ||
         (activeUser.email ? activeUser.email.split('@')[0] : 'Client');
 
-      const role =
-        activeUser.is_staff || activeUser.role?.toLowerCase().includes('admin')
-          ? 'Administrator'
-          : (activeUser.is_seller ? 'Boutique Seller' : 'Valued Client');
+      let greetingText = `Hi ${firstName}! 👋 Welcome to your private ZELORA Assistant. As a verified Valued Client, how may I assist your wardrobe, styling, or orders today?`;
+      if (isAdminRole) {
+        greetingText = `Hi ${firstName}! 👋 Welcome to your ZELORA Executive Assistant. As a verified Administrator, how may I assist platform governance, revenue analysis, or approvals today?`;
+      } else if (isSellerRole) {
+        greetingText = `Hi ${firstName}! 👋 Welcome to your private ZELORA Assistant. As a verified Boutique Seller, how may I assist your boutique inventory, sales, or orders today?`;
+      }
 
       setMessages([
         {
           id: 'init-1',
           role: 'assistant',
-          content: `Hi ${firstName}! 👋 Welcome to your private ZELORA Assistant. As a verified ${role}, how may I assist your wardrobe, orders, or boutique today?`,
-          provider: 'gemini',
+          content: greetingText,
+          provider: 'groq',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
     }
-  }, [isOpen, activeUser]);
+  }, [isOpen, activeUser, isAdminRole, isSellerRole]);
 
-  // Strictly do NOT render the AI assistant widget if the user is not logged in!
-  if (!activeUser || !activeToken) {
+  // Strictly do NOT render the AI assistant widget if on auth route or user is not logged in!
+  if (isAuthenticationRoute(location.pathname) || !activeUser || !activeToken) {
     return null;
   }
 
@@ -237,7 +265,7 @@ export default function ZeloraAIChatWidget() {
 
   // Role-Aware Quick Suggestion Chips for Authenticated User
   const getSuggestions = () => {
-    if (activeUser?.is_staff || activeUser?.role?.toLowerCase().includes('admin')) {
+    if (isAdminRole) {
       return [
         "What is the total platform revenue?",
         "Show marketplace statistics",
@@ -246,7 +274,7 @@ export default function ZeloraAIChatWidget() {
       ];
     }
 
-    if (activeUser?.is_seller) {
+    if (isSellerRole) {
       return [
         "What are my shop sales?",
         "How many units have I sold?",

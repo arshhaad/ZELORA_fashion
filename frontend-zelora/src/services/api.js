@@ -6,12 +6,19 @@ export const getRefreshToken = () => localStorage.getItem('customer_refresh_toke
 export const setTokens = (tokens) => {
   if (tokens.access) localStorage.setItem('customer_access_token', tokens.access);
   if (tokens.refresh) localStorage.setItem('customer_refresh_token', tokens.refresh);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storage'));
+  }
 };
 
 export const clearTokens = () => {
   localStorage.removeItem('customer_access_token');
   localStorage.removeItem('customer_refresh_token');
   localStorage.removeItem('customer_user');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('zelora_logout'));
+  }
 };
 
 export const getStoredUser = () => {
@@ -207,6 +214,10 @@ export const setAdminAccessToken = (token) => localStorage.setItem('zelora_admin
 export const clearAdminTokens = () => {
   localStorage.removeItem('zelora_admin_token');
   localStorage.removeItem('zelora_admin_user');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('zelora_logout'));
+  }
 };
 
 export const getStoredAdminUser = () => {

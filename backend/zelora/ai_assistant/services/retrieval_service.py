@@ -223,11 +223,22 @@ class RetrievalService:
     def get_product_recommendations(cls, message: str = "", limit: int = 4) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Retrieves matching luxury products from Django PostgreSQL/SQLite Product model.
+        Leverages Redis caching via django-redis for sub-millisecond repeated queries.
         Dynamically applies budget ranges, category, gender, availability, and occasion filters.
         Never fabricates product details or prices.
         """
         parsed = cls.parse_product_query(message)
         eff_limit = parsed.get("limit") or limit
+
+        # Redis Cache Lookup
+        from django.core.cache import cache
+        cache_key = f"zelora:products:{parsed.get('gender')}:{parsed.get('category')}:{parsed.get('budget_max')}:{parsed.get('budget_min')}:{parsed.get('only_unavailable')}:{parsed.get('occasion')}:{eff_limit}"
+        try:
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result, parsed
+        except Exception:
+            pass
 
         qs = Product.objects.all()
 
@@ -275,6 +286,12 @@ class RetrievalService:
 
         products = list(qs[:eff_limit])
         product_dicts = [p.to_dict() for p in products]
+
+        # Store in Redis Cache with 3-minute TTL
+        try:
+            cache.set(cache_key, product_dicts, timeout=180)
+        except Exception:
+            pass
 
         return product_dicts, parsed
 
@@ -453,9 +470,19 @@ class RetrievalService:
     def get_admin_marketplace_metrics(user: User):
         """
         Only executable by verified staff / superuser administrators.
+        Leverages Redis caching for aggregate calculations.
         """
         if not (user.is_staff or user.is_superuser):
             raise SecurityViolationError("Access denied: Administrative privileges required.")
+
+        from django.core.cache import cache
+        cache_key = "zelora:admin:marketplace_metrics"
+        try:
+            cached_metrics = cache.get(cache_key)
+            if cached_metrics is not None:
+                return cached_metrics
+        except Exception:
+            pass
 
         total_sales_aggr = Order.objects.aggregate(total=Sum('total_amount'))['total'] or 0.00
         total_orders = Order.objects.count()
@@ -467,7 +494,7 @@ class RetrievalService:
         pending_payouts = SellerPayoutRequest.objects.filter(status='pending').count()
         open_tickets = SupportTicket.objects.filter(status__in=['open', 'in_progress']).count()
 
-        return {
+        metrics = {
             "platform_gross_merchandise_volume": f"₹{float(total_sales_aggr):,.2f}",
             "platform_net_commission_revenue": f"₹{float(total_sales_aggr) * 0.125:,.2f}",
             "total_orders_placed": total_orders,
@@ -479,4 +506,11 @@ class RetrievalService:
             "pending_seller_payout_requests": pending_payouts,
             "open_support_tickets": open_tickets,
         }
+
+        try:
+            cache.set(cache_key, metrics, timeout=60)
+        except Exception:
+            pass
+
+        return metrics
 

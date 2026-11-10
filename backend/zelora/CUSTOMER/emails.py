@@ -21,7 +21,12 @@ def _log_otp_console(email, code, purpose="Email Verification"):
 
 def _get_from_email():
     """Returns valid sender address matching authenticated Google account."""
-    return getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'noreply@zelora.luxury')
+    host_user = getattr(settings, 'EMAIL_HOST_USER', None)
+    default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+    email_addr = default_from or host_user or 'noreply@zelora.luxury'
+    if '<' not in email_addr and '@' in email_addr:
+        return f"ZELORA Atelier <{email_addr}>"
+    return email_addr
 
 
 def send_verification_email(email, code, first_name=""):
@@ -101,13 +106,14 @@ https://zelora.luxury
 
 def send_seller_verification_email(email, code, owner_name="", shop_name=""):
     """Dispatches a 6-digit partner boutique verification OTP to a seller."""
+    clean_recipient = str(email).strip().lower()
     app_name = getattr(settings, 'APP_NAME', 'ZELORA')
     subject = f"[{app_name} Atelier] Seller Verification Code: {code}"
     owner_display = owner_name.strip() if owner_name else "Atelier Partner"
     boutique_display = shop_name.strip() if shop_name else "Your Boutique"
 
-    # Always log to console for easy testing
-    _log_otp_console(email, code, f"Seller Registration ({boutique_display})")
+    # Always log to console for easy testing and debugging
+    _log_otp_console(clean_recipient, code, f"Seller Registration ({boutique_display})")
 
     message = f"""Hello {owner_display},
 
@@ -134,7 +140,7 @@ https://zelora.luxury/seller
         <div style="background-color: #FFFFFF; border-radius: 10px; padding: 32px 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); color: #292522;">
             <p style="font-size: 15px; margin-top: 0; color: #292522;">Hello <strong>{owner_display}</strong>,</p>
             <p style="font-size: 14px; line-height: 1.6; color: #555555; margin-bottom: 20px;">
-                We are thrilled to welcome <strong>{boutique_display}</strong> to the ZELORA designer collective. Please verify your business email with the following code to continue to the atelier deposit:
+                We are thrilled to welcome <strong>{boutique_display}</strong> to the ZELORA designer collective. Please verify your business email with the following single-use verification code:
             </p>
 
             <div style="text-align: center; margin: 28px 0;">
@@ -160,15 +166,15 @@ https://zelora.luxury/seller
             subject=subject,
             message=message,
             from_email=_get_from_email(),
-            recipient_list=[email],
+            recipient_list=[clean_recipient],
             html_message=html_message,
             fail_silently=False,
         )
-        logger.info(f"Seller verification email dispatched to {email}")
-        return True
+        logger.info(f"Seller verification email successfully dispatched to {clean_recipient}")
+        return True, "Email dispatched successfully"
     except Exception as e:
-        logger.warning(f"SMTP dispatch note for {email}: {e}")
-        return True
+        logger.error(f"SMTP dispatch error for {clean_recipient}: {e}", exc_info=True)
+        return False, str(e)
 
 
 def send_password_reset_email(email, code, first_name=""):

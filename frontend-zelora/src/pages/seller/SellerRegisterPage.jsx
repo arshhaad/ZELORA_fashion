@@ -84,24 +84,29 @@ export default function SellerRegisterPage() {
     setErrorMsg('');
     setSuccessInfoMsg('');
 
+    const trimmedEmail = (formData.email || '').trim().toLowerCase();
+    const trimmedOwner = (formData.owner_name || '').trim();
+    const trimmedShop = (formData.shop_name || '').trim();
+    const trimmedPhone = (formData.mobile_number || '').trim();
+
     if (
-      !formData.owner_name ||
-      !formData.email ||
-      !formData.mobile_number ||
+      !trimmedOwner ||
+      !trimmedEmail ||
+      !trimmedPhone ||
       !formData.password ||
-      !formData.shop_name
+      !trimmedShop
     ) {
       setErrorMsg('Please fill in all mandatory fields.');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
+    if (!emailRegex.test(trimmedEmail)) {
       setErrorMsg('Please enter a valid business email format (e.g. atelier@boutique.com).');
       return;
     }
 
-    const cleanedPhone = (formData.mobile_number || '').replace(/[\s\-\(\)\+]/g, '');
+    const cleanedPhone = trimmedPhone.replace(/[\s\-\(\)\+]/g, '');
     if (cleanedPhone.length < 7 || !/^\d+$/.test(cleanedPhone)) {
       setErrorMsg('Please enter a valid contact phone number (at least 7 digits).');
       return;
@@ -122,15 +127,24 @@ export default function SellerRegisterPage() {
       return;
     }
 
+    // Update state with cleanly sanitized values
+    setFormData((prev) => ({
+      ...prev,
+      email: trimmedEmail,
+      owner_name: trimmedOwner,
+      shop_name: trimmedShop,
+      mobile_number: trimmedPhone,
+    }));
+
     // Send 6-digit OTP code to the seller's email address via backend
     setIsSubmitting(true);
     try {
       await authApi.sendSellerOtp({
-        email: formData.email,
-        owner_name: formData.owner_name,
-        shop_name: formData.shop_name,
+        email: trimmedEmail,
+        owner_name: trimmedOwner,
+        shop_name: trimmedShop,
       });
-      setSuccessInfoMsg(`Verification OTP successfully dispatched to ${formData.email}.`);
+      setSuccessInfoMsg(`Verification OTP successfully dispatched to ${trimmedEmail}.`);
       setStep('otp');
     } catch (err) {
       const msg = err.data?.detail || err.message || 'Could not send verification OTP to email.';
@@ -156,16 +170,17 @@ export default function SellerRegisterPage() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setErrorMsg('');
-    const fullOtp = otp.join('');
+    const fullOtp = otp.join('').trim();
     if (fullOtp.length < 6) {
       setErrorMsg('Please enter the 6-digit verification code.');
       return;
     }
 
+    const trimmedEmail = (formData.email || '').trim().toLowerCase();
     setIsSubmitting(true);
     try {
       await authApi.verifySellerOtp({
-        email: formData.email,
+        email: trimmedEmail,
         code: fullOtp,
       });
       setStep('payment');
@@ -179,14 +194,15 @@ export default function SellerRegisterPage() {
 
   const handleResendOtp = async () => {
     setErrorMsg('');
+    const trimmedEmail = (formData.email || '').trim().toLowerCase();
     setIsSubmitting(true);
     try {
       await authApi.sendSellerOtp({
-        email: formData.email,
-        owner_name: formData.owner_name,
-        shop_name: formData.shop_name,
+        email: trimmedEmail,
+        owner_name: (formData.owner_name || '').trim(),
+        shop_name: (formData.shop_name || '').trim(),
       });
-      setSuccessInfoMsg(`A fresh verification code has been dispatched to ${formData.email}.`);
+      setSuccessInfoMsg(`A fresh verification code has been dispatched to ${trimmedEmail}.`);
     } catch (err) {
       const msg = err.data?.detail || err.message || 'Could not resend verification code.';
       setErrorMsg(typeof msg === 'string' ? msg : JSON.stringify(msg));
@@ -598,7 +614,7 @@ export default function SellerRegisterPage() {
                 {isSubmitting ? 'Verifying...' : 'Verify Code & Proceed to Payment'}
               </button>
 
-              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', marginTop: '16px' }}>
                 <button
                   type="button"
                   style={{
@@ -616,7 +632,28 @@ export default function SellerRegisterPage() {
                   disabled={isSubmitting}
                 >
                   <RotateCw size={14} className={isSubmitting ? 'spin' : ''} />
-                  <span>Resend verification code</span>
+                  <span>Resend code</span>
+                </button>
+                <span style={{ color: 'var(--seller-border)', fontSize: '12px' }}>•</span>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--seller-muted)',
+                    fontSize: '12.5px',
+                    fontWeight: 500,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                  onClick={() => {
+                    setStep('form');
+                    setErrorMsg('');
+                    setSuccessInfoMsg('');
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Edit email address
                 </button>
               </div>
             </form>

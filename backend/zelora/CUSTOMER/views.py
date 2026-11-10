@@ -1073,16 +1073,35 @@ class SendSellerOtpView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        email_raw = request.data.get('email', '')
         owner_name = request.data.get('owner_name', '').strip()
         shop_name = request.data.get('shop_name', '').strip()
 
-        if not email:
-            return Response({"detail": "Email address is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not email_raw or not str(email_raw).strip():
+            return Response({"detail": "Business email address is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = str(email_raw).strip().lower()
+
+        # Validate business email format
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        if not re.match(email_regex, email):
+            return Response({
+                "detail": "Please enter a valid business email address format (e.g. atelier@boutique.com)."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if email is already registered as an active seller
+        existing_seller = User.objects.filter(email=email, is_seller=True).first()
+        if existing_seller:
+            return Response({
+                "detail": "A boutique seller account already exists with this email address. Please sign in at /seller/login."
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Generate OTP
         code_obj = SellerVerificationCode.generate(email)
-        send_seller_verification_email(email, code_obj.code, owner_name, shop_name)
+        success, msg = send_seller_verification_email(email, code_obj.code, owner_name, shop_name)
+
+        if not success:
+            logger.warning(f"SMTP dispatch note for {email}: {msg}")
 
         resp = {
             "message": f"6-digit verification code has been dispatched to {email}.",
@@ -1096,23 +1115,25 @@ class VerifySellerOtpView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        email_raw = request.data.get('email', '')
         code = request.data.get('code', '').strip()
 
-        if not email or not code:
+        if not email_raw or not code:
             return Response({"detail": "Both email and verification code are required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        email = str(email_raw).strip().lower()
+
         record = SellerVerificationCode.objects.filter(
-            email=email,
+            email__iexact=email,
             code=code,
             is_used=False,
             expires_at__gt=timezone.now()
         ).first()
 
         if not record:
-            return Response({"detail": "Invalid or expired verification code."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Invalid or expired verification code. Please request a new code."}, status=status.HTTP_400_BAD_REQUEST)
 
         record.is_used = True
         record.save()
 
-        return Response({"message": "Email verified successfully.", "verified": True}, status=status.HTTP_200_OK)
+        return Response({"message": "Email verified successfully.", "verified": True, "email": email}, status=status.HTTP_200_OK)

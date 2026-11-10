@@ -60,6 +60,7 @@ export default function SellerRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [successInfoMsg, setSuccessInfoMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState('form'); // 'form' | 'otp' | 'payment' | 'submitted'
@@ -77,11 +78,16 @@ export default function SellerRegisterPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (errorMsg) setErrorMsg('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setFieldErrors({});
     setSuccessInfoMsg('');
 
     const trimmedEmail = (formData.email || '').trim().toLowerCase();
@@ -89,41 +95,16 @@ export default function SellerRegisterPage() {
     const trimmedShop = (formData.shop_name || '').trim();
     const trimmedPhone = (formData.mobile_number || '').trim();
 
-    if (
-      !trimmedOwner ||
-      !trimmedEmail ||
-      !trimmedPhone ||
-      !formData.password ||
-      !trimmedShop
-    ) {
-      setErrorMsg('Please fill in all mandatory fields.');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
-      setErrorMsg('Please enter a valid business email format (e.g. atelier@boutique.com).');
-      return;
-    }
-
-    const cleanedPhone = trimmedPhone.replace(/[\s\-\(\)\+]/g, '');
-    if (cleanedPhone.length < 7 || !/^\d+$/.test(cleanedPhone)) {
-      setErrorMsg('Please enter a valid contact phone number (at least 7 digits).');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters.');
-      return;
-    }
-
-    if (formData.password !== formData.confirm_password) {
+    // Fast client pre-check for confirm password & terms
+    if (formData.password && formData.confirm_password && formData.password !== formData.confirm_password) {
       setErrorMsg('Passwords do not match.');
+      setFieldErrors({ confirm_password: 'Passwords do not match.' });
       return;
     }
 
     if (!formData.terms_accepted) {
       setErrorMsg('You must accept the ZELORA Marketplace Terms & Merchant Agreement.');
+      setFieldErrors({ terms_accepted: 'Please accept the Merchant Agreement to continue.' });
       return;
     }
 
@@ -154,20 +135,30 @@ export default function SellerRegisterPage() {
       mobile_number: trimmedPhone,
     }));
 
-    // Send 6-digit OTP code to the seller's verified email inbox via backend SMTP
+    // Send registration payload to backend for authoritative validation & OTP dispatch
     setIsSubmitting(true);
     try {
       const res = await authApi.sendSellerOtp({
-        email: normalizedEmail,
         owner_name: trimmedOwner,
+        email: normalizedEmail,
+        mobile_number: trimmedPhone,
+        password: formData.password,
         shop_name: trimmedShop,
+        shop_category: formData.shop_category,
       });
       const targetEmail = res.email || normalizedEmail;
       setSuccessInfoMsg(`Verification code sent to your real email: ${targetEmail}`);
       setStep('otp');
     } catch (err) {
-      const msg = err.data?.detail || err.message || 'Could not send verification OTP to email.';
-      setErrorMsg(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      const backendErrors = err.data?.errors || {};
+      const detail = err.data?.detail || err.message || 'Could not validate seller registration.';
+      setErrorMsg(typeof detail === 'string' ? detail : JSON.stringify(detail));
+
+      const newFieldErrors = {};
+      for (const [k, v] of Object.entries(backendErrors)) {
+        newFieldErrors[k] = Array.isArray(v) ? v[0] : v;
+      }
+      setFieldErrors(newFieldErrors);
     } finally {
       setIsSubmitting(false);
     }
@@ -283,6 +274,7 @@ export default function SellerRegisterPage() {
         email: trimmedEmail,
         owner_name: (formData.owner_name || '').trim(),
         shop_name: (formData.shop_name || '').trim(),
+        is_resend: true,
       });
       const targetEmail = res.email || trimmedEmail;
       setSuccessInfoMsg(`A fresh verification code has been sent to your real email: ${targetEmail}`);
@@ -295,6 +287,8 @@ export default function SellerRegisterPage() {
   };
 
   const completeRegistration = async (paymentId) => {
+    setIsSubmitting(true);
+    setErrorMsg('');
     try {
       const typoDomains = {
         'gamil.com': 'gmail.com',
@@ -313,19 +307,16 @@ export default function SellerRegisterPage() {
         }
       }
 
-      // 1. Register seller in backend database
-      try {
-        await authApi.sellerRegister({
-          owner_name: (formData.owner_name || '').trim(),
-          email: cleanEmail,
-          mobile_number: (formData.mobile_number || '').trim(),
-          password: formData.password,
-          shop_name: (formData.shop_name || '').trim(),
-          shop_category: formData.shop_category,
-        });
-      } catch (err) {
-        console.warn('Backend seller registration sync:', err);
-      }
+      // 1. Register seller in backend database & authenticate session via SellerContext
+      const session = await registerSeller({
+        owner_name: (formData.owner_name || '').trim(),
+        email: cleanEmail,
+        mobile_number: (formData.mobile_number || '').trim(),
+        password: formData.password,
+        shop_name: (formData.shop_name || '').trim(),
+        shop_category: formData.shop_category,
+        payment_id: paymentId,
+      });
 
       // 2. Save to registered sellers list
       const existing = JSON.parse(localStorage.getItem('zelora_registered_sellers') || '[]');
@@ -333,22 +324,22 @@ export default function SellerRegisterPage() {
         ...formData,
         payment_id: paymentId,
         amount_paid: 1999,
-        approval_status: 'pending',
+        approval_status: 'approved',
         registered_at: new Date().toISOString(),
       };
       existing.push(newSellerRecord);
       localStorage.setItem('zelora_registered_sellers', JSON.stringify(existing));
 
-      // 2. Add to Admin Pending Shops Queue
+      // 3. Add to Admin Pending / Verified Shops Queue
       const adminShops = JSON.parse(localStorage.getItem('zelora_admin_shops') || '[]');
       const newShopSubmission = {
-        id: `shop-${Date.now()}`,
+        id: session?.shop?.id || `shop-${Date.now()}`,
         name: formData.shop_name,
         category: formData.shop_category,
         owner_name: formData.owner_name,
-        owner_email: formData.email,
+        owner_email: cleanEmail,
         description: `Boutique atelier specializing in ${formData.shop_category}. Registered with onboarding payment ref ${paymentId}.`,
-        status: 'pending',
+        status: 'active',
         rating: 5.0,
         sales_count: 0,
         commission_rate: 15,
@@ -360,8 +351,18 @@ export default function SellerRegisterPage() {
 
       setPaymentReference(paymentId);
       setStep('submitted');
-    } catch {
-      setErrorMsg('Error completing registration. Please contact support.');
+    } catch (err) {
+      const backendErrors = err.data?.errors || {};
+      const detail = err.data?.detail || err.message || 'Error completing registration. Please check your details.';
+      setErrorMsg(typeof detail === 'string' ? detail : JSON.stringify(detail));
+      if (Object.keys(backendErrors).length > 0) {
+        const newFieldErrors = {};
+        for (const [k, v] of Object.entries(backendErrors)) {
+          newFieldErrors[k] = Array.isArray(v) ? v[0] : v;
+        }
+        setFieldErrors(newFieldErrors);
+        setStep('form');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -475,7 +476,9 @@ export default function SellerRegisterPage() {
           <form onSubmit={handleSubmit}>
             {/* Owner Full Name */}
             <div className="seller-form-group">
-              <label className="seller-form-label">Owner Full Name *</label>
+              <label className="seller-form-label">
+                Owner Full Name <span style={{ color: 'var(--seller-danger)' }}>*</span>
+              </label>
               <input
                 type="text"
                 name="owner_name"
@@ -483,14 +486,23 @@ export default function SellerRegisterPage() {
                 onChange={handleChange}
                 placeholder="e.g. Eleanor Vance"
                 className="seller-input"
+                style={fieldErrors.owner_name ? { borderColor: 'var(--seller-danger)' } : {}}
                 required
               />
+              {fieldErrors.owner_name && (
+                <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <AlertCircle size={13} />
+                  <span>{fieldErrors.owner_name}</span>
+                </div>
+              )}
             </div>
 
             {/* Email & Mobile Number Row */}
             <div className="seller-form-grid-2">
               <div className="seller-form-group">
-                <label className="seller-form-label">Business Email *</label>
+                <label className="seller-form-label">
+                  Business Email <span style={{ color: 'var(--seller-danger)' }}>*</span>
+                </label>
                 <input
                   type="email"
                   name="email"
@@ -498,12 +510,21 @@ export default function SellerRegisterPage() {
                   onChange={handleChange}
                   placeholder="atelier@domain.luxury"
                   className="seller-input"
+                  style={fieldErrors.email ? { borderColor: 'var(--seller-danger)' } : {}}
                   required
                 />
+                {fieldErrors.email && (
+                  <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertCircle size={13} />
+                    <span>{fieldErrors.email}</span>
+                  </div>
+                )}
               </div>
 
               <div className="seller-form-group">
-                <label className="seller-form-label">Mobile Number *</label>
+                <label className="seller-form-label">
+                  Mobile Number <span style={{ color: 'var(--seller-danger)' }}>*</span>
+                </label>
                 <input
                   type="tel"
                   name="mobile_number"
@@ -511,15 +532,24 @@ export default function SellerRegisterPage() {
                   onChange={handleChange}
                   placeholder="+91 98201 54321"
                   className="seller-input"
+                  style={fieldErrors.mobile_number ? { borderColor: 'var(--seller-danger)' } : {}}
                   required
                 />
+                {fieldErrors.mobile_number && (
+                  <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertCircle size={13} />
+                    <span>{fieldErrors.mobile_number}</span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Shop Name & Category */}
             <div className="seller-form-grid-2">
               <div className="seller-form-group">
-                <label className="seller-form-label">Shop / Atelier Name *</label>
+                <label className="seller-form-label">
+                  Shop / Atelier Name <span style={{ color: 'var(--seller-danger)' }}>*</span>
+                </label>
                 <input
                   type="text"
                   name="shop_name"
@@ -527,17 +557,27 @@ export default function SellerRegisterPage() {
                   onChange={handleChange}
                   placeholder="e.g. Maison de L'Ombre"
                   className="seller-input"
+                  style={fieldErrors.shop_name ? { borderColor: 'var(--seller-danger)' } : {}}
                   required
                 />
+                {fieldErrors.shop_name && (
+                  <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertCircle size={13} />
+                    <span>{fieldErrors.shop_name}</span>
+                  </div>
+                )}
               </div>
 
               <div className="seller-form-group">
-                <label className="seller-form-label">Boutique Category *</label>
+                <label className="seller-form-label">
+                  Boutique Category <span style={{ color: 'var(--seller-danger)' }}>*</span>
+                </label>
                 <select
                   name="shop_category"
                   value={formData.shop_category}
                   onChange={handleChange}
                   className="seller-select"
+                  style={fieldErrors.shop_category ? { borderColor: 'var(--seller-danger)' } : {}}
                 >
                   <option value="Haute Couture & Designer Wear">Haute Couture & Designer Wear</option>
                   <option value="Luxury Eveningwear">Luxury Eveningwear</option>
@@ -546,13 +586,21 @@ export default function SellerRegisterPage() {
                   <option value="Footwear & Fine Leather Goods">Footwear & Fine Leather Goods</option>
                   <option value="Fine Jewelry & Accessories">Fine Jewelry & Accessories</option>
                 </select>
+                {fieldErrors.shop_category && (
+                  <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertCircle size={13} />
+                    <span>{fieldErrors.shop_category}</span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Password & Confirm Password */}
             <div className="seller-form-grid-2">
               <div className="seller-form-group">
-                <label className="seller-form-label">Password *</label>
+                <label className="seller-form-label">
+                  Password <span style={{ color: 'var(--seller-danger)' }}>*</span>
+                </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -561,6 +609,7 @@ export default function SellerRegisterPage() {
                     onChange={handleChange}
                     placeholder="Min 6 characters"
                     className="seller-input"
+                    style={fieldErrors.password ? { borderColor: 'var(--seller-danger)' } : {}}
                     required
                   />
                   <button
@@ -580,10 +629,18 @@ export default function SellerRegisterPage() {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertCircle size={13} />
+                    <span>{fieldErrors.password}</span>
+                  </div>
+                )}
               </div>
 
               <div className="seller-form-group">
-                <label className="seller-form-label">Confirm Password *</label>
+                <label className="seller-form-label">
+                  Confirm Password <span style={{ color: 'var(--seller-danger)' }}>*</span>
+                </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
@@ -592,6 +649,7 @@ export default function SellerRegisterPage() {
                     onChange={handleChange}
                     placeholder="Repeat password"
                     className="seller-input"
+                    style={fieldErrors.confirm_password ? { borderColor: 'var(--seller-danger)' } : {}}
                     required
                   />
                   <button
@@ -611,6 +669,12 @@ export default function SellerRegisterPage() {
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {fieldErrors.confirm_password && (
+                  <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertCircle size={13} />
+                    <span>{fieldErrors.confirm_password}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -639,6 +703,12 @@ export default function SellerRegisterPage() {
                   I accept the ZELORA Marketplace Terms, Merchant Policy, and agree to pay the standard ₹1,999 atelier verification fee upon email confirmation.
                 </span>
               </label>
+              {fieldErrors.terms_accepted && (
+                <div style={{ color: 'var(--seller-danger)', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <AlertCircle size={13} />
+                  <span>{fieldErrors.terms_accepted}</span>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}
@@ -917,13 +987,31 @@ export default function SellerRegisterPage() {
               <div>• You can then log in using your registered business email and password.</div>
             </div>
 
-            <Link
-              to="/seller/login"
-              className="btn-seller-gold"
-              style={{ display: 'inline-flex', width: '100%', justifyContent: 'center', padding: '13px', textDecoration: 'none' }}
-            >
-              Proceed to Seller Login
-            </Link>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <Link
+                to="/seller/dashboard"
+                className="btn-seller-gold"
+                style={{ display: 'inline-flex', width: '100%', justifyContent: 'center', padding: '13px', textDecoration: 'none' }}
+              >
+                Enter Seller Dashboard Directly
+                <ArrowRight size={16} />
+              </Link>
+              <Link
+                to="/seller/login"
+                style={{
+                  display: 'inline-flex',
+                  width: '100%',
+                  justifyContent: 'center',
+                  padding: '10px',
+                  color: 'var(--seller-espresso)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Sign In with Credentials
+              </Link>
+            </div>
           </div>
         )}
 

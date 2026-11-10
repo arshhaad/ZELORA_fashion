@@ -837,64 +837,98 @@ class RazorpayPaymentVerifyView(APIView):
 # Seller Management & Atelier Views
 # ==========================================
 
+def validate_seller_registration_payload(data, require_all_fields=True):
+    """Validates seller registration input fields using strict backend validation logic."""
+    from .emails import normalize_email_address
+    errors = {}
+
+    owner_name = str(data.get('owner_name', '')).strip()
+    email_raw = data.get('email', '')
+    mobile_number = str(data.get('mobile_number', '')).strip()
+    password = data.get('password', '')
+    shop_name = str(data.get('shop_name', '')).strip()
+    shop_category = str(data.get('shop_category', 'Haute Couture & Designer Wear')).strip()
+
+    # 1. Owner Name
+    if require_all_fields or 'owner_name' in data:
+        if not owner_name:
+            errors['owner_name'] = ["Owner full name is required."]
+        elif len(owner_name) < 2:
+            errors['owner_name'] = ["Owner full name must contain at least 2 characters."]
+
+    # 2. Email
+    if not email_raw or not str(email_raw).strip():
+        errors['email'] = ["Business email address is required."]
+    else:
+        email = normalize_email_address(email_raw)
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        if not re.match(email_regex, email):
+            errors['email'] = ["Please enter a valid business email address format (e.g. atelier@boutique.com)."]
+        else:
+            existing_seller = User.objects.filter(email=email, is_seller=True).first()
+            if existing_seller:
+                errors['email'] = ["A boutique seller account already exists with this email address. Please sign in at /seller/login."]
+            elif User.objects.filter(email=email, is_superuser=True).exists():
+                errors['email'] = ["This email belongs to an administrative account. Please use another email."]
+
+    # 3. Mobile Number
+    if require_all_fields or 'mobile_number' in data:
+        if not mobile_number:
+            errors['mobile_number'] = ["Contact phone number is required."]
+        else:
+            cleaned_phone = re.sub(r'[\s\-\(\)\+]', '', mobile_number)
+            if len(cleaned_phone) < 7 or not cleaned_phone.isdigit():
+                errors['mobile_number'] = ["Please enter a valid contact phone number (at least 7 digits)."]
+
+    # 4. Password
+    if require_all_fields or 'password' in data:
+        if not password:
+            errors['password'] = ["Password is required."]
+        elif len(str(password)) < 6:
+            errors['password'] = ["Password must contain at least 6 characters."]
+
+    # 5. Shop Name
+    if require_all_fields or 'shop_name' in data:
+        if not shop_name:
+            errors['shop_name'] = ["Boutique / Atelier shop name is required."]
+        elif len(shop_name) < 2:
+            errors['shop_name'] = ["Shop name must contain at least 2 characters."]
+
+    # 6. Shop Category
+    if require_all_fields or 'shop_category' in data:
+        if not shop_category:
+            errors['shop_category'] = ["Fashion category specialization is required."]
+
+    return errors
+
+
 class SellerRegisterView(APIView):
     """Registers a new fashion partner seller and sets up their atelier shop with comprehensive validation."""
     permission_classes = [AllowAny]
 
     def post(self, request):
         data = request.data or {}
-        owner_name = str(data.get('owner_name', '')).strip()
-        email_raw = str(data.get('email', '')).strip()
-        mobile_number = str(data.get('mobile_number', '')).strip()
-        password = data.get('password', '')
-        shop_name = str(data.get('shop_name', '')).strip()
-        shop_category = str(data.get('shop_category', 'Haute Couture & Designer Wear')).strip()
+        from .emails import normalize_email_address
 
-        errors = {}
-
-        # 1. Validate Owner Name
-        if not owner_name:
-            errors['owner_name'] = ["Owner full name is required."]
-        elif len(owner_name) < 2:
-            errors['owner_name'] = ["Owner full name must contain at least 2 characters."]
-
-        # 2. Validate Email
-        if not email_raw:
-            errors['email'] = ["Business email address is required."]
-        else:
-            email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-            if not re.match(email_regex, email_raw):
-                errors['email'] = ["Please enter a valid business email format (e.g. atelier@boutique.com)."]
-
-        # 3. Validate Mobile Number
-        if not mobile_number:
-            errors['mobile_number'] = ["Contact phone number is required."]
-        else:
-            cleaned_phone = re.sub(r'[\s\-\(\)\+]', '', mobile_number)
-            if len(cleaned_phone) < 7 or not cleaned_phone.isdigit():
-                errors['mobile_number'] = ["Please enter a valid phone number (at least 7 digits)."]
-
-        # 4. Validate Password
-        if not password:
-            errors['password'] = ["Password is required."]
-        elif len(password) < 6:
-            errors['password'] = ["Password must be at least 6 characters long."]
-
-        # 5. Validate Shop Name
-        if not shop_name:
-            errors['shop_name'] = ["Boutique/Atelier shop name is required."]
-        elif len(shop_name) < 2:
-            errors['shop_name'] = ["Shop name must contain at least 2 characters."]
-
-        # 6. Validate Shop Category
-        if not shop_category:
-            errors['shop_category'] = ["Fashion category specialization is required."]
-
+        errors = validate_seller_registration_payload(data, require_all_fields=True)
         if errors:
             detail_msg = next(iter(errors.values()))[0]
             return Response({"detail": detail_msg, "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        email = email_raw.lower()
+        email = normalize_email_address(data.get('email', ''))
+        owner_name = str(data.get('owner_name', '')).strip()
+        mobile_number = str(data.get('mobile_number', '')).strip()
+        password = str(data.get('password', ''))
+        shop_name = str(data.get('shop_name', '')).strip()
+        shop_category = str(data.get('shop_category', 'Haute Couture & Designer Wear')).strip()
+
+        # Check if email was OTP verified
+        otp_verified = SellerVerificationCode.objects.filter(email__iexact=email, is_used=True).exists()
+        if not otp_verified:
+            return Response({
+                "detail": "Please verify your email address with the 6-digit confirmation PIN before completing registration.",
+                "errors": {"email": ["Email verification required."]}
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Check existing seller
         existing_user = User.objects.filter(email=email).first()
@@ -906,6 +940,7 @@ class SellerRegisterView(APIView):
 
         if existing_user:
             existing_user.is_seller = True
+            existing_user.is_email_verified = True
             existing_user.shop_name = shop_name
             existing_user.shop_category = shop_category
             if mobile_number:
@@ -970,7 +1005,8 @@ class SellerLoginView(APIView):
             detail_msg = next(iter(errors.values()))[0]
             return Response({"detail": detail_msg, "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        email = str(email_raw).strip().lower()
+        from .emails import normalize_email_address
+        email = normalize_email_address(email_raw)
 
         # 2. Email format validation
         email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
@@ -1001,7 +1037,7 @@ class SellerLoginView(APIView):
         if not user.is_active:
             return Response({
                 "detail": "Your boutique seller account has been deactivated or suspended. Please contact ZELORA Administration.",
-                "errors": {"account": ["Account is deactivated."]}
+                "errors": {"email": ["Account is deactivated."]}
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 6. Password authentication check
@@ -1015,7 +1051,7 @@ class SellerLoginView(APIView):
         if not getattr(user, 'is_seller', False):
             return Response({
                 "detail": "Access restricted: This account is registered as a customer. Customers cannot log in to the Seller Center. Please use the Customer Login at /login.",
-                "errors": {"role": ["Account is not registered as a seller."]}
+                "errors": {"email": ["Account is registered as a customer. Please use /login."]}
             }, status=status.HTTP_403_FORBIDDEN)
 
         # 8. Retrieve or initialize shop profile
@@ -1069,33 +1105,23 @@ class SellerShopProfileView(APIView):
 
 
 class SendSellerOtpView(APIView):
-    """Generates and dispatches a 6-digit email verification code for seller registration."""
+    """Generates and dispatches a 6-digit email verification code for seller registration with full backend validation."""
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email_raw = request.data.get('email', '')
-        owner_name = request.data.get('owner_name', '').strip()
-        shop_name = request.data.get('shop_name', '').strip()
+        data = request.data or {}
+        is_resend = bool(data.get('is_resend', False))
 
-        if not email_raw or not str(email_raw).strip():
-            return Response({"detail": "Business email address is required."}, status=status.HTTP_400_BAD_REQUEST)
+        # Validate seller registration payload via backend
+        errors = validate_seller_registration_payload(data, require_all_fields=not is_resend)
+        if errors:
+            detail_msg = next(iter(errors.values()))[0]
+            return Response({"detail": detail_msg, "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
         from .emails import normalize_email_address
-        email = normalize_email_address(email_raw)
-
-        # Validate business email format
-        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-        if not re.match(email_regex, email):
-            return Response({
-                "detail": "Please enter a valid business email address format (e.g. atelier@boutique.com)."
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check if email is already registered as an active seller
-        existing_seller = User.objects.filter(email=email, is_seller=True).first()
-        if existing_seller:
-            return Response({
-                "detail": "A boutique seller account already exists with this email address. Please sign in at /seller/login."
-            }, status=status.HTTP_400_BAD_REQUEST)
+        email = normalize_email_address(data.get('email', ''))
+        owner_name = str(data.get('owner_name', '')).strip()
+        shop_name = str(data.get('shop_name', '')).strip()
 
         # Generate OTP
         code_obj = SellerVerificationCode.generate(email)
@@ -1119,11 +1145,19 @@ class VerifySellerOtpView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email_raw = request.data.get('email', '')
-        code = request.data.get('code', '').strip()
+        data = request.data or {}
+        email_raw = data.get('email', '')
+        code = str(data.get('code', '')).strip()
 
-        if not email_raw or not code:
-            return Response({"detail": "Both email and verification code are required."}, status=status.HTTP_400_BAD_REQUEST)
+        errors = {}
+        if not email_raw:
+            errors['email'] = ["Business email address is required."]
+        if not code:
+            errors['code'] = ["Verification code is required."]
+
+        if errors:
+            detail_msg = next(iter(errors.values()))[0]
+            return Response({"detail": detail_msg, "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
         from .emails import normalize_email_address
         email = normalize_email_address(email_raw)
@@ -1136,7 +1170,10 @@ class VerifySellerOtpView(APIView):
         ).first()
 
         if not record:
-            return Response({"detail": "Invalid or expired verification code. Please request a new code."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "detail": "Invalid or expired verification code. Please request a new code.",
+                "errors": {"code": ["Invalid or expired verification code."]}
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         record.is_used = True
         record.save()

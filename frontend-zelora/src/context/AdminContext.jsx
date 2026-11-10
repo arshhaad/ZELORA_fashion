@@ -254,23 +254,6 @@ export function AdminProvider({ children }) {
       return { success: true, user };
     } catch (error) {
       setLoading(false);
-      // Helpful fallback demo login if backend is disconnected
-      if (email.toLowerCase().includes('admin') && password === 'Admin@12345') {
-        const fallbackUser = {
-          id: 1,
-          email: 'admin@zelora.luxury',
-          name: 'Executive Director',
-          role: 'Super Administrator',
-          is_superuser: true,
-          is_staff: true,
-          avatar: null
-        };
-        setAdminAccessToken('demo_jwt_token_admin_zelora');
-        setStoredAdminUser(fallbackUser);
-        setAdminUser(fallbackUser);
-        setToken('demo_jwt_token_admin_zelora');
-        return { success: true, user: fallbackUser };
-      }
       throw error;
     }
   };

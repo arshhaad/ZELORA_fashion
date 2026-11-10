@@ -63,8 +63,10 @@ class ContextService:
 
         # Product Recommendations & Style Advice
         if any(term in msg for term in [
-            "recommend", "what should i wear", "suggestion", "style", "outfit",
-            "wool overcoat", "gown", "dress", "trench", "cashmere", "shoes", "jacket"
+            "recommend", "what should i wear", "suggestion", "suggest", "style", "outfit",
+            "wool overcoat", "gown", "dress", "trench", "cashmere", "shoes", "jacket",
+            "pants", "trousers", "boots", "bag", "shirt", "collection", "pieces", "buy",
+            "products", "look"
         ]):
             return "product_recommendation"
 
@@ -93,12 +95,14 @@ class ContextService:
             f"Current Authenticated User: {first_name} ({user.email}).\n"
             f"User Role: {role_label}.\n"
             f"Currency Standard: Indian Rupees (₹). Format all monetary figures with '₹' symbol.\n"
-            f"Brand Tone: Gracious, refined, direct, and helpful. Always greet the user warmly as '{first_name}'.\n"
-            f"Core Security Directives:\n"
-            f"- Strictly use only the verified account records provided below as ground truth.\n"
-            f"- Never fabricate order numbers, tracking links, or statuses.\n"
-            f"- Never reveal or hypothesize about other users' orders or details.\n"
-            f"- If no records exist, inform the user graciously.\n\n"
+            f"Brand Tone: Gracious, refined, direct, and succinct. Greet the user warmly as '{first_name}'.\n\n"
+            f"CRITICAL RESPONSE DIRECTIVES (MANDATORY):\n"
+            f"- Provide ONLY SIMPLE, VERY SHORT, and DIRECT answers (strictly 1 to 2 sentences maximum).\n"
+            f"- Never write long paragraphs, lengthy lists, bullet points, or repetitive text.\n"
+            f"- For orders/tracking: State the order status and estimated arrival in 1 sentence.\n"
+            f"- For product suggestions: Provide 1 elegant sentence introducing the curated pieces. The user interface will automatically render visual interactive product cards with photos and links directly underneath your message.\n"
+            f"- Ground truth: Strictly use only the verified account and catalog records provided below.\n"
+            f"- Never fabricate order numbers, tracking links, or statuses.\n\n"
         )
 
         retrieved_data = {}
@@ -193,17 +197,15 @@ class ContextService:
             )
 
         elif intent == "product_recommendation":
+            products = RetrievalService.get_product_recommendations(message, limit=3)
+            retrieved_data["products"] = products
+            prod_summary = ", ".join([f"{p['name']} (₹{p['price']})" for p in products])
             system_prompt += (
-                f"--- PRODUCT CATALOG RECOMMENDATION GUIDE ---\n"
-                f"Highlight pieces from the ZELORA Autumn/Winter and Monochrome Haute Couture Collections:\n"
-                f"1. Structured Double-Breasted Wool Overcoat (₹349 / Regular ₹420)\n"
-                f"2. Draped Silk Evening Slip Gown (₹260 / Regular ₹320)\n"
-                f"3. High-Waist Pleated Wool Flannel Trousers (₹185)\n"
-                f"4. Architectural Double-Breasted Wool Trench (₹420)\n"
-                f"5. Cashmere Mock-Neck Cocoon Knit (₹240)\n"
-                f"6. Square-Toe Italian Calfskin Ankle Boots (₹310)\n"
-                f"Emphasize pure Mulberry silk, bonded Melton wool, sculptural silhouettes, and monochrome palette (Noir Black, Ecru, Camel, Charcoal).\n"
-                f"-------------------------------------------\n\n"
+                f"--- PRODUCT RECOMMENDATIONS ATTACHED ---\n"
+                f"Curated pieces: {prod_summary}\n"
+                f"DIRECTIVE: Give a very brief, chic 1-sentence recommendation introducing these pieces. "
+                f"Do NOT list prices or product descriptions in your text — the UI automatically renders interactive product cards with images and links right below your message.\n"
+                f"----------------------------------------\n\n"
             )
 
         return system_prompt, retrieved_data, intent

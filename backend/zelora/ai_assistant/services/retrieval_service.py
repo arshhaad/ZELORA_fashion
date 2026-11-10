@@ -10,12 +10,138 @@ class SecurityViolationError(Exception):
     pass
 
 
+ZELORA_CATALOG = [
+    {
+        "id": "zel-001",
+        "name": "Structured Double-Breasted Wool Overcoat",
+        "category": "Outerwear",
+        "price": 349,
+        "original_price": 420,
+        "rating": 4.9,
+        "brand": "ZELORA Atelier",
+        "image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Architectural virgin wool melton overcoat with sharp shoulder pads and fluid drape.",
+        "keywords": ["coat", "overcoat", "wool", "outerwear", "trench", "jacket", "winter", "black coat"]
+    },
+    {
+        "id": "zel-002",
+        "name": "Draped Silk Evening Slip Gown",
+        "category": "Dresses",
+        "price": 260,
+        "original_price": 320,
+        "rating": 4.8,
+        "brand": "ZELORA Noir",
+        "image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Fluid 22-Momme Mulberry silk gown cut on the bias with asymmetrical cowl neck.",
+        "keywords": ["gown", "dress", "evening", "slip", "silk", "gala", "party", "wedding"]
+    },
+    {
+        "id": "zel-003",
+        "name": "Oversized Poplin Studio Shirt",
+        "category": "Tops",
+        "price": 145,
+        "original_price": 180,
+        "rating": 4.7,
+        "brand": "Studio Monolith",
+        "image": "https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Crisp Italian cotton poplin with relaxed tailoring and shell buttons.",
+        "keywords": ["shirt", "poplin", "top", "button", "cotton", "casual", "white shirt"]
+    },
+    {
+        "id": "zel-004",
+        "name": "Architectural Double-Breasted Wool Trench",
+        "category": "Outerwear",
+        "price": 420,
+        "original_price": 490,
+        "rating": 5.0,
+        "brand": "ZELORA Atelier",
+        "image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Sculptural double-faced bonded wool trench coat with belted waist.",
+        "keywords": ["trench", "belted", "wool", "coat", "heavyweight"]
+    },
+    {
+        "id": "zel-005",
+        "name": "High-Waist Pleated Wool Flannel Trousers",
+        "category": "Trousers",
+        "price": 185,
+        "original_price": 220,
+        "rating": 4.8,
+        "brand": "ZELORA Tailoring",
+        "image": "https://images.unsplash.com/photo-1508427953056-b00b8d78ebf5?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Double forward pleats and high-rise waistband in fine wool flannel.",
+        "keywords": ["trousers", "pants", "pleated", "wool", "tailored", "flannel"]
+    },
+    {
+        "id": "zel-006",
+        "name": "Cashmere Mock-Neck Cocoon Knit",
+        "category": "Knitwear",
+        "price": 240,
+        "original_price": 290,
+        "rating": 4.9,
+        "brand": "Maison Minimal",
+        "image": "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Grade-A Mongolian cashmere with tactile cocoon silhouette.",
+        "keywords": ["knit", "sweater", "cashmere", "turtleneck", "mock-neck", "warm"]
+    },
+    {
+        "id": "zel-008",
+        "name": "Square-Toe Italian Calfskin Ankle Boots",
+        "category": "Footwear",
+        "price": 310,
+        "original_price": 360,
+        "rating": 4.9,
+        "brand": "ZELORA Leather",
+        "image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Vegetable-tanned calfskin boots with architectural block heel.",
+        "keywords": ["boots", "shoes", "leather", "calfskin", "footwear", "ankle"]
+    },
+    {
+        "id": "zel-010",
+        "name": "Architectural Calfskin Frame Bag",
+        "category": "Bags",
+        "price": 290,
+        "original_price": 340,
+        "rating": 4.9,
+        "brand": "Studio Monolith",
+        "image": "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80&sat=-100",
+        "description": "Geometric hand-stitched structured calfskin frame tote with silver hardware.",
+        "keywords": ["bag", "tote", "handbag", "purse", "accessories", "leather"]
+    }
+]
+
+
 class RetrievalService:
     """
     Deterministic, role-bounded database retrieval service.
     Guarantees zero unrestricted AI-generated SQL and strictly isolates user records.
     Never trusts parameters sent from the frontend.
     """
+
+    @staticmethod
+    def get_product_recommendations(message: str = "", limit: int = 3):
+        """
+        Retrieves matching luxury products based on keywords, or returns top trending editorial pieces.
+        """
+        query = message.lower()
+        scored_products = []
+        for p in ZELORA_CATALOG:
+            score = 0
+            for kw in p["keywords"]:
+                if kw in query:
+                    score += 2
+            if p["category"].lower() in query:
+                score += 3
+            if p["brand"].lower() in query:
+                score += 3
+            if score > 0:
+                scored_products.append((score, p))
+
+        if scored_products:
+            scored_products.sort(key=lambda x: x[0], reverse=True)
+            return [item[1] for item in scored_products[:limit]]
+
+        # Default curated editorial recommendations
+        return ZELORA_CATALOG[:limit]
 
     @staticmethod
     def detect_unauthorized_cross_tenant_intent(message: str, user: User) -> bool:

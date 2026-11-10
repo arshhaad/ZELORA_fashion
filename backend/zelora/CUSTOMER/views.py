@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests
 
@@ -152,6 +152,19 @@ class LoginView(APIView):
 
         user = serializer.validated_data['user']
 
+        # Enforce Customer Role: Sellers and Admins must sign in through their dedicated portals
+        if user.is_superuser or user.is_staff:
+            return Response(
+                {"detail": "Access restricted: This account possesses administrative privileges. Please log in via the Executive Console at /admin/login."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if getattr(user, 'is_seller', False):
+            return Response(
+                {"detail": "Access restricted: This account is registered as a boutique seller. Please log in via the Seller Center at /seller/login."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         if not user.is_email_verified:
             # Resend verification code automatically to make it easy
             code_obj = EmailVerificationCode.generate(user)
@@ -285,6 +298,29 @@ class GoogleAuthView(APIView):
         picture = google_user_data.get('picture')
 
         user = User.objects.filter(email=email).first()
+
+        # Strict Role Enforcement for Google Sign-In
+        if is_seller:
+            if user:
+                if not getattr(user, 'is_seller', False):
+                    return Response({
+                        "detail": "Access restricted: This Google account is registered as a customer. Customers cannot log in to the Seller Center. Please use the Customer Login at /login."
+                    }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                return Response({
+                    "detail": "No boutique seller account found for this Google email. Please register as a verified seller first at /seller/register."
+                }, status=status.HTTP_403_FORBIDDEN)
+        else:
+            if user:
+                if user.is_superuser or user.is_staff:
+                    return Response({
+                        "detail": "Access restricted: This Google account possesses administrative privileges. Please log in via the Executive Console at /admin/login."
+                    }, status=status.HTTP_403_FORBIDDEN)
+                if getattr(user, 'is_seller', False):
+                    return Response({
+                        "detail": "Access restricted: This Google account is registered as a boutique seller. Please log in via the Seller Center at /seller/login."
+                    }, status=status.HTTP_403_FORBIDDEN)
+
         if user:
             if not user.is_active:
                 return Response(
@@ -298,8 +334,6 @@ class GoogleAuthView(APIView):
                 user.first_name = first_name
             if not user.last_name and last_name:
                 user.last_name = last_name
-            if is_seller and not user.is_seller:
-                user.is_seller = True
             user.save()
         else:
             # Create new user via Google
@@ -310,7 +344,7 @@ class GoogleAuthView(APIView):
                 is_email_verified=True,
                 auth_provider='google',
                 avatar_url=picture,
-                is_seller=is_seller
+                is_seller=False
             )
 
         tokens = get_tokens_for_user(user)
@@ -978,15 +1012,11 @@ class SellerLoginView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         # 7. Seller authorization check
-        if not user.is_seller and not hasattr(user, 'seller_shop'):
+        if not getattr(user, 'is_seller', False):
             return Response({
-                "detail": "This account is not registered as a fashion partner seller. Please complete seller registration.",
+                "detail": "Access restricted: This account is registered as a customer. Customers cannot log in to the Seller Center. Please use the Customer Login at /login.",
                 "errors": {"role": ["Account is not registered as a seller."]}
             }, status=status.HTTP_403_FORBIDDEN)
-
-        if not user.is_seller:
-            user.is_seller = True
-            user.save(update_fields=['is_seller'])
 
         # 8. Retrieve or initialize shop profile
         shop, _ = SellerShop.objects.get_or_create(
@@ -1008,9 +1038,15 @@ class SellerLoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class IsSellerUser(BasePermission):
+    """Allows access only to authenticated users with verified boutique seller privileges."""
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and getattr(request.user, 'is_seller', False))
+
+
 class SellerShopProfileView(APIView):
     """Fetches or updates the authenticated seller's boutique shop profile."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsSellerUser]
 
     def get(self, request):
         shop, _ = SellerShop.objects.get_or_create(

@@ -68,6 +68,7 @@ class AIChatView(APIView):
 
         # 3. Context & Authorization Construction
         ai_router = AIRouter()
+        retrieved_data = {}
         try:
             system_prompt, retrieved_data, detected_intent = ContextService.build_user_context(
                 user=user,
@@ -130,7 +131,8 @@ class AIChatView(APIView):
             "model": model_used,
             "intent": detected_intent,
             "fallback_used": fallback_used,
-            "created_at": assistant_msg.created_at
+            "created_at": assistant_msg.created_at,
+            "products": retrieved_data.get("products", []),
         }, status=status.HTTP_200_OK)
 
 

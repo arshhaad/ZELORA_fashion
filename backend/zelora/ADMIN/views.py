@@ -76,7 +76,7 @@ class AdminLoginView(APIView):
         # Ensure user has admin privileges
         if not (user.is_superuser or user.is_staff):
             return Response(
-                {"detail": "Access restricted. You do not possess administrator credentials for the ZELORA Executive Console."},
+                {"detail": "Access restricted: Administrator credentials required. Regular customers and sellers cannot log in to the Executive Console."},
                 status=status.HTTP_403_FORBIDDEN
             )
 

@@ -139,6 +139,7 @@ export default function ZeloraAIChatWidget() {
         id: res.message_id || `a-${Date.now()}`,
         role: 'assistant',
         content: res.reply,
+        products: res.products || [],
         provider: res.provider,
         model: res.model,
         fallback_used: res.fallback_used,
@@ -301,6 +302,52 @@ export default function ZeloraAIChatWidget() {
               <div key={m.id} className={`zelora-ai-msg-row ${m.role}`}>
                 <div className={`zelora-ai-msg-bubble ${m.role}`}>
                   <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+
+                  {/* Interactive Product Recommendation Cards with Photos */}
+                  {m.products && m.products.length > 0 && (
+                    <div className="zelora-ai-products-strip">
+                      {m.products.map((prod) => (
+                        <div key={prod.id} className="zelora-ai-product-card">
+                          <div className="zelora-ai-prod-img-wrap">
+                            <img
+                              src={prod.image}
+                              alt={prod.name}
+                              loading="lazy"
+                            />
+                            {prod.category && (
+                              <span className="zelora-ai-prod-category">{prod.category}</span>
+                            )}
+                          </div>
+                          <div className="zelora-ai-prod-body">
+                            {prod.brand && (
+                              <span className="zelora-ai-prod-brand">{prod.brand}</span>
+                            )}
+                            <h4 className="zelora-ai-prod-title" title={prod.name}>
+                              {prod.name}
+                            </h4>
+                            <div className="zelora-ai-prod-price-row">
+                              <span className="zelora-ai-prod-price">₹{prod.price}</span>
+                              {prod.original_price && prod.original_price > prod.price && (
+                                <span className="zelora-ai-prod-orig-price">₹{prod.original_price}</span>
+                              )}
+                              {prod.rating && (
+                                <span className="zelora-ai-prod-rating">★ {prod.rating}</span>
+                              )}
+                            </div>
+                            <Link
+                              to={`/products/${prod.id}`}
+                              className="zelora-ai-prod-action-btn"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <span>View Piece</span>
+                              <ExternalLink size={11} />
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {m.isAuthRequired && (
                     <div style={{ marginTop: '8px' }}>
                       <Link

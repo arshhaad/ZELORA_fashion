@@ -14,7 +14,9 @@ import {
   ShoppingBag,
   ExternalLink,
   ChevronDown,
-  Check
+  Check,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { aiApi, getActivePortalAuth } from '../../services/aiApi';
 import zeloraAiLogo from '../../assets/zelora-tshirt-emblem.jpg';
@@ -27,6 +29,7 @@ export default function ZeloraAIChatWidget() {
 
   const [portalAuth, setPortalAuth] = useState(() => getActivePortalAuth(location.pathname));
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -290,7 +293,11 @@ export default function ZeloraAIChatWidget() {
 
       {/* 2. Floating AI Chat Window Drawer */}
       {isOpen && (
-        <div className="zelora-ai-chat-window" role="dialog" aria-label="ZELORA Assistant">
+        <div
+          className={`zelora-ai-chat-window ${isExpanded ? 'expanded' : ''}`}
+          role="dialog"
+          aria-label="ZELORA Assistant"
+        >
           {/* Header */}
           <div className="zelora-ai-header">
             <div className="zelora-ai-header-left">
@@ -322,6 +329,14 @@ export default function ZeloraAIChatWidget() {
             <div className="zelora-ai-header-actions">
               <button
                 type="button"
+                className="zelora-ai-icon-btn hide-on-mobile"
+                onClick={() => setIsExpanded((prev) => !prev)}
+                title={isExpanded ? "Collapse view" : "Expand view"}
+              >
+                {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              </button>
+              <button
+                type="button"
                 className="zelora-ai-icon-btn"
                 onClick={handleClearChat}
                 title="Clear conversation"
@@ -341,10 +356,15 @@ export default function ZeloraAIChatWidget() {
 
           {/* Messages Stream Area */}
           <div className="zelora-ai-messages-area">
-            {messages.map((m) => (
-              <div key={m.id} className={`zelora-ai-msg-row ${m.role}`}>
-                <div className={`zelora-ai-msg-bubble ${m.role}`}>
-                  <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+            {messages.map((m) => {
+              const hasProducts = m.products && m.products.length > 0;
+              return (
+                <div
+                  key={m.id}
+                  className={`zelora-ai-msg-row ${m.role} ${hasProducts ? 'has-products' : ''}`}
+                >
+                  <div className={`zelora-ai-msg-bubble ${m.role} ${hasProducts ? 'has-products' : ''}`}>
+                    <div className="zelora-ai-msg-text">{m.content}</div>
 
                   {/* Interactive Product Recommendation Cards with Photos */}
                   {m.products && m.products.length > 0 && (
@@ -457,7 +477,8 @@ export default function ZeloraAIChatWidget() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+          })}
 
             {/* Loading Typing Indicator */}
             {isLoading && (

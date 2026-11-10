@@ -1080,7 +1080,8 @@ class SendSellerOtpView(APIView):
         if not email_raw or not str(email_raw).strip():
             return Response({"detail": "Business email address is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        email = str(email_raw).strip().lower()
+        from .emails import normalize_email_address
+        email = normalize_email_address(email_raw)
 
         # Validate business email format
         email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
@@ -1101,7 +1102,10 @@ class SendSellerOtpView(APIView):
         success, msg = send_seller_verification_email(email, code_obj.code, owner_name, shop_name)
 
         if not success:
-            logger.warning(f"SMTP dispatch note for {email}: {msg}")
+            logger.error(f"Failed to dispatch seller verification email to {email}: {msg}")
+            return Response({
+                "detail": f"Failed to deliver verification email to {email}. Please verify your email address or try again shortly."
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         resp = {
             "message": f"6-digit verification code has been dispatched to {email}.",
@@ -1121,7 +1125,8 @@ class VerifySellerOtpView(APIView):
         if not email_raw or not code:
             return Response({"detail": "Both email and verification code are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        email = str(email_raw).strip().lower()
+        from .emails import normalize_email_address
+        email = normalize_email_address(email_raw)
 
         record = SellerVerificationCode.objects.filter(
             email__iexact=email,

@@ -127,24 +127,43 @@ export default function SellerRegisterPage() {
       return;
     }
 
+    // Auto-correct common email domain typos (e.g. gamil.com -> gmail.com)
+    const typoDomains = {
+      'gamil.com': 'gmail.com',
+      'gmal.com': 'gmail.com',
+      'gmai.com': 'gmail.com',
+      'gmial.com': 'gmail.com',
+      'gmaill.com': 'gmail.com',
+      'yaho.com': 'yahoo.com',
+      'hotmial.com': 'hotmail.com',
+    };
+    let normalizedEmail = trimmedEmail;
+    if (trimmedEmail.includes('@')) {
+      const [localPart, domainPart] = trimmedEmail.split('@');
+      if (typoDomains[domainPart]) {
+        normalizedEmail = `${localPart}@${typoDomains[domainPart]}`;
+      }
+    }
+
     // Update state with cleanly sanitized values
     setFormData((prev) => ({
       ...prev,
-      email: trimmedEmail,
+      email: normalizedEmail,
       owner_name: trimmedOwner,
       shop_name: trimmedShop,
       mobile_number: trimmedPhone,
     }));
 
-    // Send 6-digit OTP code to the seller's email address via backend
+    // Send 6-digit OTP code to the seller's verified email inbox via backend SMTP
     setIsSubmitting(true);
     try {
-      await authApi.sendSellerOtp({
-        email: trimmedEmail,
+      const res = await authApi.sendSellerOtp({
+        email: normalizedEmail,
         owner_name: trimmedOwner,
         shop_name: trimmedShop,
       });
-      setSuccessInfoMsg(`Verification OTP successfully dispatched to ${trimmedEmail}.`);
+      const targetEmail = res.email || normalizedEmail;
+      setSuccessInfoMsg(`Verification code sent to your real email: ${targetEmail}`);
       setStep('otp');
     } catch (err) {
       const msg = err.data?.detail || err.message || 'Could not send verification OTP to email.';
@@ -194,15 +213,31 @@ export default function SellerRegisterPage() {
 
   const handleResendOtp = async () => {
     setErrorMsg('');
-    const trimmedEmail = (formData.email || '').trim().toLowerCase();
+    const typoDomains = {
+      'gamil.com': 'gmail.com',
+      'gmal.com': 'gmail.com',
+      'gmai.com': 'gmail.com',
+      'gmial.com': 'gmail.com',
+      'gmaill.com': 'gmail.com',
+      'yaho.com': 'yahoo.com',
+      'hotmial.com': 'hotmail.com',
+    };
+    let trimmedEmail = (formData.email || '').trim().toLowerCase();
+    if (trimmedEmail.includes('@')) {
+      const [localPart, domainPart] = trimmedEmail.split('@');
+      if (typoDomains[domainPart]) {
+        trimmedEmail = `${localPart}@${typoDomains[domainPart]}`;
+      }
+    }
     setIsSubmitting(true);
     try {
-      await authApi.sendSellerOtp({
+      const res = await authApi.sendSellerOtp({
         email: trimmedEmail,
         owner_name: (formData.owner_name || '').trim(),
         shop_name: (formData.shop_name || '').trim(),
       });
-      setSuccessInfoMsg(`A fresh verification code has been dispatched to ${trimmedEmail}.`);
+      const targetEmail = res.email || trimmedEmail;
+      setSuccessInfoMsg(`A fresh verification code has been sent to your real email: ${targetEmail}`);
     } catch (err) {
       const msg = err.data?.detail || err.message || 'Could not resend verification code.';
       setErrorMsg(typeof msg === 'string' ? msg : JSON.stringify(msg));
@@ -213,14 +248,31 @@ export default function SellerRegisterPage() {
 
   const completeRegistration = async (paymentId) => {
     try {
+      const typoDomains = {
+        'gamil.com': 'gmail.com',
+        'gmal.com': 'gmail.com',
+        'gmai.com': 'gmail.com',
+        'gmial.com': 'gmail.com',
+        'gmaill.com': 'gmail.com',
+        'yaho.com': 'yahoo.com',
+        'hotmial.com': 'hotmail.com',
+      };
+      let cleanEmail = (formData.email || '').trim().toLowerCase();
+      if (cleanEmail.includes('@')) {
+        const [localPart, domainPart] = cleanEmail.split('@');
+        if (typoDomains[domainPart]) {
+          cleanEmail = `${localPart}@${typoDomains[domainPart]}`;
+        }
+      }
+
       // 1. Register seller in backend database
       try {
         await authApi.sellerRegister({
-          owner_name: formData.owner_name,
-          email: formData.email,
-          mobile_number: formData.mobile_number,
+          owner_name: (formData.owner_name || '').trim(),
+          email: cleanEmail,
+          mobile_number: (formData.mobile_number || '').trim(),
           password: formData.password,
-          shop_name: formData.shop_name,
+          shop_name: (formData.shop_name || '').trim(),
           shop_category: formData.shop_category,
         });
       } catch (err) {

@@ -4,23 +4,31 @@ from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
+COMMON_DOMAIN_TYPOS = {
+    'gamil.com': 'gmail.com',
+    'gmal.com': 'gmail.com',
+    'gmai.com': 'gmail.com',
+    'gmial.com': 'gmail.com',
+    'gmaill.com': 'gmail.com',
+    'yaho.com': 'yahoo.com',
+    'yahooo.com': 'yahoo.com',
+    'hotmial.com': 'hotmail.com',
+    'outlok.com': 'outlook.com',
+}
 
-def _log_otp_console(email, code, purpose="Email Verification"):
-    """Always prints the dispatched OTP code to the console for easy local testing."""
-    banner = f"""
-============================================================
-  [ZELORA LUXURY ATELIER EMAIL DISPATCH]
-  Purpose: {purpose}
-  Recipient: {email}
-  6-Digit OTP Code: {code}
-  Valid For: 15 Minutes
-============================================================
-"""
-    print(banner)
+
+def normalize_email_address(email: str) -> str:
+    """Cleans, lowercases, and fixes common typos (e.g. gamil.com -> gmail.com)."""
+    clean = str(email).strip().lower()
+    if '@' in clean:
+        local, domain = clean.rsplit('@', 1)
+        if domain in COMMON_DOMAIN_TYPOS:
+            clean = f"{local}@{COMMON_DOMAIN_TYPOS[domain]}"
+    return clean
 
 
 def _get_from_email():
-    """Returns valid sender address matching authenticated Google account."""
+    """Returns valid sender address matching authenticated Google SMTP credentials."""
     host_user = getattr(settings, 'EMAIL_HOST_USER', None)
     default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
     email_addr = default_from or host_user or 'noreply@zelora.luxury'
@@ -30,14 +38,11 @@ def _get_from_email():
 
 
 def send_verification_email(email, code, first_name=""):
-    """Dispatches a 6-digit email verification OTP to a customer."""
-    clean_recipient = str(email).strip().lower()
+    """Dispatches a 6-digit email verification OTP to a customer's real email inbox."""
+    clean_recipient = normalize_email_address(email)
     app_name = getattr(settings, 'APP_NAME', 'ZELORA')
     subject = f"[{app_name}] Your 6-Digit Email Verification Code: {code}"
     name_display = first_name.strip() if first_name else "Valued Client"
-    
-    # Always print to console in case SMTP is in console mode or offline
-    _log_otp_console(clean_recipient, code, "Customer Email Verification")
 
     message = f"""Hello {name_display},
 
@@ -105,15 +110,12 @@ https://zelora.luxury
 
 
 def send_seller_verification_email(email, code, owner_name="", shop_name=""):
-    """Dispatches a 6-digit partner boutique verification OTP to a seller."""
-    clean_recipient = str(email).strip().lower()
+    """Dispatches a 6-digit partner boutique verification OTP directly to a seller's real email inbox via SMTP."""
+    clean_recipient = normalize_email_address(email)
     app_name = getattr(settings, 'APP_NAME', 'ZELORA')
     subject = f"[{app_name} Atelier] Seller Verification Code: {code}"
     owner_display = owner_name.strip() if owner_name else "Atelier Partner"
     boutique_display = shop_name.strip() if shop_name else "Your Boutique"
-
-    # Always log to console for easy testing and debugging
-    _log_otp_console(clean_recipient, code, f"Seller Registration ({boutique_display})")
 
     message = f"""Hello {owner_display},
 
@@ -178,13 +180,11 @@ https://zelora.luxury/seller
 
 
 def send_password_reset_email(email, code, first_name=""):
-    """Dispatches a password reset OTP code."""
-    clean_recipient = str(email).strip().lower()
+    """Dispatches a password reset OTP code directly to a user's real email inbox via SMTP."""
+    clean_recipient = normalize_email_address(email)
     app_name = getattr(settings, 'APP_NAME', 'ZELORA')
     subject = f"[{app_name}] Password Reset Verification Code: {code}"
     name_display = first_name.strip() if first_name else "Valued Client"
-
-    _log_otp_console(clean_recipient, code, "Password Reset")
 
     message = f"""Hello {name_display},
 

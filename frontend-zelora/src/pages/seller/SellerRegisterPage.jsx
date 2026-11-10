@@ -173,14 +173,62 @@ export default function SellerRegisterPage() {
     }
   };
 
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData?.getData('text') || '';
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+    if (!digits) return;
+
+    const newOtp = ['', '', '', '', '', ''];
+    for (let i = 0; i < digits.length; i++) {
+      newOtp[i] = digits[i];
+    }
+    setOtp(newOtp);
+
+    // Auto-focus the next empty box or the last box
+    const focusIdx = Math.min(digits.length, 5);
+    const targetInput = document.getElementById(`otp-input-${focusIdx}`);
+    if (targetInput) {
+      targetInput.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      if (!otp[index] && index > 0) {
+        const newOtp = [...otp];
+        newOtp[index - 1] = '';
+        setOtp(newOtp);
+        document.getElementById(`otp-input-${index - 1}`)?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      document.getElementById(`otp-input-${index - 1}`)?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      document.getElementById(`otp-input-${index + 1}`)?.focus();
+    }
+  };
+
   const handleOtpChange = (index, value) => {
-    if (value.length > 1) value = value.slice(-1);
+    const digits = value.replace(/\D/g, '');
+    if (digits.length > 1) {
+      // Handle multiple characters pasted or autofilled natively
+      const newOtp = [...otp];
+      for (let i = 0; i < digits.length && index + i < 6; i++) {
+        newOtp[index + i] = digits[i];
+      }
+      setOtp(newOtp);
+      const nextIdx = Math.min(index + digits.length, 5);
+      document.getElementById(`otp-input-${nextIdx}`)?.focus();
+      return;
+    }
+
+    const singleDigit = digits.slice(-1);
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = singleDigit;
     setOtp(newOtp);
 
     // Auto-focus next field
-    if (value && index < 5) {
+    if (singleDigit && index < 5) {
       const nextInput = document.getElementById(`otp-input-${index + 1}`);
       if (nextInput) nextInput.focus();
     }
@@ -638,8 +686,14 @@ export default function SellerRegisterPage() {
                     key={idx}
                     id={`otp-input-${idx}`}
                     type="text"
-                    maxLength={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete={idx === 0 ? "one-time-code" : "off"}
+                    maxLength={6}
                     value={digit}
+                    onPaste={handleOtpPaste}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     style={{
                       width: '46px',
@@ -648,10 +702,11 @@ export default function SellerRegisterPage() {
                       fontSize: '20px',
                       fontWeight: '700',
                       borderRadius: 'var(--seller-radius)',
-                      border: '1.5px solid var(--seller-border)',
+                      border: digit ? '1.5px solid var(--seller-gold)' : '1.5px solid var(--seller-border)',
                       backgroundColor: 'var(--seller-white)',
                       color: 'var(--seller-espresso)',
                       outline: 'none',
+                      transition: 'all 0.15s ease',
                     }}
                   />
                 ))}

@@ -14,14 +14,15 @@ import {
   ExternalLink,
   ChevronDown
 } from 'lucide-react';
-import { aiApi, getActiveAuthToken, getActiveAuthUser } from '../../services/aiApi';
+import { aiApi, getActivePortalAuth } from '../../services/aiApi';
+import zeloraAiLogo from '../../assets/zelora-ai-logo.jpg';
 import './aiChat.css';
 
 export default function ZeloraAIChatWidget() {
   const { user: authUser } = useAuth();
   const location = useLocation();
 
-  const [activeUser, setActiveUser] = useState(() => authUser || getActiveAuthUser());
+  const [portalAuth, setPortalAuth] = useState(() => getActivePortalAuth(location.pathname));
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -34,12 +35,9 @@ export default function ZeloraAIChatWidget() {
   // Synchronize authenticated user state whenever route, storage, or auth context updates
   useEffect(() => {
     const checkAuth = () => {
-      const token = getActiveAuthToken();
-      const userObj = authUser || getActiveAuthUser();
-      if (token && userObj) {
-        setActiveUser(userObj);
-      } else {
-        setActiveUser(null);
+      const current = getActivePortalAuth(location.pathname);
+      setPortalAuth(current);
+      if (!current.token || !current.user) {
         setIsOpen(false);
       }
     };
@@ -48,6 +46,9 @@ export default function ZeloraAIChatWidget() {
     window.addEventListener('storage', checkAuth);
     return () => window.removeEventListener('storage', checkAuth);
   }, [authUser, location.pathname]);
+
+  const activeUser = portalAuth.user;
+  const activeToken = portalAuth.token;
 
   // Seed personalized greeting when chat is first opened by authenticated user
   useEffect(() => {
@@ -74,8 +75,8 @@ export default function ZeloraAIChatWidget() {
     }
   }, [isOpen, activeUser]);
 
-  // Strictly do NOT render the AI assistant widget if the user is not logged in
-  if (!activeUser || !getActiveAuthToken()) {
+  // Strictly do NOT render the AI assistant widget if the user is not logged in!
+  if (!activeUser || !activeToken) {
     return null;
   }
 
@@ -90,7 +91,7 @@ export default function ZeloraAIChatWidget() {
     const prompt = (textToSend || inputText).trim();
     if (!prompt || isLoading) return;
 
-    const token = getActiveAuthToken();
+    const token = activeToken;
     if (!token) {
       setMessages((prev) => [
         ...prev,
@@ -239,7 +240,11 @@ export default function ZeloraAIChatWidget() {
           title="Open ZELORA Assistant"
         >
           <div className="zelora-ai-badge-crest">
-            <span className="zelora-ai-crest-text">Z</span>
+            <img
+              src={zeloraAiLogo}
+              alt="ZELORA AI"
+              className="zelora-ai-crest-img"
+            />
             <div className="zelora-ai-pulse-dot" />
           </div>
           <div className="zelora-ai-trigger-text">
@@ -255,8 +260,12 @@ export default function ZeloraAIChatWidget() {
           {/* Header */}
           <div className="zelora-ai-header">
             <div className="zelora-ai-header-left">
-              <div className="zelora-ai-badge-crest" style={{ width: '32px', height: '32px' }}>
-                <span className="zelora-ai-crest-text" style={{ fontSize: '11px' }}>Z</span>
+              <div className="zelora-ai-badge-crest" style={{ width: '34px', height: '34px' }}>
+                <img
+                  src={zeloraAiLogo}
+                  alt="ZELORA AI"
+                  className="zelora-ai-crest-img"
+                />
               </div>
               <div className="zelora-ai-title-wrap">
                 <h3>

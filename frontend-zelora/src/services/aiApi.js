@@ -2,30 +2,48 @@
 
 const AI_API_BASE = '/api/ai';
 
-export const getActiveAuthToken = () => {
-  return (
-    localStorage.getItem('customer_access_token') ||
-    localStorage.getItem('zelora_seller_access_token') ||
-    localStorage.getItem('zelora_admin_token') ||
-    null
-  );
+export const getActivePortalAuth = (pathname = '') => {
+  const path = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+
+  // 1. Admin Portal
+  if (path.startsWith('/admin')) {
+    const token = localStorage.getItem('zelora_admin_token');
+    const raw = localStorage.getItem('zelora_admin_user');
+    let user = null;
+    try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
+    if (token && user) return { token, user, role: 'admin' };
+    return { token: null, user: null, role: null };
+  }
+
+  // 2. Seller Portal
+  if (path.startsWith('/seller')) {
+    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
+    const token = localStorage.getItem('zelora_seller_access_token');
+    const raw = localStorage.getItem('zelora_seller_user');
+    let user = null;
+    try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
+    if (isAuth && token && user) return { token, user, role: 'seller' };
+    return { token: null, user: null, role: null };
+  }
+
+  // 3. Customer Portal (Home, Products, Orders, Landing, Account, etc.)
+  const token = localStorage.getItem('customer_access_token');
+  const raw = localStorage.getItem('customer_user');
+  let user = null;
+  try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
+  if (token && user) return { token, user, role: 'customer' };
+
+  return { token: null, user: null, role: null };
 };
 
-export const getActiveAuthUser = () => {
-  try {
-    const rawCustomer = localStorage.getItem('customer_user');
-    if (rawCustomer) return JSON.parse(rawCustomer);
+export const getActiveAuthToken = (pathname = '') => {
+  const auth = getActivePortalAuth(pathname);
+  return auth.token;
+};
 
-    const rawSeller = localStorage.getItem('zelora_seller_user');
-    if (rawSeller) return JSON.parse(rawSeller);
-
-    const rawAdmin = localStorage.getItem('zelora_admin_user');
-    if (rawAdmin) return JSON.parse(rawAdmin);
-
-    return null;
-  } catch {
-    return null;
-  }
+export const getActiveAuthUser = (pathname = '') => {
+  const auth = getActivePortalAuth(pathname);
+  return auth.user;
 };
 
 async function aiRequest(endpoint, options = {}) {

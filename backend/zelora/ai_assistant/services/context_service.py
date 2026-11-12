@@ -1,7 +1,14 @@
 import re
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Optional, Tuple
 from CUSTOMER.models import User
 from .retrieval_service import RetrievalService, SecurityViolationError
+
+
+class OffTopicQueryError(Exception):
+    """Raised when a user asks a question unrelated to the ZELORA website."""
+    def __init__(self, topic: str):
+        self.topic = topic
+        super().__init__(f"Off-topic query detected: {topic}")
 
 
 class ContextService:
@@ -9,6 +16,118 @@ class ContextService:
     Identifies query intent and builds authorized, role-bounded system prompts
     and context bundles for the LLM.
     """
+
+    ZELORA_DOMAIN_TERMS = [
+        "zelora", "website", "storefront", "atelier", "boutique", "concierge", "marketplace",
+        "catalog", "catalogue", "collection", "new arrivals", "special offer", "coupon", "discount", "promo",
+        "product", "products", "producrt", "garment", "garments", "cloth", "clothes", "clothing",
+        "outfit", "outfits", "apparel", "attire", "dress", "dresses", "gown", "gowns",
+        "shirt", "shirts", "t-shirt", "tshirt", "tshirts", "tee", "tees", "top", "tops",
+        "trouser", "trousers", "pant", "pants", "jeans", "coat", "overcoat", "trench",
+        "jacket", "jackets", "blazer", "suit", "knit", "knitwear", "sweater", "cashmere",
+        "silk", "wool", "cotton", "linen", "leather", "shoe", "shoes", "boot", "boots",
+        "bag", "bags", "handbag", "jewelry", "jewellery", "accessory", "accessories",
+        "men", "mens", "men's", "women", "womens", "women's", "unisex", "size", "sizes", "sizing",
+        "color", "colour", "fit", "style", "styling", "casual", "formal", "evening", "gala",
+        "fashion", "wear", "cart", "wishlist", "checkout", "budget", "price", "cost",
+        "stock", "available", "unavailable", "out of stock", "sold out",
+        "order", "orders", "track", "tracking", "delivery", "deliver", "shipping", "shipped",
+        "return", "returns", "refund", "exchange", "payment", "pay", "paid", "upi", "razorpay",
+        "address", "addresses", "account", "profile", "login", "logout", "register", "signup",
+        "password", "otp", "policy", "policies", "support", "faq",
+        "seller", "vendor", "shop", "sales", "revenue", "gmv", "commission", "payout", "payouts",
+        "inventory", "dashboard", "admin", "administrator", "users", "customers", "approvals",
+        "analytics", "stats", "statistics", "report", "reports", "ticket", "tickets",
+    ]
+
+    OFF_TOPIC_PATTERNS = [
+        # Programming & tech
+        "react", "reactjs", "react js", "nextjs", "next.js", "vue", "vuejs", "angular", "svelte",
+        "javascript", "typescript", "python", "java", "c++", "c#", "golang", "rust", "php", "ruby",
+        "swift", "kotlin", "html", "css", "tailwind", "bootstrap", "nodejs", "node.js",
+        "django", "flask", "fastapi", "spring boot", "sql", "mysql", "postgresql", "mongodb",
+        "redis", "docker", "kubernetes", "git", "github", "linux", "ubuntu", "vscode",
+        "coding", "programming", "algorithm", "data structure", "leetcode", "machine learning",
+        "deep learning", "blockchain", "web3", "crypto", "bitcoin", "ethereum", "chatgpt", "openai",
+        "software", "compiler", "database", "tutorial", "code",
+        # General trivia / non-website
+        "weather", "temperature", "forecast", "cricket", "football", "soccer", "ipl", "fifa",
+        "world cup", "nba", "tennis", "movie", "movies", "film", "anime", "netflix", "song",
+        "lyrics", "recipe", "cooking", "biryani", "pizza", "pasta", "politics", "election",
+        "president", "prime minister", "stock market", "nifty", "sensex", "forex", "homework",
+        "essay", "physics", "chemistry", "biology", "photosynthesis", "calculus", "algebra",
+        "geometry", "trigonometry", "geography", "capital of", "mars", "moon", "universe",
+        "black hole", "horoscope", "astrology", "medicine", "disease", "symptom", "doctor", "joke",
+    ]
+
+    @classmethod
+    def _has_domain_term(cls, msg: str) -> bool:
+        for term in cls.ZELORA_DOMAIN_TERMS:
+            if re.search(rf'\b{re.escape(term)}\b', msg):
+                return True
+        if re.search(r'\b\d+\s*(?:rs|inr|rupees)\b', msg) or re.search(r'₹\s*\d+', msg):
+            return True
+        return False
+
+    @classmethod
+    def _extract_topic(cls, message: str, matched_term: Optional[str] = None) -> str:
+        cleaned = re.sub(r'[?!.]+$', '', message.strip())
+        prefixes = [
+            r'^can you tell me about\s+',
+            r'^can you explain\s+',
+            r'^tell me about\s+',
+            r'^what do you know about\s+',
+            r'^what is the\s+',
+            r'^what is a\s+',
+            r'^what is an\s+',
+            r'^what is\s+',
+            r'^what are\s+',
+            r'^who is\s+',
+            r'^who are\s+',
+            r'^explain\s+',
+            r'^define\s+',
+            r'^give me\s+',
+            r'^show me\s+',
+            r'^how to\s+',
+            r'^how does\s+',
+            r'^how do\s+',
+            r'^write\s+',
+        ]
+        topic = cleaned
+        for p in prefixes:
+            topic = re.sub(p, '', topic, flags=re.IGNORECASE).strip()
+
+        if not topic or len(topic) > 45:
+            topic = matched_term or "this topic"
+
+        # Capitalize nicely if lowercase single/short phrase
+        if topic.islower():
+            topic = topic.title() if len(topic.split()) <= 3 else topic
+        return topic
+
+    @classmethod
+    def detect_off_topic(cls, message: str) -> Optional[str]:
+        """
+        Deterministically detects clearly off-topic queries unrelated to the ZELORA website
+        and returns the extracted topic name. Returns None if on-topic or conversational.
+        """
+        msg = message.lower().strip()
+        if not msg:
+            return None
+
+        # Never flag queries that mention ZELORA website / fashion / shopping / order / seller / admin terms
+        if cls._has_domain_term(msg):
+            return None
+
+        # Pure math expressions like "2 + 2" or "what is 15 * 4"
+        if re.search(r'\b\d+\s*[\+\-\*\/]\s*\d+\b', msg):
+            return "math calculations"
+
+        for term in cls.OFF_TOPIC_PATTERNS:
+            if re.search(rf'\b{re.escape(term)}\b', msg):
+                return cls._extract_topic(message, matched_term=term)
+
+        return None
 
     @classmethod
     def identify_intent(cls, message: str) -> str:
@@ -93,6 +212,11 @@ class ContextService:
                 "Access Denied: You are not authorized to view or request records belonging to other accounts."
             )
 
+        # 2. Enforce strict ZELORA website scope (reject unrelated topics)
+        off_topic = cls.detect_off_topic(message)
+        if off_topic:
+            raise OffTopicQueryError(off_topic)
+
         intent = cls.identify_intent(message)
         first_name = user.first_name or user.email.split('@')[0].capitalize()
         role_label = "Administrator" if (user.is_staff or user.is_superuser) else ("Boutique Seller" if user.is_seller else "Customer")
@@ -105,6 +229,14 @@ class ContextService:
             f"User Role: {role_label}.\n"
             f"Currency Standard: Indian Rupees (₹). Format all monetary figures with '₹' symbol.\n"
             f"Brand Tone: Gracious, refined, direct, and succinct. Greet the user warmly as '{first_name}'.\n\n"
+            f"STRICT WEBSITE-ONLY SCOPE POLICY (MANDATORY HIGHEST PRIORITY):\n"
+            f"- You ONLY answer questions related to the ZELORA website: ZELORA products, fashion, styling, outfits, sizes, prices, orders, tracking, shipping, returns, refunds, payments, addresses, customer account, seller boutiques/analytics, admin platform metrics, and brief greetings.\n"
+            f"- If the user asks about ANY topic NOT related to the ZELORA website (for example: programming, React, Python, coding, math, science, history, weather, sports, movies, news, celebrities, recipes, general knowledge, or other brands/websites):\n"
+            f"  1. NEVER answer, explain, or give information about that off-topic subject.\n"
+            f"  2. Reply ONLY with this exact message format (replace <topic> with the concise subject they asked about):\n"
+            f"     \"Sorry, we can't provide information about <topic>. Please ask something related to ZELORA.\"\n"
+            f"  Example: 'what is react' -> \"Sorry, we can't provide information about React. Please ask something related to ZELORA.\"\n"
+            f"  Example: 'who is messi' -> \"Sorry, we can't provide information about Messi. Please ask something related to ZELORA.\"\n\n"
             f"CRITICAL RESPONSE DIRECTIVES (MANDATORY):\n"
             f"- Provide ONLY SIMPLE, VERY SHORT, and DIRECT answers (strictly 1 to 2 sentences maximum).\n"
             f"- Never write long paragraphs, lengthy lists, bullet points, or repetitive text.\n"

@@ -12,7 +12,7 @@ from .serializers import (
     AIChatRequestSerializer,
 )
 from .permissions import IsAuthenticatedZeloraUser
-from .services.context_service import ContextService
+from .services.context_service import ContextService, OffTopicQueryError
 from .services.retrieval_service import SecurityViolationError
 from .services.ai_router import AIRouter
 
@@ -88,6 +88,17 @@ class AIChatView(APIView):
             provider_used = ai_result['provider']
             model_used = ai_result['model']
             fallback_used = ai_result.get('fallback_used', False)
+
+        except OffTopicQueryError as off_err:
+            logger.info(f"Off-topic query blocked for user {user.id} ({user.email}): {off_err.topic}")
+            reply_text = (
+                f"Sorry, we can't provide information about {off_err.topic}. "
+                f"Please ask questions related to ZELORA."
+            )
+            provider_used = "zelora_guard"
+            model_used = "scope-policy"
+            detected_intent = "off_topic"
+            fallback_used = False
 
         except SecurityViolationError as sec_err:
             logger.warning(f"Security boundary check triggered for user {user.id} ({user.email}): {sec_err}")

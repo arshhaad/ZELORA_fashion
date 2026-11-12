@@ -259,3 +259,42 @@ class AIAssistantSecurityTests(TestCase):
         self.assertEqual(response.data['intent'], "product_recommendation")
         self.assertIn("Silk Evening Slip Gown", response.data['reply'])
 
+    # =========================================================================
+    # Test 8: Off-topic queries -> Rejected without answering off-topic subject
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_off_topic_query_rejected(self, mock_generate):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_admin}")
+        url = reverse('ai-chat')
+
+        for query, expected_topic in [
+            ("what is react", "React"),
+            ("give me python code", "Python Code"),
+            ("what is 12 + 34", "math calculations"),
+        ]:
+            response = self.client.post(url, {"message": query}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['intent'], "off_topic")
+            self.assertEqual(response.data['provider'], "zelora_guard")
+            self.assertIn(f"Sorry, we can't provide information about {expected_topic}", response.data['reply'])
+            self.assertIn("ZELORA", response.data['reply'])
+            mock_generate.assert_not_called()
+
+    @patch.object(AIRouter, 'generate_response')
+    def test_zelora_domain_query_not_blocked_as_off_topic(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "Glad to see you, Elena!",
+            "provider": "groq",
+            "model": "qwen/qwen3.8-27b"
+        }
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_admin}")
+        url = reverse('ai-chat')
+        response = self.client.post(url, {"message": "how is admin"}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data['intent'], "off_topic")
+        called_args = mock_generate.call_args[1]
+        self.assertIn("STRICT WEBSITE-ONLY SCOPE POLICY", called_args['system_prompt'])
+
+

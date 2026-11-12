@@ -168,8 +168,10 @@ export default function ZeloraAIChatWidget() {
         setConversationId(res.conversation_id);
       }
 
-      const providerLabel = res.provider === 'groq' ? 'Groq Fast' : 'Gemini 3.5';
-      setActiveProviderBadge(providerLabel);
+      if (res.provider === 'groq' || res.provider === 'gemini') {
+        const providerLabel = res.provider === 'groq' ? 'Groq Fast' : 'Gemini 3.5';
+        setActiveProviderBadge(providerLabel);
+      }
 
       const assistantMsg = {
         id: res.message_id || `a-${Date.now()}`,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SellerLayout from '../../components/seller/SellerLayout';
 import { useSeller } from '../../context/SellerContext';
 import {
@@ -18,17 +18,33 @@ export default function ShopProfilePage() {
   const { shop, updateShopProfile } = useSeller();
 
   const [formData, setFormData] = useState({
-    name: shop.name || '',
-    logo: shop.logo || '',
-    banner: shop.banner || '',
-    description: shop.description || '',
-    category: shop.category || 'Haute Couture & Designer Wear',
-    contact_email: shop.contact_email || '',
-    contact_number: shop.contact_number || '',
-    business_address: shop.business_address || '',
-    instagram: shop.instagram || '',
-    website: shop.website || '',
+    name: shop?.name || '',
+    logo: shop?.logo || '',
+    banner: shop?.banner || '',
+    description: shop?.description || '',
+    category: shop?.category || 'Haute Couture & Designer Wear',
+    contact_email: shop?.contact_email || '',
+    contact_number: shop?.contact_number || '',
+    business_address: shop?.business_address || '',
+    instagram: shop?.instagram || '',
+    website: shop?.website || '',
   });
+
+  useEffect(() => {
+    if (!shop) return;
+    setFormData({
+      name: shop.name || '',
+      logo: shop.logo || '',
+      banner: shop.banner || '',
+      description: shop.description || '',
+      category: shop.category || 'Haute Couture & Designer Wear',
+      contact_email: shop.contact_email || '',
+      contact_number: shop.contact_number || '',
+      business_address: shop.business_address || '',
+      instagram: shop.instagram || '',
+      website: shop.website || '',
+    });
+  }, [shop]);
 
   const [isSaved, setIsSaved] = useState(false);
 
@@ -327,7 +343,7 @@ export default function ShopProfilePage() {
                 name="instagram"
                 value={formData.instagram}
                 onChange={handleChange}
-                placeholder="@maisondelombre"
+                placeholder="@youratelier"
                 className="seller-input"
               />
             </div>
@@ -339,7 +355,7 @@ export default function ShopProfilePage() {
                 name="website"
                 value={formData.website}
                 onChange={handleChange}
-                placeholder="https://maisondelombre.luxury"
+                placeholder="https://youratelier.com"
                 className="seller-input"
               />
             </div>

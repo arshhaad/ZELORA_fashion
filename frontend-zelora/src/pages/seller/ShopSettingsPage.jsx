@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SellerLayout from '../../components/seller/SellerLayout';
 import { useSeller } from '../../context/SellerContext';
 import {
@@ -18,16 +18,27 @@ export default function ShopSettingsPage() {
   const { shop, updateShopSettings, toggleShopAvailability } = useSeller();
 
   const [settings, setSettings] = useState({
-    is_open: shop.is_open ?? true,
-    dispatch_sla: 'Within 24 Hours',
-    packaging_type: 'ZELORA Signature Noir Gift Box & Ribbon',
-    delivery_preferences: shop.delivery_preferences || 'White-glove climate-controlled express courier dispatch within 24 hours.',
-    return_policy: shop.return_policy || '14-Day Complimentary Luxury Exchange & Return on Unworn Pieces with Tag Intact.',
-    shop_visibility: shop.shop_visibility || 'Public (Listed in Marketplace)',
-    notify_email_orders: true,
-    notify_sms_dispatch: true,
-    auto_accept_orders: false,
+    is_open: shop?.is_open ?? true,
+    dispatch_sla: shop?.dispatch_sla || 'Within 24 Hours',
+    packaging_type: shop?.packaging_type || 'ZELORA Signature Noir Gift Box & Ribbon',
+    delivery_preferences: shop?.delivery_preferences || '',
+    return_policy: shop?.return_policy || '',
+    shop_visibility: shop?.shop_visibility || 'Public (Listed in Marketplace)',
+    notify_email_orders: shop?.notify_email_orders ?? true,
+    notify_sms_dispatch: shop?.notify_sms_dispatch ?? true,
+    auto_accept_orders: shop?.auto_accept_orders ?? false,
   });
+
+  useEffect(() => {
+    if (!shop) return;
+    setSettings((prev) => ({
+      ...prev,
+      is_open: shop.is_open ?? prev.is_open,
+      delivery_preferences: shop.delivery_preferences ?? prev.delivery_preferences,
+      return_policy: shop.return_policy ?? prev.return_policy,
+      shop_visibility: shop.shop_visibility ?? prev.shop_visibility,
+    }));
+  }, [shop]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -192,6 +203,7 @@ export default function ShopSettingsPage() {
               name="delivery_preferences"
               value={settings.delivery_preferences}
               onChange={handleChange}
+              placeholder="e.g. Express tracked courier dispatch within 24 hours"
               className="seller-input"
             />
           </div>
@@ -213,6 +225,7 @@ export default function ShopSettingsPage() {
               value={settings.return_policy}
               onChange={handleChange}
               rows={3}
+              placeholder="e.g. 14-day complimentary exchange & return on unworn pieces with tags intact."
               className="seller-textarea"
             />
             <small style={{ display: 'block', marginTop: '6px', fontSize: '11.5px', color: 'var(--seller-muted)' }}>

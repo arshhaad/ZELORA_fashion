@@ -3,516 +3,69 @@ import { authApi } from '../services/api';
 
 const SellerContext = createContext();
 
-// Sample Luxury Fashion Seller Data
-const INITIAL_SHOP = {
-  name: "Maison de L'Ombre",
-  logo: null,
-  banner: null,
-  description: "Bespoke Parisian tailoring, fine Italian silks, and timeless silhouettes. Handcrafted in our South Mumbai atelier.",
-  category: "Haute Couture & Designer Wear",
-  contact_email: "atelier@maisondelombre.luxury",
-  contact_number: "+91 98201 54321",
-  business_address: "Suite 4B, The Monolith Arcade, Colaba Causeway, Mumbai 400005, India",
-  instagram: "@maisondelombre",
-  website: "https://maisondelombre.luxury",
-  is_open: true,
-  return_policy: "14-Day Complimentary Luxury Exchange & Return on unworn pieces with tags intact. Bespoke pieces are non-refundable.",
-  delivery_preferences: "White-glove climate-controlled express courier with signature required on delivery.",
-  shop_visibility: "Public (Listed in Marketplace)",
+const LEGACY_DEMO_SHOP_NAMES = ["Maison de L'Ombre", "ZELORA Atelier Flagship"];
+const LEGACY_DEMO_EMAILS = ["eleanor@maisondelombre.luxury", "atelier@maisondelombre.luxury"];
+const LEGACY_DEMO_SELLER_NAMES = ["Eleanor Vance"];
+const LEGACY_DEMO_PRODUCT_IDS = new Set([
+  "prod-sel-101", "prod-sel-102", "prod-sel-103",
+  "prod-sel-104", "prod-sel-105", "prod-sel-106",
+]);
+const LEGACY_DEMO_ORDER_IDS = new Set(["ord-801", "ord-802", "ord-803", "ord-804"]);
+const LEGACY_DEMO_COUPON_IDS = new Set(["cp-01", "cp-02", "cp-03"]);
+const LEGACY_DEMO_REVIEW_IDS = new Set(["rev-01", "rev-02", "rev-03"]);
+const LEGACY_DEMO_NOTIF_IDS = new Set(["notif-01", "notif-02", "notif-03", "notif-04", "notif-05"]);
+const LEGACY_DEMO_PAYOUT_IDS = new Set(["PAY-2026-009", "PAY-2026-008", "PAY-2026-007"]);
+const LEGACY_DEMO_TICKET_IDS = new Set(["TCK-8812", "TCK-7619"]);
+
+const isLegacyDemoSeller = (s) =>
+  Boolean(
+    s && (
+      LEGACY_DEMO_SELLER_NAMES.includes(s.name) ||
+      LEGACY_DEMO_EMAILS.includes(s.email) ||
+      LEGACY_DEMO_SHOP_NAMES.includes(s.shop_name)
+    )
+  );
+
+const isLegacyDemoShop = (sh) =>
+  Boolean(
+    sh && (
+      LEGACY_DEMO_SHOP_NAMES.includes(sh.name) ||
+      LEGACY_DEMO_EMAILS.includes(sh.contact_email)
+    )
+  );
+
+const mapShopFromApi = (apiShop) => {
+  if (!apiShop) return null;
+  return {
+    id: apiShop.id,
+    name: apiShop.name || '',
+    category: apiShop.category || 'Haute Couture & Designer Wear',
+    description: apiShop.description || '',
+    logo: apiShop.logo_url || null,
+    banner: apiShop.banner_url || null,
+    contact_email: apiShop.contact_email || '',
+    contact_number: apiShop.contact_number || '',
+    business_address: apiShop.business_address || '',
+    instagram: apiShop.instagram || '',
+    website: apiShop.website || '',
+    is_open: apiShop.is_open ?? true,
+    return_policy: apiShop.return_policy || '',
+    delivery_preferences: apiShop.delivery_preferences || '',
+    shop_visibility: apiShop.shop_visibility || 'Public (Listed in Marketplace)',
+  };
 };
-
-const INITIAL_SELLER = {
-  id: "sel-001",
-  name: "Eleanor Vance",
-  email: "eleanor@maisondelombre.luxury",
-  phone: "+91 98201 54321",
-  avatar: null,
-  shop_name: "Maison de L'Ombre",
-  shop_category: "Haute Couture & Designer Wear",
-  role: "Boutique Seller",
-  is_seller: true,
-};
-
-const INITIAL_PRODUCTS = [
-  {
-    id: "prod-sel-101",
-    name: "Draped Silk Evening Slip Gown",
-    description: "Bias-cut pure Mulberry silk slip gown with cowl neckline, French seams, and an understated fluid drape.",
-    images: [
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100",
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80&sat=-100",
-    ],
-    category: "Dresses",
-    gender: "Women",
-    brand: "Maison de L'Ombre",
-    regular_price: 320,
-    discount_price: 260,
-    sizes: ["XS", "S", "M", "L"],
-    size_stock: { XS: 4, S: 8, M: 6, L: 2 },
-    colors: ["Noir Black", "Champagne Gold", "Slate Gray"],
-    sku: "MLO-DRS-001",
-    tags: "silk, eveningwear, slip, luxury, gala",
-    stock_quantity: 20,
-    status: "Published",
-    sales_count: 34,
-    created_at: "2026-10-15T10:00:00Z",
-  },
-  {
-    id: "prod-sel-102",
-    name: "Architectural Double-Breasted Wool Trench",
-    description: "Heavyweight bonded Melton wool coat featuring peak lapels, horn buttons, and a clean minimalist drape.",
-    images: [
-      "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=800&q=80&sat=-100",
-      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80&sat=-100",
-    ],
-    category: "Men",
-    gender: "Men",
-    brand: "Maison de L'Ombre",
-    regular_price: 490,
-    discount_price: 420,
-    sizes: ["S", "M", "L", "XL"],
-    size_stock: { S: 3, M: 7, L: 5, XL: 2 },
-    colors: ["Charcoal", "Pitch Black", "Camel"],
-    sku: "MLO-COT-002",
-    tags: "wool, trench, coat, winter, bespoke",
-    stock_quantity: 17,
-    status: "Published",
-    sales_count: 22,
-    created_at: "2026-10-18T14:30:00Z",
-  },
-  {
-    id: "prod-sel-103",
-    name: "High-Waist Pleated Wool Flannel Trousers",
-    description: "Extended waistband with side adjusters, deep double reverse pleats, and generous straight leg silhouette.",
-    images: [
-      "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=80&sat=-100",
-    ],
-    category: "Women",
-    gender: "Women",
-    brand: "Maison de L'Ombre",
-    regular_price: 210,
-    discount_price: 185,
-    sizes: ["XS", "S", "M", "L"],
-    size_stock: { XS: 1, S: 2, M: 0, L: 1 },
-    colors: ["Onyx Black", "Chalk Stripe", "Ecru"],
-    sku: "MLO-TRS-003",
-    tags: "trousers, tailoring, wool, pleated",
-    stock_quantity: 4,
-    status: "Published",
-    sales_count: 48,
-    created_at: "2026-10-22T09:15:00Z",
-  },
-  {
-    id: "prod-sel-104",
-    name: "Cashmere Mock-Neck Cocoon Knit",
-    description: "Grade-A Mongolian 7-gauge cashmere knitwear with raglan sleeves and ribbed turn-up cuffs.",
-    images: [
-      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=800&q=80&sat=-100",
-    ],
-    category: "Shirts",
-    gender: "Unisex",
-    brand: "Maison de L'Ombre",
-    regular_price: 280,
-    discount_price: 240,
-    sizes: ["S", "M", "L"],
-    size_stock: { S: 5, M: 9, L: 4 },
-    colors: ["Ivory", "Espresso", "Graphite"],
-    sku: "MLO-KNT-004",
-    tags: "cashmere, knit, winter, unisex",
-    stock_quantity: 18,
-    status: "Published",
-    sales_count: 19,
-    created_at: "2026-10-28T16:00:00Z",
-  },
-  {
-    id: "prod-sel-105",
-    name: "Square-Toe Italian Calfskin Ankle Boots",
-    description: "Full-grain calfskin leather boots with angled Cuban heel, hand-burnished finish, and Blake-stitched leather sole.",
-    images: [
-      "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80&sat=-100",
-    ],
-    category: "Shoes",
-    gender: "Women",
-    brand: "Maison de L'Ombre",
-    regular_price: 360,
-    discount_price: 310,
-    sizes: ["S", "M", "L"],
-    size_stock: { S: 0, M: 0, L: 0 },
-    colors: ["Noir Gloss", "Mahogany"],
-    sku: "MLO-SHO-005",
-    tags: "shoes, boots, leather, calfskin",
-    stock_quantity: 0,
-    status: "Out of Stock",
-    sales_count: 15,
-    created_at: "2026-10-29T11:20:00Z",
-  },
-  {
-    id: "prod-sel-106",
-    name: "Sculptural Satin Cutout Cocktail Dress",
-    description: "Heavy Duchess satin mini dress with subtle structural boning and asymmetrical back cutout detail.",
-    images: [
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80&sat=-100",
-    ],
-    category: "Dresses",
-    gender: "Women",
-    brand: "Maison de L'Ombre",
-    regular_price: 340,
-    discount_price: 295,
-    sizes: ["XS", "S", "M"],
-    size_stock: { XS: 3, S: 5, M: 2 },
-    colors: ["Pure Obsidian"],
-    sku: "MLO-DRS-006",
-    tags: "satin, cocktail, dress, party",
-    stock_quantity: 10,
-    status: "Draft",
-    sales_count: 0,
-    created_at: "2026-11-01T15:00:00Z",
-  },
-];
-
-const INITIAL_ORDERS = [
-  {
-    id: "ord-801",
-    order_id: "ZEL-92841-A",
-    customer_name: "Helena Vance",
-    customer_email: "helena.v@example.com",
-    customer_phone: "+91 98765 43210",
-    order_date: "2026-11-05T14:20:00Z",
-    total_amount: 514.50,
-    payment_status: "Paid",
-    payment_method: "Razorpay (Credit Card)",
-    order_status: "Processing",
-    shipping_address: {
-      full_name: "Helena Vance",
-      mobile_number: "+91 98765 43210",
-      house_building: "Apartment 14B, The Monolith Residences",
-      street_area: "42 Crescent Avenue, Bandra West",
-      city: "Mumbai",
-      state: "Maharashtra",
-      pin_code: "400050",
-    },
-    tracking_number: "ZEL-IND-8812304",
-    courier_name: "Blue Dart Apex",
-    items: [
-      {
-        product_id: "prod-sel-101",
-        product_name: "Draped Silk Evening Slip Gown",
-        product_image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100",
-        size: "S",
-        color: "Noir Black",
-        quantity: 1,
-        price: 260,
-      },
-      {
-        product_id: "prod-sel-104",
-        product_name: "Cashmere Mock-Neck Cocoon Knit",
-        product_image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=800&q=80&sat=-100",
-        size: "M",
-        color: "Ivory",
-        quantity: 1,
-        price: 240,
-      },
-    ],
-  },
-  {
-    id: "ord-802",
-    order_id: "ZEL-71402-B",
-    customer_name: "Julian Thorne",
-    customer_email: "j.thorne@example.com",
-    customer_phone: "+91 98112 34567",
-    order_date: "2026-11-06T09:40:00Z",
-    total_amount: 420.00,
-    payment_status: "Paid",
-    payment_method: "Razorpay (UPI)",
-    order_status: "New",
-    shipping_address: {
-      full_name: "Julian Thorne",
-      mobile_number: "+91 98112 34567",
-      house_building: "Villa 8, Garden Estate",
-      street_area: "MG Road, Indiranagar",
-      city: "Bengaluru",
-      state: "Karnataka",
-      pin_code: "560038",
-    },
-    tracking_number: "",
-    courier_name: "",
-    items: [
-      {
-        product_id: "prod-sel-102",
-        product_name: "Architectural Double-Breasted Wool Trench",
-        product_image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=800&q=80&sat=-100",
-        size: "L",
-        color: "Charcoal",
-        quantity: 1,
-        price: 420,
-      },
-    ],
-  },
-  {
-    id: "ord-803",
-    order_id: "ZEL-65190-C",
-    customer_name: "Aria Montgomery",
-    customer_email: "aria.m@example.com",
-    customer_phone: "+91 99200 11223",
-    order_date: "2026-11-03T11:15:00Z",
-    total_amount: 185.00,
-    payment_status: "Paid",
-    payment_method: "Razorpay (Net Banking)",
-    order_status: "Delivered",
-    shipping_address: {
-      full_name: "Aria Montgomery",
-      mobile_number: "+91 99200 11223",
-      house_building: "Flat 502, Sky High Towers",
-      street_area: "Jubilee Hills",
-      city: "Hyderabad",
-      state: "Telangana",
-      pin_code: "500033",
-    },
-    tracking_number: "ZEL-IND-7731920",
-    courier_name: "Delhivery Surface Express",
-    items: [
-      {
-        product_id: "prod-sel-103",
-        product_name: "High-Waist Pleated Wool Flannel Trousers",
-        product_image: "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=80&sat=-100",
-        size: "M",
-        color: "Onyx Black",
-        quantity: 1,
-        price: 185,
-      },
-    ],
-  },
-  {
-    id: "ord-804",
-    order_id: "ZEL-51829-D",
-    customer_name: "David Chen",
-    customer_email: "david.chen@example.com",
-    customer_phone: "+91 97711 88990",
-    order_date: "2026-11-01T17:05:00Z",
-    total_amount: 310.00,
-    payment_status: "Paid",
-    payment_method: "Razorpay (Card)",
-    order_status: "Shipped",
-    shipping_address: {
-      full_name: "David Chen",
-      mobile_number: "+91 97711 88990",
-      house_building: "Penthouse C, The Palms",
-      street_area: "Golf Course Road",
-      city: "Gurugram",
-      state: "Haryana",
-      pin_code: "122002",
-    },
-    tracking_number: "ZEL-IND-9920145",
-    courier_name: "Blue Dart Apex",
-    items: [
-      {
-        product_id: "prod-sel-105",
-        product_name: "Square-Toe Italian Calfskin Ankle Boots",
-        product_image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80&sat=-100",
-        size: "M",
-        color: "Noir Gloss",
-        quantity: 1,
-        price: 310,
-      },
-    ],
-  },
-];
-
-const INITIAL_COUPONS = [
-  {
-    id: "cp-01",
-    code: "ATELIER15",
-    discount_type: "Percentage",
-    discount_value: 15,
-    min_order: 200,
-    max_discount: 60,
-    start_date: "2026-11-01",
-    expiry_date: "2026-12-31",
-    usage_limit: 100,
-    usage_count: 42,
-    is_active: true,
-  },
-  {
-    id: "cp-02",
-    code: "NOIRWINTER",
-    discount_type: "Fixed Amount",
-    discount_value: 50,
-    min_order: 350,
-    max_discount: 50,
-    start_date: "2026-11-05",
-    expiry_date: "2026-11-30",
-    usage_limit: 50,
-    usage_count: 18,
-    is_active: true,
-  },
-  {
-    id: "cp-03",
-    code: "VIPCOUTURE",
-    discount_type: "Percentage",
-    discount_value: 20,
-    min_order: 500,
-    max_discount: 150,
-    start_date: "2026-10-01",
-    expiry_date: "2026-10-31",
-    usage_limit: 25,
-    usage_count: 25,
-    is_active: false,
-  },
-];
-
-const INITIAL_REVIEWS = [
-  {
-    id: "rev-01",
-    product_id: "prod-sel-101",
-    product_name: "Draped Silk Evening Slip Gown",
-    product_image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100",
-    customer_name: "Sophia Sterling",
-    rating: 5,
-    date: "2026-11-04",
-    comment: "The drape and weight of this silk gown is comparable to Parisian couture houses. Wore it to a black-tie gala and received endless compliments.",
-    reply: "Dear Sophia, thank you tremendously for this gracious review. Crafting fluid silhouettes with pure Mulberry silk is our passion.",
-  },
-  {
-    id: "rev-02",
-    product_id: "prod-sel-102",
-    product_name: "Architectural Double-Breasted Wool Trench",
-    product_image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=800&q=80&sat=-100",
-    customer_name: "Marcus Vance",
-    rating: 5,
-    date: "2026-11-02",
-    comment: "Superb structured shoulders and deep Charcoal hue. The melton wool keeps freezing wind away while feeling effortlessly sleek.",
-    reply: "",
-  },
-  {
-    id: "rev-03",
-    product_id: "prod-sel-103",
-    product_name: "High-Waist Pleated Wool Flannel Trousers",
-    product_image: "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=80&sat=-100",
-    customer_name: "Clara Dubois",
-    rating: 4,
-    date: "2026-10-30",
-    comment: "Tailoring is exquisite. The waist adjusters are very helpful. Note that the leg opening is quite wide, but drapes cleanly over boots.",
-    reply: "Thank you Clara! The wide silhouette is intentional for that dramatic runway sweep. Glad you appreciate the waist adjusters.",
-  },
-];
-
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: "notif-01",
-    type: "order",
-    title: "New Luxury Order Received",
-    description: "Order ZEL-71402-B for $420.00 from Julian Thorne requires acceptance.",
-    time: "2 hours ago",
-    is_read: false,
-  },
-  {
-    id: "notif-02",
-    type: "stock",
-    title: "Low Inventory Alert",
-    description: "High-Waist Pleated Wool Flannel Trousers has only 4 pieces remaining across all sizes.",
-    time: "5 hours ago",
-    is_read: false,
-  },
-  {
-    id: "notif-03",
-    type: "payout",
-    title: "Disbursement Scheduled",
-    description: "Your bi-weekly payout of $1,840.50 has been cleared and initiated via NEFT.",
-    time: "1 day ago",
-    is_read: true,
-  },
-  {
-    id: "notif-04",
-    type: "review",
-    title: "5-Star Review Received",
-    description: "Sophia Sterling left a 5-star review on Draped Silk Evening Slip Gown.",
-    time: "2 days ago",
-    is_read: true,
-  },
-  {
-    id: "notif-05",
-    type: "platform",
-    title: "Winter Runway Promotion Active",
-    description: "ZELORA Winter Editorial showcase is now live on customer homepage.",
-    time: "3 days ago",
-    is_read: true,
-  },
-];
-
-const INITIAL_PAYOUTS = [
-  {
-    id: "PAY-2026-009",
-    amount: 1840.50,
-    date: "2026-11-05",
-    payment_method: "Direct Bank Wire (HDFC)",
-    reference: "CMS-NEFT-9912048",
-    status: "Completed",
-  },
-  {
-    id: "PAY-2026-008",
-    amount: 2450.00,
-    date: "2026-10-22",
-    payment_method: "Direct Bank Wire (HDFC)",
-    reference: "CMS-NEFT-8819201",
-    status: "Completed",
-  },
-  {
-    id: "PAY-2026-007",
-    amount: 1320.00,
-    date: "2026-10-08",
-    payment_method: "Direct Bank Wire (HDFC)",
-    reference: "CMS-NEFT-7729012",
-    status: "Completed",
-  },
-];
-
-const INITIAL_TICKETS = [
-  {
-    id: "TCK-8812",
-    subject: "Inquiry regarding seasonal curated banner placement",
-    category: "Marketing & Featured Collections",
-    status: "Open",
-    created_at: "2026-11-04T15:20:00Z",
-    messages: [
-      {
-        sender: "Eleanor Vance (Seller)",
-        text: "Hello ZELORA Editorial Team, we are releasing our Winter Silk Capsule next week and would like to be considered for the homepage New Arrivals banner.",
-        time: "Nov 4, 3:20 PM",
-      },
-      {
-        sender: "Concierge Admin",
-        text: "Bonjour Eleanor. Your boutique aesthetic fits our Winter Runway theme exceptionally well. We have submitted your lookbook to the styling lead.",
-        time: "Nov 5, 10:15 AM",
-      },
-    ],
-  },
-  {
-    id: "TCK-7619",
-    subject: "Express courier packaging material resupply",
-    category: "Logistics & Fulfillment",
-    status: "Resolved",
-    created_at: "2026-10-25T11:00:00Z",
-    messages: [
-      {
-        sender: "Eleanor Vance (Seller)",
-        text: "We require 50 additional ZELORA Noir luxury garment bags and ribbon boxes for high-value evening wear shipments.",
-        time: "Oct 25, 11:00 AM",
-      },
-      {
-        sender: "Logistics Support",
-        text: "Dispatched package #PKG-8820 containing 50 garment bags. Delivered on Oct 27.",
-        time: "Oct 27, 2:30 PM",
-      },
-    ],
-  },
-];
 
 export function SellerProvider({ children }) {
   // Persistence Helper
-  const loadStored = (key, fallback) => {
+  const loadStored = (key, fallback, demoIdSet = null) => {
     try {
       const item = localStorage.getItem(`zelora_seller_${key}`);
-      return item ? JSON.parse(item) : fallback;
+      if (!item) return fallback;
+      const parsed = JSON.parse(item);
+      if (Array.isArray(parsed) && demoIdSet) {
+        return parsed.filter((entry) => entry && !demoIdSet.has(entry.id));
+      }
+      return parsed;
     } catch {
       return fallback;
     }
@@ -520,7 +73,11 @@ export function SellerProvider({ children }) {
 
   const saveStored = (key, value) => {
     try {
-      localStorage.setItem(`zelora_seller_${key}`, JSON.stringify(value));
+      if (value === null || value === undefined) {
+        localStorage.removeItem(`zelora_seller_${key}`);
+      } else {
+        localStorage.setItem(`zelora_seller_${key}`, JSON.stringify(value));
+      }
     } catch (e) {
       console.warn("Storage save error", e);
     }
@@ -528,34 +85,72 @@ export function SellerProvider({ children }) {
 
   // State Declarations
   const [isSellerAuthenticated, setIsSellerAuthenticated] = useState(() => {
-    return localStorage.getItem('zelora_seller_auth') === 'true';
+    const hasAuth = localStorage.getItem('zelora_seller_auth') === 'true';
+    const hasToken = Boolean(localStorage.getItem('zelora_seller_access_token'));
+    const storedUser = loadStored('user', null);
+    if (!hasAuth || !hasToken || isLegacyDemoSeller(storedUser)) {
+      if (isLegacyDemoSeller(storedUser)) {
+        localStorage.removeItem('zelora_seller_auth');
+        localStorage.removeItem('zelora_seller_user');
+        localStorage.removeItem('zelora_seller_shop');
+      }
+      return false;
+    }
+    return true;
   });
 
   const [seller, setSeller] = useState(() => {
-    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
+    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true' && Boolean(localStorage.getItem('zelora_seller_access_token'));
     if (!isAuth) return null;
     const s = loadStored('user', null);
-    if (s && s.avatar && (s.avatar.includes('photo-1534528741775-53994a69daeb') || s.avatar.includes('unsplash'))) {
+    if (!s || isLegacyDemoSeller(s)) return null;
+    if (s.avatar && (s.avatar.includes('photo-1534528741775-53994a69daeb') || s.avatar.includes('unsplash'))) {
       s.avatar = null;
     }
-    return s ? { ...s, is_seller: true, role: 'Boutique Seller' } : null;
+    return { ...s, is_seller: true, role: 'Boutique Seller' };
   });
+
   const [shop, setShop] = useState(() => {
-    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
+    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true' && Boolean(localStorage.getItem('zelora_seller_access_token'));
     if (!isAuth) return null;
     const sh = loadStored('shop', null);
-    if (sh && sh.logo && (sh.logo.includes('photo-1534528741775-53994a69daeb') || sh.logo.includes('photo-1544441893-675973e31985') || sh.logo.includes('unsplash'))) {
+    if (!sh || isLegacyDemoShop(sh)) return null;
+    if (sh.logo && (sh.logo.includes('photo-1534528741775-53994a69daeb') || sh.logo.includes('photo-1544441893-675973e31985') || sh.logo.includes('unsplash'))) {
       sh.logo = null;
     }
     return sh;
   });
-  const [products, setProducts] = useState(() => loadStored('products', INITIAL_PRODUCTS));
-  const [orders, setOrders] = useState(() => loadStored('orders', INITIAL_ORDERS));
-  const [coupons, setCoupons] = useState(() => loadStored('coupons', INITIAL_COUPONS));
-  const [reviews, setReviews] = useState(() => loadStored('reviews', INITIAL_REVIEWS));
-  const [notifications, setNotifications] = useState(() => loadStored('notifs', INITIAL_NOTIFICATIONS));
-  const [payouts, setPayouts] = useState(() => loadStored('payouts', INITIAL_PAYOUTS));
-  const [tickets, setTickets] = useState(() => loadStored('tickets', INITIAL_TICKETS));
+
+  const [products, setProducts] = useState(() => loadStored('products', [], LEGACY_DEMO_PRODUCT_IDS));
+  const [orders, setOrders] = useState(() => loadStored('orders', [], LEGACY_DEMO_ORDER_IDS));
+  const [coupons, setCoupons] = useState(() => loadStored('coupons', [], LEGACY_DEMO_COUPON_IDS));
+  const [reviews, setReviews] = useState(() => loadStored('reviews', [], LEGACY_DEMO_REVIEW_IDS));
+  const [notifications, setNotifications] = useState(() => loadStored('notifs', [], LEGACY_DEMO_NOTIF_IDS));
+  const [payouts, setPayouts] = useState(() => loadStored('payouts', [], LEGACY_DEMO_PAYOUT_IDS));
+  const [tickets, setTickets] = useState(() => loadStored('tickets', [], LEGACY_DEMO_TICKET_IDS));
+
+  // Fetch real shop details from backend whenever authenticated
+  useEffect(() => {
+    let active = true;
+    if (!isSellerAuthenticated || !localStorage.getItem('zelora_seller_access_token')) {
+      return;
+    }
+    authApi
+      .getSellerShop()
+      .then((apiShop) => {
+        if (!active || !apiShop) return;
+        setShop((prev) => ({
+          ...(prev || {}),
+          ...mapShopFromApi(apiShop),
+        }));
+      })
+      .catch((err) => {
+        console.warn('Could not refresh seller shop profile from backend:', err?.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isSellerAuthenticated]);
 
   // Sync to local storage
   useEffect(() => {
@@ -565,7 +160,15 @@ export function SellerProvider({ children }) {
       localStorage.removeItem('zelora_seller_user');
     }
   }, [seller, isSellerAuthenticated]);
-  useEffect(() => saveStored('shop', shop), [shop]);
+
+  useEffect(() => {
+    if (shop && isSellerAuthenticated) {
+      saveStored('shop', shop);
+    } else {
+      localStorage.removeItem('zelora_seller_shop');
+    }
+  }, [shop, isSellerAuthenticated]);
+
   useEffect(() => saveStored('products', products), [products]);
   useEffect(() => saveStored('orders', orders), [orders]);
   useEffect(() => saveStored('coupons', coupons), [coupons]);
@@ -598,20 +201,27 @@ export function SellerProvider({ children }) {
       email: res.user?.email || email,
       phone: res.user?.phone_number || '',
       avatar: res.user?.avatar_url || null,
-      shop_name: res.shop?.name || res.user?.shop_name || "My Atelier",
-      shop_category: res.shop?.category || res.user?.shop_category || "Haute Couture & Designer Wear",
-      role: "Boutique Seller",
+      shop_name: res.shop?.name || res.user?.shop_name || '',
+      shop_category: res.shop?.category || res.user?.shop_category || 'Haute Couture & Designer Wear',
+      role: 'Boutique Seller',
       is_seller: true,
     };
 
-    const shopData = {
-      name: res.shop?.name || sellerUser.shop_name,
-      category: res.shop?.category || sellerUser.shop_category,
-      contact_email: res.shop?.contact_email || res.user?.email || email,
-      contact_number: res.shop?.contact_number || sellerUser.phone,
-      business_address: res.shop?.business_address || '',
-      description: res.shop?.description || '',
-      is_open: res.shop?.is_open ?? true,
+    const shopData = mapShopFromApi(res.shop) || {
+      name: sellerUser.shop_name,
+      category: sellerUser.shop_category,
+      description: '',
+      logo: null,
+      banner: null,
+      contact_email: res.user?.email || email,
+      contact_number: sellerUser.phone,
+      business_address: '',
+      instagram: '',
+      website: '',
+      is_open: true,
+      return_policy: '',
+      delivery_preferences: '',
+      shop_visibility: 'Public (Listed in Marketplace)',
     };
 
     setSeller(sellerUser);
@@ -645,18 +255,25 @@ export function SellerProvider({ children }) {
       avatar: res.user?.avatar_url || null,
       shop_name: res.shop?.name || formData.shop_name,
       shop_category: res.shop?.category || formData.shop_category,
-      role: "Boutique Seller",
+      role: 'Boutique Seller',
       is_seller: true,
     };
 
-    const shopData = {
-      name: res.shop?.name || formData.shop_name,
-      category: res.shop?.category || formData.shop_category,
-      contact_email: res.shop?.contact_email || formData.email,
-      contact_number: res.shop?.contact_number || formData.mobile_number,
-      business_address: '',
+    const shopData = mapShopFromApi(res.shop) || {
+      name: formData.shop_name,
+      category: formData.shop_category,
       description: '',
+      logo: null,
+      banner: null,
+      contact_email: formData.email,
+      contact_number: formData.mobile_number,
+      business_address: '',
+      instagram: '',
+      website: '',
       is_open: true,
+      return_policy: '',
+      delivery_preferences: '',
+      shop_visibility: 'Public (Listed in Marketplace)',
     };
 
     setSeller(sellerUser);
@@ -668,7 +285,7 @@ export function SellerProvider({ children }) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('storage'));
     }
-    showToast("Seller registration complete! Welcome to ZELORA Atelier.");
+    showToast("Seller registration complete! Welcome to ZELORA.");
     return { user: sellerUser, shop: shopData };
   };
 
@@ -689,7 +306,9 @@ export function SellerProvider({ children }) {
     localStorage.removeItem('zelora_seller_access_token');
     localStorage.removeItem('zelora_seller_refresh_token');
     localStorage.removeItem('zelora_seller_user');
+    localStorage.removeItem('zelora_seller_shop');
     setSeller(null);
+    setShop(null);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new Event('zelora_logout'));
@@ -702,25 +321,54 @@ export function SellerProvider({ children }) {
     logoutSeller();
   };
 
+  // Helper to persist supported shop fields to backend
+  const syncShopToBackend = async (fields) => {
+    if (!localStorage.getItem('zelora_seller_access_token')) return;
+    const payload = {};
+    const directFields = ['name', 'category', 'description', 'contact_email', 'contact_number', 'business_address', 'is_open'];
+    directFields.forEach((key) => {
+      if (fields[key] !== undefined) payload[key] = fields[key];
+    });
+    if (typeof fields.logo === 'string' && /^https?:\/\//i.test(fields.logo)) {
+      payload.logo_url = fields.logo;
+    } else if (fields.logo === '') {
+      payload.logo_url = null;
+    }
+    if (typeof fields.banner === 'string' && /^https?:\/\//i.test(fields.banner)) {
+      payload.banner_url = fields.banner;
+    } else if (fields.banner === '') {
+      payload.banner_url = null;
+    }
+    if (Object.keys(payload).length === 0) return;
+    try {
+      await authApi.updateSellerShop(payload);
+    } catch (err) {
+      console.warn('Could not sync shop update to backend:', err?.message);
+    }
+  };
+
   // Shop Profile & Settings Operations
   const updateShopProfile = (updatedFields) => {
-    setShop((prev) => ({ ...prev, ...updatedFields }));
+    setShop((prev) => ({ ...(prev || {}), ...updatedFields }));
     if (updatedFields.name) {
-      setSeller((prev) => ({ ...prev, shop_name: updatedFields.name }));
+      setSeller((prev) => (prev ? { ...prev, shop_name: updatedFields.name } : prev));
     }
+    syncShopToBackend(updatedFields);
     showToast("Shop profile updated successfully.");
   };
 
   const updateShopSettings = (settingsFields) => {
-    setShop((prev) => ({ ...prev, ...settingsFields }));
+    setShop((prev) => ({ ...(prev || {}), ...settingsFields }));
+    syncShopToBackend(settingsFields);
     showToast("Shop settings saved.");
   };
 
   const toggleShopAvailability = () => {
     setShop((prev) => {
-      const next = !prev.is_open;
+      const next = !(prev?.is_open ?? true);
+      syncShopToBackend({ is_open: next });
       showToast(next ? "Shop is now Open for customer orders." : "Shop is now Temporarily Closed.");
-      return { ...prev, is_open: next };
+      return { ...(prev || {}), is_open: next };
     });
   };
 
@@ -731,7 +379,7 @@ export function SellerProvider({ children }) {
       created_at: new Date().toISOString(),
       sales_count: 0,
       status: productData.status || "Published",
-      brand: shop.name || "ZELORA Seller",
+      brand: shop?.name || "ZELORA Seller",
       ...productData,
     };
     setProducts((prev) => [newProd, ...prev]);
@@ -880,16 +528,17 @@ export function SellerProvider({ children }) {
       id: `PAY-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
       amount: parseFloat(amount),
       date: new Date().toISOString().split('T')[0],
-      payment_method: `Direct Wire (${bankInfo?.bank_name || 'HDFC'})`,
+      payment_method: `Direct Wire (${bankInfo?.bank_name || 'Bank Transfer'})`,
       reference: `REQ-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       status: "In Review",
     };
     setPayouts((prev) => [newPayout, ...prev]);
-    showToast(`Payout request for $${amount} submitted for processing.`);
+    showToast(`Payout request for ₹${amount} submitted for processing.`);
   };
 
   // Support
   const createSupportTicket = (ticketData) => {
+    const senderName = seller?.name || 'Seller';
     const newTicket = {
       id: `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
       created_at: new Date().toISOString(),
@@ -897,7 +546,7 @@ export function SellerProvider({ children }) {
       ...ticketData,
       messages: [
         {
-          sender: `${seller.name} (Seller)`,
+          sender: `${senderName} (Seller)`,
           text: ticketData.problem_description,
           time: "Just now",
         },
@@ -909,6 +558,7 @@ export function SellerProvider({ children }) {
   };
 
   const replySupportTicket = (ticketId, replyText) => {
+    const senderName = seller?.name || 'Seller';
     setTickets((prev) =>
       prev.map((t) => {
         if (t.id === ticketId) {
@@ -917,7 +567,7 @@ export function SellerProvider({ children }) {
             messages: [
               ...t.messages,
               {
-                sender: `${seller.name} (Seller)`,
+                sender: `${senderName} (Seller)`,
                 text: replyText,
                 time: "Just now",
               },
@@ -1017,4 +667,3 @@ export function useSeller() {
   }
   return context;
 }
-

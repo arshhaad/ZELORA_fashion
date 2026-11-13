@@ -127,7 +127,10 @@ export default function Login({ setActiveView }) {
             <button
               type="button"
               className="text-link forgot-pw-link"
-              onClick={() => setActiveView('forgot-password')}
+              onClick={() => {
+                setActiveView('forgot-password');
+                navigate('/forgot-password');
+              }}
             >
               Forgot Password?
             </button>

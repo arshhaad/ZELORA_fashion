@@ -92,9 +92,15 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const forgotPassword = async (email) => {
-    const data = await authApi.forgotPassword({ email });
-    setPendingEmail(email);
+  const forgotPassword = async (email, role = 'customer') => {
+    const data = await authApi.forgotPassword({ email, role });
+    setPendingEmail(data?.email || email);
+    return data;
+  };
+
+  const verifyResetOtp = async ({ email, code, role = 'customer' }) => {
+    const targetEmail = email || pendingEmail;
+    const data = await authApi.verifyResetOtp({ email: targetEmail, code, role });
     return data;
   };
 
@@ -159,6 +165,7 @@ export function AuthProvider({ children }) {
         resendVerification,
         googleAuth,
         forgotPassword,
+        verifyResetOtp,
         resetPassword,
         logout,
         refreshProfile,

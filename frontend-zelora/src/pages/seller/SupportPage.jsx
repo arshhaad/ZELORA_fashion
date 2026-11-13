@@ -168,7 +168,7 @@ export default function SupportPage() {
               }}
             >
               {selectedTicket.messages?.map((msg, idx) => {
-                const isSeller = msg.sender.includes('Seller') || msg.sender.includes(seller.name);
+                const isSeller = msg.sender.includes('Seller') || (seller?.name && msg.sender.includes(seller.name));
 
                 return (
                   <div

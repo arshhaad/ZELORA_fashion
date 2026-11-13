@@ -112,12 +112,33 @@ export const authApi = {
     body: JSON.stringify(payload),
   }),
 
+  getSellerShop: () => {
+    const token = localStorage.getItem('zelora_seller_access_token');
+    return request('/seller/shop/', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+
+  updateSellerShop: (payload) => {
+    const token = localStorage.getItem('zelora_seller_access_token');
+    return request('/seller/shop/', {
+      method: 'PATCH',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify(payload),
+    });
+  },
+
   googleAuth: (payload) => request('/google/', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
 
   forgotPassword: (payload) => request('/forgot-password/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+
+  verifyResetOtp: (payload) => request('/verify-reset-otp/', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),

@@ -484,7 +484,7 @@ export default function SellerRegisterPage() {
                 name="owner_name"
                 value={formData.owner_name}
                 onChange={handleChange}
-                placeholder="e.g. Eleanor Vance"
+                placeholder="e.g. Full Name"
                 className="seller-input"
                 style={fieldErrors.owner_name ? { borderColor: 'var(--seller-danger)' } : {}}
                 required
@@ -530,7 +530,7 @@ export default function SellerRegisterPage() {
                   name="mobile_number"
                   value={formData.mobile_number}
                   onChange={handleChange}
-                  placeholder="+91 98201 54321"
+                  placeholder="+91 98765 43210"
                   className="seller-input"
                   style={fieldErrors.mobile_number ? { borderColor: 'var(--seller-danger)' } : {}}
                   required
@@ -555,7 +555,7 @@ export default function SellerRegisterPage() {
                   name="shop_name"
                   value={formData.shop_name}
                   onChange={handleChange}
-                  placeholder="e.g. Maison de L'Ombre"
+                  placeholder="e.g. Your Boutique Name"
                   className="seller-input"
                   style={fieldErrors.shop_name ? { borderColor: 'var(--seller-danger)' } : {}}
                   required

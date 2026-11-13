@@ -20,17 +20,31 @@ export default function ReportsPage() {
 
   const averageOrderValue = orders.length > 0 ? totalSales / orders.length : 0;
 
-  // Monthly dataset for visual charts
-  const monthlyData = [
-    { month: 'Jun', gross: 12400, net: 10912, orders: 38 },
-    { month: 'Jul', gross: 15600, net: 13728, orders: 46 },
-    { month: 'Aug', gross: 18900, net: 16632, orders: 54 },
-    { month: 'Sep', gross: 21200, net: 18656, orders: 62 },
-    { month: 'Oct', gross: 26800, net: 23584, orders: 78 },
-    { month: 'Nov', gross: 31400, net: 27632, orders: 92 },
-  ];
+  // Monthly dataset computed from real seller orders (last 6 months)
+  const monthlyData = (() => {
+    const now = new Date();
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    const data = [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const m = d.getMonth();
+      const y = d.getFullYear();
+      const monthOrders = safeOrders.filter((o) => {
+        const dt = new Date(o.order_date || o.created_at);
+        return !Number.isNaN(dt.getTime()) && dt.getMonth() === m && dt.getFullYear() === y;
+      });
+      const gross = monthOrders.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+      data.push({
+        month: d.toLocaleDateString('en-US', { month: 'short' }),
+        gross: Math.round(gross * 100) / 100,
+        net: Math.round(gross * 0.88 * 100) / 100,
+        orders: monthOrders.length,
+      });
+    }
+    return data;
+  })();
 
-  const maxVal = Math.max(...monthlyData.map((d) => d.gross));
+  const maxVal = Math.max(1, ...monthlyData.map((d) => d.gross));
 
   // CSV Export
   const handleDownloadCSV = () => {
@@ -259,57 +273,65 @@ export default function ReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((prod) => {
-              const unitsSold = prod.sales_count || 10;
-              const gross = unitsSold * (prod.discount_price || prod.regular_price);
-              const net = gross * 0.88;
+            {products.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '28px', color: 'var(--seller-muted)' }}>
+                  No products in your shop catalog yet. Add products to view sales performance.
+                </td>
+              </tr>
+            ) : (
+              products.map((prod) => {
+                const unitsSold = prod.sales_count || 0;
+                const gross = unitsSold * (prod.discount_price || prod.regular_price || 0);
+                const net = gross * 0.88;
 
-              return (
-                <tr key={prod.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <img
-                        src={prod.images[0]}
-                        alt={prod.name}
-                        style={{ width: '40px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
-                      />
-                      <div>
-                        <strong style={{ fontSize: '13.5px', color: 'var(--seller-espresso)' }}>
-                          {prod.name}
-                        </strong>
-                        <small style={{ display: 'block', color: 'var(--seller-muted)', fontSize: '11px' }}>
-                          SKU: {prod.sku}
-                        </small>
+                return (
+                  <tr key={prod.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <img
+                          src={prod.images?.[0]}
+                          alt={prod.name}
+                          style={{ width: '40px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+                        />
+                        <div>
+                          <strong style={{ fontSize: '13.5px', color: 'var(--seller-espresso)' }}>
+                            {prod.name}
+                          </strong>
+                          <small style={{ display: 'block', color: 'var(--seller-muted)', fontSize: '11px' }}>
+                            SKU: {prod.sku}
+                          </small>
+                        </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td>{prod.category}</td>
+                    <td>{prod.category}</td>
 
-                  <td>
-                    <strong>₹{prod.discount_price || prod.regular_price}</strong>
-                  </td>
+                    <td>
+                      <strong>₹{prod.discount_price || prod.regular_price}</strong>
+                    </td>
 
-                  <td>
-                    <span style={{ fontWeight: 700, color: 'var(--seller-espresso)' }}>
-                      {unitsSold} units
-                    </span>
-                  </td>
+                    <td>
+                      <span style={{ fontWeight: 700, color: 'var(--seller-espresso)' }}>
+                        {unitsSold} units
+                      </span>
+                    </td>
 
-                  <td>
-                    <strong style={{ color: 'var(--seller-espresso)' }}>
-                      ₹{gross.toFixed(2)}
-                    </strong>
-                  </td>
+                    <td>
+                      <strong style={{ color: 'var(--seller-espresso)' }}>
+                        ₹{gross.toFixed(2)}
+                      </strong>
+                    </td>
 
-                  <td>
-                    <strong style={{ color: 'var(--seller-gold-dark)' }}>
-                      ₹{net.toFixed(2)}
-                    </strong>
-                  </td>
-                </tr>
-              );
-            })}
+                    <td>
+                      <strong style={{ color: 'var(--seller-gold-dark)' }}>
+                        ₹{net.toFixed(2)}
+                      </strong>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

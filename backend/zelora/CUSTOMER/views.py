@@ -30,11 +30,12 @@ from .serializers import (
     VerifyEmailSerializer,
     ResendVerificationSerializer,
     ForgotPasswordRequestSerializer,
+    VerifyResetOtpSerializer,
     ResetPasswordConfirmSerializer,
     GoogleAuthSerializer,
     SellerShopSerializer,
 )
-from .emails import send_verification_email, send_password_reset_email, send_seller_verification_email
+from .emails import normalize_email_address, send_verification_email, send_password_reset_email, send_seller_verification_email
 
 logger = logging.getLogger(__name__)
 
@@ -363,20 +364,51 @@ class ForgotPasswordRequestView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data['email'].lower().strip()
+        email = normalize_email_address(serializer.validated_data['email'])
+        role = serializer.validated_data.get('role')
         user = User.objects.filter(email=email).first()
 
-        code_obj = None
+        if role in ('seller', 'customer') and not user:
+            return Response({
+                "detail": f"No {'seller' if role == 'seller' else 'customer'} account found with this email address.",
+                "errors": {"email": ["No registered account found for this email."]},
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if role == 'seller' and user and not getattr(user, 'is_seller', False):
+            return Response({
+                "detail": "This email is registered as a customer account. Please use Customer Forgot Password at /forgot-password.",
+                "errors": {"email": ["This account is not registered as a seller."]},
+            }, status=status.HTTP_403_FORBIDDEN)
+
         if user:
             code_obj = PasswordResetCode.generate(user)
-            send_password_reset_email(user.email, code_obj.code, user.first_name)
+            success, msg = send_password_reset_email(user.email, code_obj.code, user.first_name)
+            if not success:
+                logger.error(f"Failed to send password reset email to {user.email}: {msg}")
+                return Response({
+                    "detail": f"Failed to send verification code to {user.email}. Please try again shortly."
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Standard generic security response
-        response_data = {
-            "message": "If an account exists with this email, a 6-digit password reset code has been sent.",
+        return Response({
+            "message": f"A 6-digit OTP verification code has been sent to {email}.",
             "email": email,
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
+
+
+class VerifyResetOtpView(APIView):
+    """Validates a 6-digit password reset OTP before proceeding to the reset password page."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerifyResetOtpSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "message": "OTP verified successfully. You may now set a new password.",
+            "verified": True,
+            "email": serializer.validated_data['email'],
+        }, status=status.HTTP_200_OK)
 
 
 class ResetPasswordConfirmView(APIView):

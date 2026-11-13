@@ -1,29 +1,67 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { KeyRound, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
+import OtpCodeInput from './common/OtpCodeInput';
+import {
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+} from 'lucide-react';
+
+const CUSTOMER_RESET_SESSION_KEY = 'zelora_customer_reset_session';
 
 export default function ResetPassword({ setActiveView }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { pendingEmail, resetPassword } = useAuth();
 
-  const [email, setEmail] = useState(pendingEmail || '');
-  const [code, setCode] = useState('');
+  const [verifiedSession] = useState(() => {
+    if (location.state?.email && location.state?.code) {
+      return location.state;
+    }
+    try {
+      const saved = sessionStorage.getItem(CUSTOMER_RESET_SESSION_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [email, setEmail] = useState(verifiedSession?.email || pendingEmail || '');
+  const [code, setCode] = useState(verifiedSession?.code || '');
+  const hasVerifiedOtp = Boolean(verifiedSession?.otpVerified && verifiedSession?.email && verifiedSession?.code);
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (pendingEmail) setEmail(pendingEmail);
-  }, [pendingEmail]);
+    if (!verifiedSession?.email && pendingEmail) {
+      setEmail(pendingEmail);
+    }
+  }, [pendingEmail, verifiedSession]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    if (!email.trim()) {
+      setError('Please provide your account email address.');
+      return;
+    }
+
     if (code.trim().length !== 6) {
-      setError('Please provide the 6-digit reset code.');
+      setError('Please provide the 6-digit OTP reset code.');
       return;
     }
 
@@ -44,9 +82,20 @@ export default function ResetPassword({ setActiveView }) {
         code: code.trim(),
         new_password: newPassword,
       });
+      try {
+        sessionStorage.removeItem(CUSTOMER_RESET_SESSION_KEY);
+      } catch {
+        // Ignore storage errors
+      }
       setSuccess(true);
     } catch (err) {
-      const msg = err.data?.detail || err.data?.message || err.data?.code?.[0] || err.message || 'Password reset failed.';
+      const msg =
+        err.data?.detail ||
+        err.data?.message ||
+        err.data?.non_field_errors?.[0] ||
+        err.data?.code?.[0] ||
+        err.message ||
+        'Password reset failed.';
       setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setLoading(false);
@@ -69,7 +118,10 @@ export default function ResetPassword({ setActiveView }) {
         <button
           type="button"
           className="btn-primary btn-block"
-          onClick={() => setActiveView('login')}
+          onClick={() => {
+            setActiveView('login');
+            navigate('/login');
+          }}
         >
           Proceed to Sign In
         </button>
@@ -83,13 +135,31 @@ export default function ResetPassword({ setActiveView }) {
         <div className="auth-badge-icon">
           <KeyRound size={28} className="badge-icon-purple" />
         </div>
-        <h2>Create New Password</h2>
+        <h2>Reset Password</h2>
         <p className="auth-subtitle">
-          A 6-digit recovery code was dispatched to <strong className="text-highlight">{email || 'your email'}</strong>.
-          <br />
-          Please copy the OTP code from your email and enter it below to set your new password.
+          {hasVerifiedOtp
+            ? <>OTP confirmed for <strong className="text-highlight">{email}</strong>. Create your new password below.</>
+            : 'Enter your email, 6-digit OTP code, and choose a new password.'}
         </p>
       </div>
+
+      {hasVerifiedOtp && (
+        <div
+          className="alert"
+          style={{
+            backgroundColor: 'rgba(182, 154, 112, 0.14)',
+            border: '1px solid rgba(182, 154, 112, 0.45)',
+            color: '#292522',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '16px',
+          }}
+        >
+          <ShieldCheck size={18} style={{ color: '#8C7046', flexShrink: 0 }} />
+          <span>OTP Confirmed ✓</span>
+        </div>
+      )}
 
       {error && (
         <div className="alert alert-error">
@@ -99,37 +169,31 @@ export default function ResetPassword({ setActiveView }) {
       )}
 
       <form onSubmit={handleSubmit} className="auth-form">
-        {!pendingEmail && (
-          <div className="form-group">
-            <label htmlFor="reset-email">Email Address</label>
-            <input
-              id="reset-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@customer.com"
-              required
-            />
-          </div>
-        )}
+        {!hasVerifiedOtp && (
+          <>
+            <div className="form-group">
+              <label htmlFor="reset-email">Email Address</label>
+              <input
+                id="reset-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@customer.com"
+                required
+              />
+            </div>
 
-        <div className="form-group">
-          <label htmlFor="reset-code">6-Digit Reset Code</label>
-          <div className="input-wrapper">
-            <KeyRound size={18} className="input-icon" />
-            <input
-              id="reset-code"
-              type="text"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="123456"
-              className="code-input"
-              required
-              autoFocus
-            />
-          </div>
-        </div>
+            <div className="form-group">
+              <label>6-Digit Reset OTP</label>
+              <OtpCodeInput
+                value={code}
+                onChange={setCode}
+                disabled={loading}
+                idPrefix="customer-fallback-otp"
+              />
+            </div>
+          </>
+        )}
 
         <div className="form-group">
           <label htmlFor="reset-new-password">New Password</label>
@@ -140,9 +204,10 @@ export default function ResetPassword({ setActiveView }) {
               type={showPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="••••••••••••"
+              placeholder="Minimum 6 characters"
               required
               minLength={6}
+              autoFocus={hasVerifiedOtp}
             />
             <button
               type="button"
@@ -161,20 +226,28 @@ export default function ResetPassword({ setActiveView }) {
             <Lock size={18} className="input-icon" />
             <input
               id="reset-confirm-password"
-              type={showPassword ? 'text' : 'password'}
+              type={showConfirmPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••••••"
+              placeholder="Re-enter your new password"
               required
               minLength={6}
             />
+            <button
+              type="button"
+              className="toggle-password-btn"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              tabIndex={-1}
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
         </div>
 
         <button
           type="submit"
           className="btn-primary btn-block"
-          disabled={loading || code.length !== 6}
+          disabled={loading}
         >
           {loading ? (
             <span className="spinner-wrap">
@@ -182,7 +255,7 @@ export default function ResetPassword({ setActiveView }) {
             </span>
           ) : (
             <span className="btn-content">
-              Update Password <ArrowRight size={18} />
+              Reset Password <ArrowRight size={18} />
             </span>
           )}
         </button>
@@ -192,12 +265,14 @@ export default function ResetPassword({ setActiveView }) {
         <button
           type="button"
           className="text-link flex-center"
-          onClick={() => setActiveView('login')}
+          onClick={() => {
+            setActiveView('forgot-password');
+            navigate('/forgot-password');
+          }}
         >
-          <ArrowLeft size={16} /> Back to Sign In
+          <ArrowLeft size={16} /> Back to Forgot Password
         </button>
       </div>
     </div>
   );
 }
-

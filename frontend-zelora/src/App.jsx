@@ -37,6 +37,8 @@ import AuthPage from './pages/AuthPage';
 // Seller Authentication Pages
 import SellerLoginPage from './pages/seller/SellerLoginPage';
 import SellerRegisterPage from './pages/seller/SellerRegisterPage';
+import SellerForgotPasswordPage from './pages/seller/SellerForgotPasswordPage';
+import SellerResetPasswordPage from './pages/seller/SellerResetPasswordPage';
 
 // Seller Dashboard & Shop Pages
 import SellerDashboardPage from './pages/seller/SellerDashboardPage';
@@ -244,6 +246,8 @@ export default function App() {
                   <Route path="/seller" element={<Navigate to="/seller/dashboard" replace />} />
                   <Route path="/seller/login" element={<SellerLoginPage />} />
                   <Route path="/seller/register" element={<SellerRegisterPage />} />
+                  <Route path="/seller/forgot-password" element={<SellerForgotPasswordPage />} />
+                  <Route path="/seller/reset-password" element={<SellerResetPasswordPage />} />
 
                   {/* Protected Seller Pages */}
                   <Route

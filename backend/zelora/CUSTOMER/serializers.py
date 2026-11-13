@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from .models import User, EmailVerificationCode, PasswordResetCode, Address, Order, OrderItem, Notification, SellerShop
+from .emails import normalize_email_address
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -92,6 +93,37 @@ class ResendVerificationSerializer(serializers.Serializer):
 
 class ForgotPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
+    role = serializers.ChoiceField(choices=['customer', 'seller'], required=False)
+
+
+class VerifyResetOtpSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6, min_length=6)
+    role = serializers.ChoiceField(choices=['customer', 'seller'], required=False)
+
+    def validate(self, attrs):
+        email = normalize_email_address(attrs.get('email', ''))
+        code = attrs.get('code', '').strip()
+        role = attrs.get('role')
+
+        if not code.isdigit() or len(code) != 6:
+            raise serializers.ValidationError({"code": ["Please enter a valid 6-digit verification code."]})
+
+        user = User.objects.filter(email=email).first()
+        if not user:
+            raise serializers.ValidationError({"email": ["No account found with this email address."]})
+
+        if role == 'seller' and not getattr(user, 'is_seller', False):
+            raise serializers.ValidationError({"email": ["This email is registered as a customer account. Please use Customer Forgot Password."]})
+
+        reset_record = PasswordResetCode.objects.filter(user=user, code=code, is_used=False).order_by('-created_at').first()
+        if not reset_record or not reset_record.is_valid():
+            raise serializers.ValidationError({"code": ["Invalid or expired verification code. Please request a new code."]})
+
+        attrs['email'] = email
+        attrs['user'] = user
+        attrs['reset_record'] = reset_record
+        return attrs
 
 
 class ResetPasswordConfirmSerializer(serializers.Serializer):
@@ -100,7 +132,7 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
     new_password = serializers.CharField(write_only=True, min_length=6)
 
     def validate(self, attrs):
-        email = attrs.get('email', '').lower().strip()
+        email = normalize_email_address(attrs.get('email', ''))
         code = attrs.get('code', '').strip()
         new_password = attrs.get('new_password')
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import Toast from '../components/common/Toast';
@@ -59,8 +59,62 @@ const loadRazorpayScript = () => {
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const { cartItems, clearCart, subtotal, discountTotal, discountedSubtotal, showToast } = useCart();
+  const {
+    cartItems: contextCartItems,
+    clearCart,
+    subtotal: cartSubtotal,
+    discountTotal: cartDiscountTotal,
+    discountedSubtotal: cartDiscountedSubtotal,
+    showToast,
+  } = useCart();
+
+  // Distinguish direct single-product Buy Now from Cart Checkout
+  const [buyNowItem] = useState(() => {
+    if (location.state?.mode === 'cart') {
+      try {
+        sessionStorage.removeItem('zelora_buy_now_item');
+      } catch {
+        // Ignore storage errors
+      }
+      return null;
+    }
+
+    if (location.state?.mode === 'buy-now' && location.state?.item?.product) {
+      try {
+        sessionStorage.setItem('zelora_buy_now_item', JSON.stringify(location.state.item));
+      } catch {
+        // Ignore storage errors
+      }
+      return location.state.item;
+    }
+
+    try {
+      const saved = sessionStorage.getItem('zelora_buy_now_item');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.product) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore storage parse errors
+    }
+    return null;
+  });
+
+  const isBuyNow = Boolean(buyNowItem);
+  const cartItems = isBuyNow ? [buyNowItem] : contextCartItems;
+  const subtotal = isBuyNow
+    ? (buyNowItem.product.originalPrice || buyNowItem.product.price) * buyNowItem.quantity
+    : cartSubtotal;
+  const discountedSubtotal = isBuyNow
+    ? buyNowItem.product.price * buyNowItem.quantity
+    : cartDiscountedSubtotal;
+  const discountTotal = isBuyNow
+    ? Math.max(0, subtotal - discountedSubtotal)
+    : cartDiscountTotal;
   const {
     addresses,
     selectedAddressId,
@@ -117,12 +171,12 @@ export default function CheckoutPage() {
     loadRazorpayScript();
   }, []);
 
-  // Auto-redirect if cart is empty
+  // Auto-redirect if there are no items to check out
   useEffect(() => {
-    if (cartItems.length === 0) {
+    if (!isBuyNow && cartItems.length === 0) {
       navigate('/cart');
     }
-  }, [cartItems, navigate]);
+  }, [isBuyNow, cartItems, navigate]);
 
   // Sync patron contact if user or selected address becomes available
   useEffect(() => {
@@ -291,7 +345,15 @@ export default function CheckoutPage() {
       };
 
       const createdOrder = await createOrder(orderData);
-      clearCart();
+      if (isBuyNow) {
+        try {
+          sessionStorage.removeItem('zelora_buy_now_item');
+        } catch {
+          // Ignore storage errors
+        }
+      } else {
+        clearCart();
+      }
       showToast(
         fulfillmentType === 'pickup'
           ? 'Atelier reservation confirmed! We look forward to welcoming you at our Flagship Boutique.'
@@ -1094,7 +1156,11 @@ export default function CheckoutPage() {
 
                   {/* Items Preview */}
                   <div className="review-items-preview">
-                    <h4>RESERVED DESIGNER PIECES ({cartItems.length})</h4>
+                    <h4>
+                      {isBuyNow
+                        ? `DIRECT BUY NOW (${buyNowItem.quantity} ${buyNowItem.quantity === 1 ? 'PIECE' : 'PIECES'})`
+                        : `RESERVED DESIGNER PIECES (${cartItems.length})`}
+                    </h4>
                     <div className="review-items-list">
                       {cartItems.map((item) => (
                         <div key={item.id} className="review-item-mini">
@@ -1162,7 +1228,28 @@ export default function CheckoutPage() {
             {/* Right Column: Order Summary */}
             <div className="checkout-summary-col">
               <div className="order-summary-card">
-                <h3 className="summary-card-title">Order Summary</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <h3 className="summary-card-title" style={{ marginBottom: 0 }}>Order Summary</h3>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: isBuyNow ? '#111' : '#f4f1ea',
+                      color: isBuyNow ? '#fff' : '#333',
+                    }}
+                  >
+                    {isBuyNow ? 'Direct Buy Now' : `Cart (${cartItems.length})`}
+                  </span>
+                </div>
+                {isBuyNow && (
+                  <p style={{ fontSize: '12px', color: '#666', margin: '6px 0 14px' }}>
+                    Single-product instant purchase. Your shopping bag will remain untouched.
+                  </p>
+                )}
 
                 <div className="summary-breakdown-list">
                   <div className="summary-line">

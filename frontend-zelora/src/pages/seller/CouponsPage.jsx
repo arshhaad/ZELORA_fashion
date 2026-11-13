@@ -230,7 +230,7 @@ export default function CouponsPage() {
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    placeholder="e.g. MAISON20"
+                    placeholder="e.g. ZELORA20"
                     className="seller-input"
                     style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}
                     required

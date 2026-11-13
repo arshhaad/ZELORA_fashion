@@ -175,8 +175,8 @@ export default function SellerSidebar({ isOpen, onClose }) {
           {/* Live Shop Availability Switch */}
           <div className="seller-shop-status-box">
             <div className="shop-status-label">
-              <span className={shop.is_open ? 'status-dot-active' : 'status-dot-closed'} />
-              <span>{shop.is_open ? 'Shop: Open' : 'Shop: Closed'}</span>
+              <span className={(shop?.is_open ?? true) ? 'status-dot-active' : 'status-dot-closed'} />
+              <span>{(shop?.is_open ?? true) ? 'Shop: Open' : 'Shop: Closed'}</span>
             </div>
             <button
               type="button"
@@ -184,7 +184,7 @@ export default function SellerSidebar({ isOpen, onClose }) {
               onClick={toggleShopAvailability}
               title="Toggle shop order acceptance"
             >
-              {shop.is_open ? 'Close' : 'Open'}
+              {(shop?.is_open ?? true) ? 'Close' : 'Open'}
             </button>
           </div>
         </div>
@@ -253,14 +253,14 @@ export default function SellerSidebar({ isOpen, onClose }) {
           <div className="seller-profile-card">
             <div className="seller-profile-info">
               <UserAvatarBadge
-                avatar={seller.avatar}
-                name={seller.name}
-                email={seller.email}
+                avatar={seller?.avatar}
+                name={seller?.name}
+                email={seller?.email}
                 size={38}
               />
               <div className="seller-owner-meta">
-                <p className="seller-owner-name">{seller.name}</p>
-                <p className="seller-shop-handle">{shop.name}</p>
+                <p className="seller-owner-name">{seller?.name || 'Seller'}</p>
+                <p className="seller-shop-handle">{shop?.name || 'Boutique Atelier'}</p>
               </div>
             </div>
 

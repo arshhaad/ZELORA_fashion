@@ -38,30 +38,79 @@ export default function SellerDashboardPage() {
 
   const [analyticsPeriod, setAnalyticsPeriod] = useState('monthly'); // 'daily', 'weekly', 'monthly'
 
-  // Realistic time-series data for analytics charts
-  const chartData = {
-    daily: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      sales: [180, 420, 260, 580, 390, 750, 620],
-      revenue: [158, 369, 228, 510, 343, 660, 545],
-      total: '₹3,200',
-    },
-    weekly: {
-      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-      sales: [3400, 4100, 5200, 4800],
-      revenue: [2992, 3608, 4576, 4224],
-      total: '₹17,500',
-    },
-    monthly: {
-      labels: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
-      sales: [11200, 14500, 16800, 19200, 23400, 28600],
-      revenue: [9856, 12760, 14784, 16896, 20592, 25168],
-      total: '₹113,700',
-    },
+  // Compute time-series data dynamically from real seller orders
+  const buildChartData = () => {
+    const now = new Date();
+    const safeOrders = Array.isArray(orders) ? orders : [];
+
+    // Daily (last 7 days)
+    const dailyLabels = [];
+    const dailySales = [];
+    for (let i = 6; i >= 0; i -= 1) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dayKey = d.toISOString().split('T')[0];
+      dailyLabels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+      const sum = safeOrders
+        .filter((o) => String(o.order_date || o.created_at || '').startsWith(dayKey))
+        .reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+      dailySales.push(Math.round(sum * 100) / 100);
+    }
+
+    // Weekly (Week 1 - Week 4 of current month)
+    const weeklyLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+    const weeklySales = [0, 0, 0, 0];
+    safeOrders.forEach((o) => {
+      const dt = new Date(o.order_date || o.created_at);
+      if (!Number.isNaN(dt.getTime()) && dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear()) {
+        const idx = Math.min(3, Math.floor((dt.getDate() - 1) / 7));
+        weeklySales[idx] += Number(o.total_amount) || 0;
+      }
+    });
+
+    // Monthly (last 6 months)
+    const monthlyLabels = [];
+    const monthlySales = [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const m = d.getMonth();
+      const y = d.getFullYear();
+      monthlyLabels.push(d.toLocaleDateString('en-US', { month: 'short' }));
+      const sum = safeOrders
+        .filter((o) => {
+          const dt = new Date(o.order_date || o.created_at);
+          return !Number.isNaN(dt.getTime()) && dt.getMonth() === m && dt.getFullYear() === y;
+        })
+        .reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+      monthlySales.push(Math.round(sum * 100) / 100);
+    }
+
+    const toDataset = (labels, sales) => ({
+      labels,
+      sales,
+      revenue: sales.map((v) => Math.round(v * 0.88 * 100) / 100),
+    });
+
+    return {
+      daily: toDataset(dailyLabels, dailySales),
+      weekly: toDataset(weeklyLabels, weeklySales.map((v) => Math.round(v * 100) / 100)),
+      monthly: toDataset(monthlyLabels, monthlySales),
+    };
   };
 
+  const chartData = buildChartData();
   const currentDataset = chartData[analyticsPeriod];
-  const maxVal = Math.max(...currentDataset.sales);
+  const maxVal = Math.max(1, ...currentDataset.sales);
+
+  const deliveredOrShippedCount = orders.filter(
+    (o) => o.order_status === 'Delivered' || o.order_status === 'Shipped'
+  ).length;
+  const fulfillmentRate = totalOrdersCount > 0
+    ? Math.round((deliveredOrShippedCount / totalOrdersCount) * 1000) / 10
+    : 0;
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1)
+    : null;
 
   // Best selling products sorted by sales_count
   const bestSellers = [...products]
@@ -86,7 +135,7 @@ export default function SellerDashboardPage() {
         <div className="seller-page-title-group">
           <h1>Atelier Executive Dashboard</h1>
           <p className="seller-page-subtitle">
-            Welcome back, {seller.name}. Here is the commercial performance of {shop.name} today.
+            Welcome back, {seller?.name || 'Seller'}. Here is the commercial performance of {shop?.name || 'your boutique'} today.
           </p>
         </div>
 
@@ -111,7 +160,7 @@ export default function SellerDashboardPage() {
               <DollarSign size={22} color="var(--seller-espresso)" />
             </div>
             <span className="stat-trend-pill positive">
-              <ArrowUpRight size={13} /> +18.4%
+              {totalOrdersCount > 0 ? 'Live' : 'No Sales'}
             </span>
           </div>
           <span className="stat-label">Total Sales</span>
@@ -126,7 +175,7 @@ export default function SellerDashboardPage() {
               <ShoppingBag size={22} color="var(--seller-espresso)" />
             </div>
             <span className="stat-trend-pill positive">
-              <ArrowUpRight size={13} /> +12.1%
+              {totalOrdersCount > 0 ? `${totalOrdersCount} Total` : '0 Orders'}
             </span>
           </div>
           <span className="stat-label">Total Orders</span>
@@ -428,36 +477,38 @@ export default function SellerDashboardPage() {
             <div style={{ padding: '14px', background: 'var(--seller-cream)', borderRadius: 'var(--seller-radius)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px' }}>
                 <strong style={{ color: 'var(--seller-espresso)' }}>Order Fulfillment Rate</strong>
-                <span style={{ color: 'var(--seller-success)', fontWeight: 700 }}>98.2%</span>
+                <span style={{ color: 'var(--seller-success)', fontWeight: 700 }}>{fulfillmentRate}%</span>
               </div>
               <div style={{ width: '100%', height: '6px', background: 'var(--seller-border)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ width: '98.2%', height: '100%', background: 'var(--seller-success)' }} />
+                <div style={{ width: `${fulfillmentRate}%`, height: '100%', background: 'var(--seller-success)' }} />
               </div>
             </div>
 
             <div style={{ padding: '14px', background: 'var(--seller-cream)', borderRadius: 'var(--seller-radius)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px' }}>
-                <strong style={{ color: 'var(--seller-espresso)' }}>Average Dispatch Speed</strong>
-                <span style={{ color: 'var(--seller-espresso)', fontWeight: 700 }}>18.4 Hours</span>
+                <strong style={{ color: 'var(--seller-espresso)' }}>Active Catalog Items</strong>
+                <span style={{ color: 'var(--seller-espresso)', fontWeight: 700 }}>{totalProductsCount} Products</span>
               </div>
               <div style={{ width: '100%', height: '6px', background: 'var(--seller-border)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ width: '85%', height: '100%', background: 'var(--seller-gold)' }} />
+                <div style={{ width: totalProductsCount > 0 ? '100%' : '0%', height: '100%', background: 'var(--seller-gold)' }} />
               </div>
             </div>
 
             <div style={{ padding: '14px', background: 'var(--seller-cream)', borderRadius: 'var(--seller-radius)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px' }}>
                 <strong style={{ color: 'var(--seller-espresso)' }}>Customer Satisfaction</strong>
-                <span style={{ color: 'var(--seller-warning)', fontWeight: 700 }}>4.9 / 5.0</span>
+                <span style={{ color: 'var(--seller-warning)', fontWeight: 700 }}>
+                  {avgRating ? `${avgRating} / 5.0` : 'No reviews yet'}
+                </span>
               </div>
               <div style={{ width: '100%', height: '6px', background: 'var(--seller-border)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ width: '96%', height: '100%', background: 'var(--seller-warning)' }} />
+                <div style={{ width: avgRating ? `${(Number(avgRating) / 5) * 100}%` : '0%', height: '100%', background: 'var(--seller-warning)' }} />
               </div>
             </div>
 
             <div style={{ textAlign: 'center', marginTop: '6px' }}>
               <span style={{ fontSize: '11px', color: 'var(--seller-muted)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                ZELORA PREMIER ATELIER BADGE ACTIVE
+                {(shop?.is_open ?? true) ? 'BOUTIQUE OPEN FOR ORDERS' : 'BOUTIQUE TEMPORARILY CLOSED'}
               </span>
             </div>
           </div>
@@ -500,40 +551,48 @@ export default function SellerDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((ord) => (
-                  <tr key={ord.id}>
-                    <td>
-                      <strong style={{ fontFamily: 'monospace', color: 'var(--seller-espresso)' }}>
-                        {ord.order_id}
-                      </strong>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 600 }}>{ord.customer_name}</span>
-                      <small style={{ display: 'block', color: 'var(--seller-muted)', fontSize: '11px' }}>
-                        {ord.items.length} piece{ord.items.length > 1 ? 's' : ''}
-                      </small>
-                    </td>
-                    <td>
-                      <strong style={{ color: 'var(--seller-espresso)' }}>
-                        ₹{ord.total_amount.toFixed(2)}
-                      </strong>
-                    </td>
-                    <td>
-                      <span className={`status-pill ${ord.order_status.toLowerCase()}`}>
-                        {ord.order_status}
-                      </span>
-                    </td>
-                    <td>
-                      <Link
-                        to={`/seller/orders/${ord.order_id}`}
-                        className="btn-seller-secondary btn-seller-sm"
-                        style={{ padding: '4px 10px' }}
-                      >
-                        <Eye size={13} /> Inspect
-                      </Link>
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--seller-muted)' }}>
+                      No customer orders received yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentOrders.map((ord) => (
+                    <tr key={ord.id}>
+                      <td>
+                        <strong style={{ fontFamily: 'monospace', color: 'var(--seller-espresso)' }}>
+                          {ord.order_id}
+                        </strong>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600 }}>{ord.customer_name}</span>
+                        <small style={{ display: 'block', color: 'var(--seller-muted)', fontSize: '11px' }}>
+                          {ord.items.length} piece{ord.items.length > 1 ? 's' : ''}
+                        </small>
+                      </td>
+                      <td>
+                        <strong style={{ color: 'var(--seller-espresso)' }}>
+                          ₹{ord.total_amount.toFixed(2)}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className={`status-pill ${ord.order_status.toLowerCase()}`}>
+                          {ord.order_status}
+                        </span>
+                      </td>
+                      <td>
+                        <Link
+                          to={`/seller/orders/${ord.order_id}`}
+                          className="btn-seller-secondary btn-seller-sm"
+                          style={{ padding: '4px 10px' }}
+                        >
+                          <Eye size={13} /> Inspect
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -557,56 +616,62 @@ export default function SellerDashboardPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {bestSellers.map((prod) => (
-              <div
-                key={prod.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '10px',
-                  borderRadius: 'var(--seller-radius)',
-                  backgroundColor: 'var(--seller-cream-subtle)',
-                  border: '1px solid var(--seller-border-light)',
-                }}
-              >
-                <img
-                  src={prod.images[0]}
-                  alt={prod.name}
+            {bestSellers.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--seller-muted)', margin: '12px 0' }}>
+                No products listed yet. Add your first garment to display top performers.
+              </p>
+            ) : (
+              bestSellers.map((prod) => (
+                <div
+                  key={prod.id}
                   style={{
-                    width: '46px',
-                    height: '56px',
-                    objectFit: 'cover',
-                    borderRadius: '4px',
-                    border: '1px solid var(--seller-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px',
+                    borderRadius: 'var(--seller-radius)',
+                    backgroundColor: 'var(--seller-cream-subtle)',
+                    border: '1px solid var(--seller-border-light)',
                   }}
-                />
-
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <h4
+                >
+                  <img
+                    src={prod.images?.[0]}
+                    alt={prod.name}
                     style={{
-                      margin: '0 0 2px',
-                      fontSize: '13px',
-                      color: 'var(--seller-espresso)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      width: '46px',
+                      height: '56px',
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                      border: '1px solid var(--seller-border)',
                     }}
-                  >
-                    {prod.name}
-                  </h4>
-                  <small style={{ color: 'var(--seller-muted)', fontSize: '11px' }}>
-                    {prod.category} • {prod.sales_count} units sold
-                  </small>
-                </div>
+                  />
 
-                <div style={{ textAlign: 'right' }}>
-                  <strong style={{ fontSize: '13px', color: 'var(--seller-espresso)' }}>
-                    ₹{prod.discount_price || prod.regular_price}
-                  </strong>
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <h4
+                      style={{
+                        margin: '0 0 2px',
+                        fontSize: '13px',
+                        color: 'var(--seller-espresso)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {prod.name}
+                    </h4>
+                    <small style={{ color: 'var(--seller-muted)', fontSize: '11px' }}>
+                      {prod.category} • {prod.sales_count || 0} units sold
+                    </small>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <strong style={{ fontSize: '13px', color: 'var(--seller-espresso)' }}>
+                      ₹{prod.discount_price || prod.regular_price}
+                    </strong>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -708,55 +773,61 @@ export default function SellerDashboardPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {recentReviews.map((rev) => (
-              <div
-                key={rev.id}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 'var(--seller-radius)',
-                  backgroundColor: 'var(--seller-cream-subtle)',
-                  border: '1px solid var(--seller-border-light)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <strong style={{ fontSize: '13px', color: 'var(--seller-espresso)' }}>
-                    {rev.customer_name}
-                  </strong>
-                  <div style={{ display: 'flex', gap: '2px' }}>
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={12}
-                        color="var(--seller-gold)"
-                        fill={i < rev.rating ? 'var(--seller-gold)' : 'none'}
-                      />
-                    ))}
+            {recentReviews.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--seller-muted)', margin: '12px 0' }}>
+                No customer reviews received yet.
+              </p>
+            ) : (
+              recentReviews.map((rev) => (
+                <div
+                  key={rev.id}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--seller-radius)',
+                    backgroundColor: 'var(--seller-cream-subtle)',
+                    border: '1px solid var(--seller-border-light)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <strong style={{ fontSize: '13px', color: 'var(--seller-espresso)' }}>
+                      {rev.customer_name}
+                    </strong>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={12}
+                          color="var(--seller-gold)"
+                          fill={i < rev.rating ? 'var(--seller-gold)' : 'none'}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <p style={{ margin: '0 0 6px', fontSize: '12.5px', color: 'var(--seller-dark-text)', lineHeight: 1.4 }}>
+                    "{rev.comment}"
+                  </p>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <small style={{ fontSize: '11px', color: 'var(--seller-muted)' }}>
+                      Item: {rev.product_name}
+                    </small>
+                    {rev.reply ? (
+                      <small style={{ color: 'var(--seller-success)', fontWeight: 600, fontSize: '11px' }}>
+                        ✓ Replied
+                      </small>
+                    ) : (
+                      <Link
+                        to="/seller/reviews"
+                        style={{ fontSize: '11px', fontWeight: 700, color: 'var(--seller-gold-dark)', textDecoration: 'none' }}
+                      >
+                        Reply to Client
+                      </Link>
+                    )}
                   </div>
                 </div>
-
-                <p style={{ margin: '0 0 6px', fontSize: '12.5px', color: 'var(--seller-dark-text)', lineHeight: 1.4 }}>
-                  "{rev.comment}"
-                </p>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <small style={{ fontSize: '11px', color: 'var(--seller-muted)' }}>
-                    Item: {rev.product_name}
-                  </small>
-                  {rev.reply ? (
-                    <small style={{ color: 'var(--seller-success)', fontWeight: 600, fontSize: '11px' }}>
-                      ✓ Replied
-                    </small>
-                  ) : (
-                    <Link
-                      to="/seller/reviews"
-                      style={{ fontSize: '11px', fontWeight: 700, color: 'var(--seller-gold-dark)', textDecoration: 'none' }}
-                    >
-                      Reply to Client
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

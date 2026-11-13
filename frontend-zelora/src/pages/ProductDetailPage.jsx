@@ -100,8 +100,23 @@ export default function ProductDetailPage() {
     }
 
     setSizeError(false);
-    addToCart(product, selectedSize, selectedColor, quantity);
-    navigate('/cart');
+    const itemColor = selectedColor || (product.colors && product.colors[0]?.name) || 'Noir Black';
+    const itemSize = selectedSize || (product.sizes ? product.sizes[0] : 'Standard');
+    const buyNowItem = {
+      id: `buy-now-${product.id}-${itemSize}-${itemColor}`,
+      product,
+      size: itemSize,
+      color: itemColor,
+      quantity,
+    };
+
+    try {
+      sessionStorage.setItem('zelora_buy_now_item', JSON.stringify(buyNowItem));
+    } catch {
+      // Ignore storage errors; router state carries the direct purchase item
+    }
+
+    navigate('/checkout', { state: { mode: 'buy-now', item: buyNowItem } });
   };
 
   const handleAddReview = (e) => {

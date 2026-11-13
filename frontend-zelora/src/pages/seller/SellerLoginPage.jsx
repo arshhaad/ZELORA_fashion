@@ -4,13 +4,10 @@ import { useSeller } from '../../context/SellerContext';
 import { authApi } from '../../services/api';
 import GoogleButton from '../../components/GoogleButton';
 import {
-  Sparkles,
   Eye,
   EyeOff,
   AlertCircle,
   ArrowRight,
-  ShieldCheck,
-  X,
 } from 'lucide-react';
 import '../../components/seller/seller.css';
 
@@ -25,11 +22,6 @@ export default function SellerLoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Forgot password modal state
-  const [forgotModalOpen, setForgotModalOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSubmitted, setForgotSubmitted] = useState(false);
 
   // Client-side field validation
   const validateFields = () => {
@@ -94,7 +86,7 @@ export default function SellerLoginPage() {
       if (res.tokens?.access) {
         localStorage.setItem('zelora_seller_access_token', res.tokens.access);
       }
-      showToast?.('Authenticated successfully via Google Atelier ID');
+      showToast?.('Authenticated successfully with Google');
       navigate('/seller/dashboard');
     } catch (err) {
       const msg = err.data?.detail || err.data?.message || err.message || 'Google seller authentication failed.';
@@ -107,13 +99,6 @@ export default function SellerLoginPage() {
   const handleGoogleSellerError = (err) => {
     console.error('Google seller auth error:', err);
     setErrorMsg(err.message || 'Google sign-in could not connect.');
-  };
-
-  const handleForgotSubmit = (e) => {
-    e.preventDefault();
-    if (forgotEmail) {
-      setForgotSubmitted(true);
-    }
   };
 
   return (
@@ -152,7 +137,7 @@ export default function SellerLoginPage() {
         <div style={{ marginBottom: '8px' }}>
           <GoogleButton
             text="signin_with"
-            label="Continue with Google Atelier ID"
+            label="Continue with Google"
             onSuccess={handleGoogleSellerSuccess}
             onError={handleGoogleSellerError}
             disabled={isSubmitting}
@@ -177,7 +162,7 @@ export default function SellerLoginPage() {
                 if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
                 if (errorMsg) setErrorMsg('');
               }}
-              placeholder="atelier@maisondelombre.luxury"
+              placeholder="seller@youratelier.com"
               className="seller-input"
               style={fieldErrors.email ? { borderColor: 'var(--seller-danger)' } : {}}
               autoComplete="email"
@@ -203,24 +188,17 @@ export default function SellerLoginPage() {
               <label className="seller-form-label" style={{ margin: 0 }}>
                 Password <span style={{ color: 'var(--seller-danger)' }}>*</span>
               </label>
-              <button
-                type="button"
+              <Link
+                to="/seller/forgot-password"
                 style={{
-                  background: 'none',
-                  border: 'none',
                   color: 'var(--seller-gold-dark)',
                   fontSize: '12px',
                   fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-                onClick={() => {
-                  setForgotModalOpen(true);
-                  setForgotSubmitted(false);
+                  textDecoration: 'none',
                 }}
               >
                 Forgot Password?
-              </button>
+              </Link>
             </div>
             <div style={{ position: 'relative' }}>
               <input
@@ -321,75 +299,6 @@ export default function SellerLoginPage() {
           </Link>
         </div>
       </div>
-
-      {/* Forgot Password Modal */}
-      {forgotModalOpen && (
-        <div className="seller-modal-overlay">
-          <div className="seller-modal-dialog">
-            <div className="seller-modal-header">
-              <h3>Reset Seller Password</h3>
-              <button
-                type="button"
-                className="btn-modal-close"
-                onClick={() => setForgotModalOpen(false)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="seller-modal-body">
-              {!forgotSubmitted ? (
-                <form onSubmit={handleForgotSubmit}>
-                  <p style={{ fontSize: '13.5px', color: 'var(--seller-muted)', marginTop: 0 }}>
-                    Enter the registered business email associated with your atelier. We will send a secure password reset link.
-                  </p>
-                  <div className="seller-form-group">
-                    <label className="seller-form-label">Business Email</label>
-                    <input
-                      type="email"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="atelier@maisondelombre.luxury"
-                      className="seller-input"
-                      required
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                    <button
-                      type="button"
-                      className="btn-seller-secondary"
-                      onClick={() => setForgotModalOpen(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button type="submit" className="btn-seller-gold">
-                      Send Reset Instructions
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                  <ShieldCheck size={40} color="var(--seller-gold)" style={{ margin: '0 auto 12px' }} />
-                  <h4 style={{ margin: '0 0 8px', color: 'var(--seller-espresso)' }}>
-                    Instructions Dispatched
-                  </h4>
-                  <p style={{ fontSize: '13px', color: 'var(--seller-muted)', margin: '0 0 20px' }}>
-                    If an atelier account exists for <strong>{forgotEmail}</strong>, password reset steps have been emailed.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn-seller-primary"
-                    onClick={() => setForgotModalOpen(false)}
-                  >
-                    Return to Login
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

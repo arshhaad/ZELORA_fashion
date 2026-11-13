@@ -13,6 +13,7 @@ class AuthenticationTests(TestCase):
         self.verify_url = reverse('auth-verify-email')
         self.resend_verify_url = reverse('auth-resend-verification')
         self.forgot_pw_url = reverse('auth-forgot-password')
+        self.verify_reset_otp_url = reverse('auth-verify-reset-otp')
         self.reset_pw_url = reverse('auth-reset-password')
         self.logout_url = reverse('auth-logout')
         self.me_url = reverse('auth-me')
@@ -77,6 +78,21 @@ class AuthenticationTests(TestCase):
         self.assertEqual(forgot_resp.status_code, status.HTTP_200_OK)
 
         reset_obj = PasswordResetCode.objects.filter(user=user, is_used=False).latest('created_at')
+
+        # 1b. Invalid OTP confirmation should fail
+        bad_otp_resp = self.client.post(self.verify_reset_otp_url, {
+            'email': 'customer2@example.com',
+            'code': '000000'
+        })
+        self.assertEqual(bad_otp_resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 1c. Valid OTP confirmation should succeed without consuming code
+        good_otp_resp = self.client.post(self.verify_reset_otp_url, {
+            'email': 'customer2@example.com',
+            'code': reset_obj.code
+        })
+        self.assertEqual(good_otp_resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(good_otp_resp.data['verified'])
 
         # 2. Reset password
         reset_resp = self.client.post(self.reset_pw_url, {

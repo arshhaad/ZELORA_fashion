@@ -73,7 +73,12 @@ export default function CartPage() {
   };
 
   const handleProceedCheckout = () => {
-    navigate('/checkout');
+    try {
+      sessionStorage.removeItem('zelora_buy_now_item');
+    } catch {
+      // Ignore storage errors
+    }
+    navigate('/checkout', { state: { mode: 'cart' } });
   };
 
   const handleCompleteOrder = () => {

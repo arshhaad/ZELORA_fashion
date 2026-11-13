@@ -60,9 +60,9 @@ export default function SellerHeader({ onToggleSidebar }) {
       {/* Right: Shop Status, Quick Add, Notifications & Profile Menu */}
       <div className="seller-header-right">
         {/* Shop Live Status Pill */}
-        <div className={`shop-status-badge ${shop.is_open ? 'open' : 'closed'}`}>
+        <div className={`shop-status-badge ${(shop?.is_open ?? true) ? 'open' : 'closed'}`}>
           <span className="dot" />
-          <span>{shop.is_open ? 'Shop Open' : 'Shop Closed'}</span>
+          <span>{(shop?.is_open ?? true) ? 'Shop Open' : 'Shop Closed'}</span>
         </div>
 
         {/* Quick Add Product Button */}
@@ -99,9 +99,9 @@ export default function SellerHeader({ onToggleSidebar }) {
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
           >
             <UserAvatarBadge
-              avatar={seller.avatar}
-              name={seller.name}
-              email={seller.email}
+              avatar={seller?.avatar}
+              name={seller?.name}
+              email={seller?.email}
               size={38}
               style={{
                 border: '2px solid var(--seller-gold)',
@@ -139,7 +139,7 @@ export default function SellerHeader({ onToggleSidebar }) {
                     color: 'var(--seller-espresso)',
                   }}
                 >
-                  {seller.name}
+                  {seller?.name || 'Seller'}
                 </strong>
                 <small
                   style={{
@@ -148,7 +148,7 @@ export default function SellerHeader({ onToggleSidebar }) {
                     fontWeight: 600,
                   }}
                 >
-                  {shop.name}
+                  {shop?.name || 'Boutique Seller'}
                 </small>
               </div>
 

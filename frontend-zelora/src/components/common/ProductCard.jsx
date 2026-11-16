@@ -69,10 +69,14 @@ export default function ProductCard({ product }) {
       {/* Image Container */}
       <div className="product-image-container">
         <img
-          src={isHovered && product.images[1] ? product.images[1] : product.images[0]}
+          src={isHovered && product.images?.[1] ? product.images[1] : (product.images?.[0] || 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100')}
           alt={product.name}
           className="product-card-image"
           loading="lazy"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100';
+          }}
         />
 
         {/* Badges */}

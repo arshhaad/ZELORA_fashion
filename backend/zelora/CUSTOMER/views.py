@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests
 
+from django.utils.text import slugify
 from .models import (
     User,
     EmailVerificationCode,
@@ -22,6 +23,7 @@ from .models import (
     OrderItem,
     Notification,
     SellerShop,
+    Product,
 )
 from .serializers import (
     UserSerializer,
@@ -1211,3 +1213,98 @@ class VerifySellerOtpView(APIView):
         record.save()
 
         return Response({"message": "Email verified successfully.", "verified": True, "email": email}, status=status.HTTP_200_OK)
+
+
+class ProductListCreateView(APIView):
+    """
+    GET: List all products in ZELORA catalog (including seller-added).
+    POST: Add a new fashion product (used by sellers and marketplace).
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        category = request.query_params.get('category')
+        gender = request.query_params.get('gender')
+        search = request.query_params.get('search')
+
+        qs = Product.objects.all()
+        if category and category.lower() != 'all':
+            qs = qs.filter(category__icontains=category.lower())
+        if gender and gender.lower() != 'all':
+            qs = qs.filter(gender__iexact=gender.lower())
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(name__icontains=search) |
+                Q(description__icontains=search) |
+                Q(brand__icontains=search) |
+                Q(category__icontains=search)
+            )
+
+        products = [p.to_dict() for p in qs]
+        return Response({"products": products, "count": len(products)}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        data = request.data or {}
+        name = data.get('name', '').strip()
+        if not name:
+            return Response({"detail": "Product name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        raw_id = str(data.get('id') or f"prod-sel-{int(timezone.now().timestamp() * 1000)}")
+        base_slug = slugify(name) or f"product-{raw_id}"
+        slug = base_slug
+        counter = 1
+        while Product.objects.filter(slug=slug).exclude(id=raw_id).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        brand = data.get('brand') or 'ZELORA Seller'
+        category = (data.get('category') or 'dresses').lower()
+        gender = (data.get('gender') or 'unisex').lower()
+        if gender not in ['men', 'women', 'unisex']:
+            gender = 'unisex'
+
+        try:
+            reg_price = float(data.get('regular_price') or data.get('originalPrice') or data.get('price') or 0)
+            disc_price = float(data.get('discount_price') or 0) if data.get('discount_price') else None
+            price = disc_price if disc_price and disc_price > 0 else reg_price
+            if price <= 0:
+                price = 100.0
+            original_price = reg_price if reg_price > 0 else price
+        except (ValueError, TypeError):
+            price = 100.0
+            original_price = 100.0
+
+        discount = int(data.get('discount') or 0)
+        if original_price > price:
+            discount = int(round(((original_price - price) / original_price) * 100))
+
+        stock_quantity = int(data.get('stock_quantity') or 10)
+        image = data.get('image') or ''
+        images = data.get('images')
+        if not image and isinstance(images, list) and len(images) > 0:
+            image = images[0]
+        if not image or len(image) > 950:
+            image = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80&sat=-100'
+
+        prod, created = Product.objects.update_or_create(
+            id=raw_id,
+            defaults={
+                'name': name,
+                'slug': slug,
+                'brand': brand,
+                'category': category,
+                'gender': gender,
+                'price': price,
+                'original_price': original_price,
+                'discount': discount,
+                'rating': float(data.get('rating') or 5.0),
+                'review_count': int(data.get('review_count') or 0),
+                'in_stock': data.get('status') != 'Out of Stock' and stock_quantity > 0,
+                'stock_quantity': stock_quantity,
+                'description': data.get('description', '') or f'Bespoke luxury piece by {brand}.',
+                'image': image,
+                'is_featured': bool(data.get('is_featured', False)),
+            }
+        )
+        return Response(prod.to_dict(), status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

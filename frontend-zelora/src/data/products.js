@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 export const CATEGORIES = [
   {
     id: 'outerwear',
@@ -49,7 +51,7 @@ export const CATEGORIES = [
   }
 ];
 
-export const PRODUCTS = [
+export const BASE_PRODUCTS = [
   {
     id: 'zel-001',
     name: 'Structured Double-Breasted Wool Overcoat',
@@ -720,9 +722,317 @@ const BRAND_TO_SELLER_MAP = {
   'Nordic Studio': 'Nordic Studio Copenhagen'
 };
 
-PRODUCTS.forEach((p) => {
+BASE_PRODUCTS.forEach((p) => {
   if (!p.seller) {
     p.seller = BRAND_TO_SELLER_MAP[p.brand] || `${p.brand} Official Atelier`;
   }
 });
+
+export const COLOR_HEX_MAP = {
+  'noir black': '#0a0a0a',
+  'black': '#000000',
+  'ash slate': '#333333',
+  'slate': '#475569',
+  'white': '#ffffff',
+  'ivory': '#f8f6f0',
+  'ivory bone': '#f8f6f0',
+  'cream': '#fffdd0',
+  'beige': '#f5f5dc',
+  'grey': '#808080',
+  'gray': '#808080',
+  'charcoal': '#2b2b2b',
+  'navy': '#000080',
+  'navy blue': '#0a192f',
+  'blue': '#2563eb',
+  'red': '#dc2626',
+  'crimson': '#990000',
+  'burgundy': '#800020',
+  'wine': '#722f37',
+  'green': '#16a34a',
+  'olive': '#556b2f',
+  'emerald': '#047857',
+  'gold': '#d4af37',
+  'sand': '#c2b280',
+  'brown': '#654321',
+  'camel': '#c19a6b',
+  'silver': '#c0c0c0',
+  'monochrome': '#1e293b',
+};
+
+export const normalizeProductColor = (c) => {
+  if (!c) return { name: 'Noir Black', hex: '#0a0a0a' };
+  if (typeof c === 'object' && c.name) {
+    return {
+      name: c.name,
+      hex: c.hex || COLOR_HEX_MAP[c.name.toLowerCase()] || '#1e293b',
+    };
+  }
+  const name = String(c).trim();
+  const hex = COLOR_HEX_MAP[name.toLowerCase()] || '#1e293b';
+  return { name, hex };
+};
+
+export const normalizeCategory = (cat) => {
+  if (!cat) return 'dresses';
+  const c = String(cat).toLowerCase().trim();
+  if (c === 'outerwear' || c.includes('coat') || c.includes('jacket')) return 'outerwear';
+  if (c === 'dresses' || c.includes('dress') || c.includes('gown')) return 'dresses';
+  if (c === 'tops' || c.includes('shirt') || c.includes('tee') || c.includes('blouse') || c.includes('top')) return 'tops';
+  if (c === 'trousers' || c.includes('pant') || c.includes('jean') || c.includes('denim')) return 'trousers';
+  if (c === 'knitwear' || c.includes('knit') || c.includes('sweater') || c.includes('cardigan')) return 'knitwear';
+  if (c === 'accessories' || c.includes('bag') || c.includes('shoe') || c.includes('leather') || c.includes('access')) return 'accessories';
+  return c;
+};
+
+export const slugify = (text) => {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
+};
+
+const LEGACY_DEMO_PRODUCT_IDS = new Set([
+  'prod-sel-101', 'prod-sel-102', 'prod-sel-103',
+  'prod-sel-104', 'prod-sel-105', 'prod-sel-106',
+]);
+
+export const DEFAULT_CATEGORY_IMAGES = {
+  outerwear: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1000&q=80&sat=-100',
+  dresses: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80&sat=-100',
+  tops: 'https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&w=1000&q=80&sat=-100',
+  trousers: 'https://images.unsplash.com/photo-1508427953056-b00b8d78ebf5?auto=format&fit=crop&w=1000&q=80&sat=-100',
+  knitwear: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=80&sat=-100',
+  accessories: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1000&q=80&sat=-100',
+  shoes: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=1000&q=80&sat=-100',
+};
+
+export const FALLBACK_PRODUCT_IMAGE =
+  'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80&sat=-100';
+
+export const normalizeSellerProduct = (raw, fallbackSeller = '') => {
+  if (!raw) return null;
+  const rawId = raw.id || `prod-sel-${Date.now()}`;
+  const rawName = raw.name || 'Untitled Garment';
+  const rawBrand = raw.brand || fallbackSeller || 'ZELORA Partner Atelier';
+  const rawSeller = raw.seller || rawBrand || fallbackSeller || 'ZELORA Official Flagship';
+  const regPrice = parseFloat(raw.regular_price ?? raw.originalPrice ?? raw.price ?? 0) || 0;
+  const discPrice = raw.discount_price !== undefined && raw.discount_price !== null && raw.discount_price !== ''
+    ? parseFloat(raw.discount_price)
+    : (raw.price ? parseFloat(raw.price) : regPrice);
+  const finalPrice = discPrice > 0 ? discPrice : regPrice;
+  const originalPrice = regPrice > 0 ? regPrice : finalPrice;
+  const discount = originalPrice > finalPrice && originalPrice > 0
+    ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
+    : (parseInt(raw.discount, 10) || 0);
+
+  // Parse stock
+  let totalStock = 0;
+  if (raw.size_stock && typeof raw.size_stock === 'object') {
+    totalStock = Object.values(raw.size_stock).reduce((acc, val) => acc + (parseInt(val, 10) || 0), 0);
+  } else if (raw.stock_quantity !== undefined && raw.stock_quantity !== null) {
+    totalStock = parseInt(raw.stock_quantity, 10) || 0;
+  } else if (raw.stockCount !== undefined && raw.stockCount !== null) {
+    totalStock = parseInt(raw.stockCount, 10) || 0;
+  } else {
+    totalStock = 10;
+  }
+
+  const isPublished = (raw.status || 'Published') === 'Published';
+  const inStock = Boolean(raw.inStock ?? (totalStock > 0 && isPublished));
+
+  // Colors
+  const rawColors = Array.isArray(raw.colors) && raw.colors.length > 0 ? raw.colors : ['Noir Black'];
+  const colors = rawColors.map(normalizeProductColor);
+
+  const normCat = normalizeCategory(raw.category);
+  const defaultCategoryImg = DEFAULT_CATEGORY_IMAGES[normCat] || FALLBACK_PRODUCT_IMAGE;
+
+  // Images with expired blob: handling and fallback sanitization
+  let rawImgList = [];
+  if (Array.isArray(raw.images) && raw.images.length > 0) {
+    rawImgList = raw.images.filter(Boolean);
+  } else if (typeof raw.image === 'string' && raw.image) {
+    rawImgList = [raw.image];
+  }
+
+  const sanitizedImages = rawImgList
+    .map((img) => {
+      if (typeof img !== 'string') return defaultCategoryImg;
+      const trimmed = img.trim();
+      // Replace expired blob URLs or empty strings with high-res lookbook photography
+      if (!trimmed || trimmed.startsWith('blob:')) {
+        return defaultCategoryImg;
+      }
+      return trimmed;
+    })
+    .filter(Boolean);
+
+  const images = sanitizedImages.length > 0 ? sanitizedImages : [defaultCategoryImg];
+
+  // Sizes
+  let sizes = [];
+  if (raw.size_stock && typeof raw.size_stock === 'object') {
+    const activeFromStock = Object.keys(raw.size_stock).filter((s) => (parseInt(raw.size_stock[s], 10) || 0) > 0);
+    if (activeFromStock.length > 0) sizes = activeFromStock;
+  }
+  if (sizes.length === 0 && Array.isArray(raw.sizes) && raw.sizes.length > 0) {
+    sizes = raw.sizes;
+  }
+  if (sizes.length === 0) {
+    sizes = ['XS', 'S', 'M', 'L', 'XL'];
+  }
+
+  return {
+    id: String(rawId),
+    name: rawName,
+    slug: raw.slug || slugify(rawName) || String(rawId),
+    brand: rawBrand,
+    seller: rawSeller,
+    category: normalizeCategory(raw.category),
+    categoryRaw: raw.category || 'Dresses',
+    gender: (raw.gender || 'unisex').toLowerCase(),
+    price: finalPrice,
+    originalPrice: originalPrice,
+    discount: discount,
+    rating: parseFloat(raw.rating ?? 5.0),
+    reviewCount: parseInt(raw.reviewCount ?? raw.reviews_count ?? 0, 10),
+    inStock: inStock,
+    stockCount: totalStock,
+    isNew: raw.isNew !== undefined ? Boolean(raw.isNew) : true,
+    isTrending: Boolean(raw.isTrending),
+    isSpecialOffer: Boolean(raw.isSpecialOffer || discount > 0),
+    isRecommended: Boolean(raw.isRecommended ?? true),
+    description: raw.description || `Exquisite bespoke garment crafted with precision tailoring by ${rawBrand}.`,
+    details: Array.isArray(raw.details) && raw.details.length > 0
+      ? raw.details
+      : [raw.description || 'Artisanal tailoring with luxury textile selection', `SKU: ${raw.sku || rawId}`, 'White-glove courier delivery & secure garment bag included'],
+    sizes: sizes,
+    size_stock: raw.size_stock || {},
+    colors: colors,
+    images: images,
+    reviews: Array.isArray(raw.reviews) ? raw.reviews : [],
+    status: raw.status || 'Published',
+    created_at: raw.created_at || new Date().toISOString(),
+    sku: raw.sku || `ZEL-${rawId}`,
+    source: 'seller',
+  };
+};
+
+export const getSellerProducts = (onlyPublished = true) => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('zelora_seller_products');
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+
+    let hasBlob = false;
+    list.forEach((p) => {
+      if (!p) return;
+      const cat = normalizeCategory(p.category);
+      const catImg = DEFAULT_CATEGORY_IMAGES[cat] || FALLBACK_PRODUCT_IMAGE;
+      if (Array.isArray(p.images)) {
+        p.images = p.images.map((img) => {
+          if (typeof img === 'string' && (img.startsWith('blob:') || !img.trim())) {
+            hasBlob = true;
+            return catImg;
+          }
+          return img;
+        });
+        if (p.images.length === 0) {
+          p.images = [catImg];
+          hasBlob = true;
+        }
+      } else if (!p.images) {
+        p.images = [catImg];
+        hasBlob = true;
+      }
+      if (typeof p.image === 'string' && (p.image.startsWith('blob:') || !p.image.trim())) {
+        p.image = catImg;
+        hasBlob = true;
+      }
+    });
+
+    if (hasBlob) {
+      try {
+        localStorage.setItem('zelora_seller_products', JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    let shopName = '';
+    try {
+      const shopData = localStorage.getItem('zelora_seller_shop');
+      if (shopData) {
+        const parsedShop = JSON.parse(shopData);
+        shopName = parsedShop?.name || '';
+      }
+    } catch {}
+
+    return list
+      .filter((p) => p && !LEGACY_DEMO_PRODUCT_IDS.has(p.id))
+      .filter((p) => {
+        if (!onlyPublished) return true;
+        return p.status === 'Published' || !p.status;
+      })
+      .map((p) => normalizeSellerProduct(p, shopName))
+      .filter(Boolean);
+  } catch (err) {
+    console.warn('Error reading zelora_seller_products:', err);
+    return [];
+  }
+};
+
+export const getLiveProducts = (options = { includeDrafts: false }) => {
+  const sellerProds = getSellerProducts(!options?.includeDrafts);
+  // Put newly added seller products first so they appear at the front of customer listings
+  return [...sellerProds, ...BASE_PRODUCTS];
+};
+
+export const PRODUCTS = getLiveProducts();
+
+export function refreshProducts() {
+  const live = getLiveProducts({ includeDrafts: false });
+  PRODUCTS.length = 0;
+  PRODUCTS.push(...live);
+  return PRODUCTS;
+}
+
+export function findProductByIdOrSlug(idOrSlug) {
+  if (!idOrSlug) return null;
+  const target = String(idOrSlug).toLowerCase().trim();
+  const live = getLiveProducts({ includeDrafts: true });
+  return (
+    live.find(
+      (p) =>
+        String(p.id).toLowerCase() === target ||
+        String(p.slug || '').toLowerCase() === target
+    ) || null
+  );
+}
+
+export function useLiveProducts(options = { includeDrafts: false }) {
+  const [products, setProducts] = useState(() => getLiveProducts(options));
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      refreshProducts();
+      setProducts(getLiveProducts(options));
+    };
+
+    window.addEventListener('zelora_products_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('zelora_products_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [options?.includeDrafts]);
+
+  return products;
+}
+
 

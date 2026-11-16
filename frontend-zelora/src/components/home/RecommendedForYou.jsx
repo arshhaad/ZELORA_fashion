@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import ProductCard from '../common/ProductCard';
-import { PRODUCTS } from '../../data/products';
+import { useLiveProducts } from '../../data/products';
 import { ArrowRight } from 'lucide-react';
 
 export default function RecommendedForYou() {
-  const recommended = PRODUCTS.filter((p) => p.isRecommended).slice(0, 4);
+  const liveProducts = useLiveProducts();
+  const recommended = liveProducts.filter((p) => p.isRecommended).slice(0, 4);
 
   return (
     <section className="zelora-section">

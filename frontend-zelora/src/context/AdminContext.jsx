@@ -7,7 +7,7 @@ import {
   getStoredAdminUser,
   setStoredAdminUser,
 } from '../services/api';
-import { PRODUCTS, CATEGORIES } from '../data/products';
+import { PRODUCTS, CATEGORIES, getLiveProducts } from '../data/products';
 
 const AdminContext = createContext(null);
 
@@ -93,7 +93,19 @@ export function AdminProvider({ children }) {
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
   const [sellers, setSellers] = useState([]);
   const [adminUsersList, setAdminUsersList] = useState([]);
-  const [productsList, setProductsList] = useState(PRODUCTS);
+  const [productsList, setProductsList] = useState(getLiveProducts);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setProductsList(getLiveProducts());
+    };
+    window.addEventListener('zelora_products_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('zelora_products_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
   const [categoriesList, setCategoriesList] = useState(CATEGORIES);
   const [brandsList, setBrandsList] = useState(INITIAL_BRANDS);
   const [ordersList, setOrdersList] = useState([]);

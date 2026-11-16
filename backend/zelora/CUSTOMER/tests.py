@@ -171,3 +171,36 @@ class AuthenticationTests(TestCase):
             })
             self.assertEqual(resp2.status_code, status.HTTP_200_OK)
             self.assertIn('tokens', resp2.data)
+
+
+class ProductCatalogTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.products_url = reverse('product-list-create')
+
+    def test_create_and_list_seller_product(self):
+        # 1. Add product as seller
+        payload = {
+            'name': 'Bespoke Emerald Velvet Blazer',
+            'brand': 'Maison Emerald',
+            'category': 'Outerwear',
+            'gender': 'Men',
+            'regular_price': 550,
+            'discount_price': 490,
+            'stock_quantity': 8,
+            'description': 'Pure Italian silk-velvet tailored blazer.',
+            'images': ['https://images.unsplash.com/photo-1539109136881-3be0616acf4b']
+        }
+        create_resp = self.client.post(self.products_url, payload, format='json')
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(create_resp.data['name'], 'Bespoke Emerald Velvet Blazer')
+        self.assertEqual(create_resp.data['category'], 'outerwear')
+        self.assertEqual(create_resp.data['price'], 490.0)
+        self.assertTrue(create_resp.data['in_stock'])
+
+        # 2. List products and verify presence
+        list_resp = self.client.get(self.products_url)
+        self.assertEqual(list_resp.status_code, status.HTTP_200_OK)
+        names = [p['name'] for p in list_resp.data['products']]
+        self.assertIn('Bespoke Emerald Velvet Blazer', names)
+

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '../services/api';
+import { authApi, productsApi } from '../services/api';
 
 const SellerContext = createContext();
 
@@ -169,7 +169,13 @@ export function SellerProvider({ children }) {
     }
   }, [shop, isSellerAuthenticated]);
 
-  useEffect(() => saveStored('products', products), [products]);
+  useEffect(() => {
+    saveStored('products', products);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('zelora_products_updated', { detail: products }));
+      window.dispatchEvent(new Event('storage'));
+    }
+  }, [products]);
   useEffect(() => saveStored('orders', orders), [orders]);
   useEffect(() => saveStored('coupons', coupons), [coupons]);
   useEffect(() => saveStored('reviews', reviews), [reviews]);
@@ -374,16 +380,55 @@ export function SellerProvider({ children }) {
 
   // Product Operations
   const addProduct = (productData) => {
+    const regPrice = parseFloat(productData.regular_price ?? productData.price ?? 0);
+    const discPrice = productData.discount_price ? parseFloat(productData.discount_price) : null;
+    const finalPrice = discPrice && discPrice > 0 ? discPrice : regPrice;
+    const originalPrice = regPrice > 0 ? regPrice : finalPrice;
+    const calculatedDiscount = originalPrice > finalPrice && originalPrice > 0
+      ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
+      : (productData.discount || 0);
+
     const newProd = {
-      id: `prod-sel-${Date.now()}`,
+      id: productData.id || `prod-sel-${Date.now()}`,
       created_at: new Date().toISOString(),
       sales_count: 0,
       status: productData.status || "Published",
-      brand: shop?.name || "ZELORA Seller",
+      brand: shop?.name || productData.brand || "ZELORA Seller",
+      seller: shop?.name || productData.brand || "ZELORA Partner Atelier",
       ...productData,
+      price: finalPrice,
+      originalPrice: originalPrice,
+      regular_price: regPrice,
+      discount_price: discPrice,
+      discount: calculatedDiscount,
+      rating: productData.rating || 5.0,
+      reviewCount: productData.reviewCount || 0,
+      inStock: (productData.stock_quantity ?? 1) > 0 && productData.status !== "Out of Stock",
     };
     setProducts((prev) => [newProd, ...prev]);
     showToast(`Product "${newProd.name}" added successfully.`);
+
+    // Persist to backend and AI assistant catalog asynchronously
+    try {
+      productsApi.create({
+        id: newProd.id,
+        name: newProd.name,
+        description: newProd.description,
+        brand: newProd.brand,
+        category: newProd.category,
+        gender: newProd.gender,
+        regular_price: newProd.regular_price,
+        discount_price: newProd.discount_price,
+        price: newProd.price,
+        originalPrice: newProd.originalPrice,
+        discount: newProd.discount,
+        stock_quantity: newProd.stock_quantity ?? newProd.stockCount ?? 10,
+        image: Array.isArray(newProd.images) && newProd.images.length > 0 ? newProd.images[0] : '',
+        images: newProd.images || [],
+        status: newProd.status,
+      }).catch((e) => console.warn('Product backend sync notice:', e?.message));
+    } catch {}
+
     return newProd;
   };
 

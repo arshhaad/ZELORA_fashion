@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import SellerLayout from '../../components/seller/SellerLayout';
 import { useSeller } from '../../context/SellerContext';
+import { DEFAULT_CATEGORY_IMAGES, FALLBACK_PRODUCT_IMAGE, normalizeCategory } from '../../data/products';
 import {
   Upload,
   Plus,
@@ -14,7 +15,78 @@ import {
   Tag,
   DollarSign,
   Boxes,
+  Link2,
+  Sparkles,
 } from 'lucide-react';
+
+const LOOKBOOK_PRESETS = [
+  {
+    label: 'Black Maxi Evening Dress',
+    url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100',
+  },
+  {
+    label: 'Structured Wool Melton Coat',
+    url: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80&sat=-100',
+  },
+  {
+    label: 'Pleated Tailored Trousers',
+    url: 'https://images.unsplash.com/photo-1508427953056-b00b8d78ebf5?auto=format&fit=crop&w=800&q=80&sat=-100',
+  },
+  {
+    label: 'Crisp Poplin White Shirt',
+    url: 'https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&w=800&q=80&sat=-100',
+  },
+  {
+    label: 'Heavyweight Cashmere Knitwear',
+    url: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=800&q=80&sat=-100',
+  },
+  {
+    label: 'Architectural Leather Bag',
+    url: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80&sat=-100',
+  },
+];
+
+const compressImageFile = (file) => {
+  return new Promise((resolve) => {
+    if (!file.type || !file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 900;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.82);
+        resolve(compressed);
+      };
+      img.onerror = () => resolve(e.target?.result);
+      img.src = e.target?.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function AddProductPage() {
   const navigate = useNavigate();
@@ -84,13 +156,48 @@ export default function AddProductPage() {
     }));
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files || []);
-    const newImageUrls = files.map((f) => URL.createObjectURL(f));
+  const [imageUrlInput, setImageUrlInput] = useState('');
+
+  const handleAddImageUrl = (e) => {
+    e?.preventDefault();
+    const trimmed = imageUrlInput.trim();
+    if (!trimmed) return;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      setValidationError('Please enter a valid HTTP/HTTPS image URL.');
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
-      images: [...prev.images, ...newImageUrls],
+      images: [...prev.images, trimmed],
     }));
+    setImageUrlInput('');
+    setValidationError('');
+  };
+
+  const handleSelectPreset = (url) => {
+    if (!formData.images.includes(url)) {
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, url],
+      }));
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const compressedList = [];
+    for (const f of files) {
+      const dataUrl = await compressImageFile(f);
+      if (dataUrl) compressedList.push(dataUrl);
+    }
+    if (compressedList.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...compressedList],
+      }));
+    }
+    e.target.value = '';
   };
 
   const handleRemoveImage = (index) => {
@@ -114,10 +221,10 @@ export default function AddProductPage() {
       setValidationError('Please specify a valid regular retail price.');
       return;
     }
-    if (formData.images.length === 0) {
-      setValidationError('Please upload at least one garment image.');
-      return;
-    }
+
+    const normCat = normalizeCategory(formData.category);
+    const catFallbackImg = DEFAULT_CATEGORY_IMAGES[normCat] || FALLBACK_PRODUCT_IMAGE;
+    const finalImages = formData.images.length > 0 ? formData.images : [catFallbackImg];
 
     setIsSubmitting(true);
 
@@ -128,15 +235,15 @@ export default function AddProductPage() {
     const productPayload = {
       name: formData.name.trim(),
       description: formData.description.trim(),
-      images: formData.images,
+      images: finalImages,
       category: formData.category,
       gender: formData.gender,
-      brand: formData.brand,
+      brand: formData.brand || shop?.name || 'ZELORA Seller',
       regular_price: parseFloat(formData.regular_price),
       discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
       sizes: activeSizes.length > 0 ? activeSizes : ['Standard'],
       size_stock: formData.size_stock,
-      colors: formData.colors.length > 0 ? formData.colors : ['Monochrome'],
+      colors: formData.colors.length > 0 ? formData.colors : ['Noir Black'],
       sku: formData.sku.toUpperCase(),
       tags: formData.tags,
       stock_quantity: totalStock,
@@ -255,14 +362,16 @@ export default function AddProductPage() {
                   onChange={handleChange}
                   className="seller-select"
                 >
-                  <option value="Dresses">Dresses</option>
-                  <option value="Men">Men</option>
-                  <option value="Women">Women</option>
+                  <option value="Dresses">Dresses & Gowns</option>
+                  <option value="Tops">Tops & Shirts</option>
+                  <option value="Outerwear">Outerwear & Coats</option>
+                  <option value="Trousers">Tailored Trousers & Jeans</option>
+                  <option value="Knitwear">Knitwear & Sweaters</option>
+                  <option value="Accessories">Accessories & Leather</option>
+                  <option value="Shoes">Footwear & Shoes</option>
                   <option value="Shirts">Shirts</option>
                   <option value="T-Shirts">T-Shirts</option>
                   <option value="Jeans">Jeans</option>
-                  <option value="Shoes">Shoes</option>
-                  <option value="Accessories">Accessories</option>
                 </select>
               </div>
 
@@ -293,7 +402,7 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* 2. Multi-Image Upload */}
+          {/* 2. Multi-Image Upload & Lookbook Presets */}
           <div className="seller-card mb-24">
             <div className="seller-card-title-row">
               <h3>Lookbook Imagery (Multi-Angle)</h3>
@@ -302,10 +411,10 @@ export default function AddProductPage() {
               </small>
             </div>
 
-            <label className="seller-dropzone" style={{ display: 'block' }}>
+            <label className="seller-dropzone" style={{ display: 'block', cursor: 'pointer' }}>
               <Upload size={32} className="dropzone-icon" />
               <p className="dropzone-title">Drop high-res editorial photography or click to upload</p>
-              <p className="dropzone-hint">PNG, JPG, WEBP recommended (Min 1200x1600px)</p>
+              <p className="dropzone-hint">PNG, JPG, WEBP (Auto-optimized for crisp luxury presentation)</p>
               <input
                 type="file"
                 multiple
@@ -315,11 +424,85 @@ export default function AddProductPage() {
               />
             </label>
 
+            {/* Direct Image URL input */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px', marginBottom: '16px' }}>
+              <input
+                type="url"
+                value={imageUrlInput}
+                onChange={(e) => setImageUrlInput(e.target.value)}
+                placeholder="Or paste direct image URL (https://...)"
+                className="seller-input"
+                style={{ flex: 1, margin: 0 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddImageUrl();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAddImageUrl}
+                className="btn-seller-secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
+              >
+                <Link2 size={14} />
+                <span>Add URL</span>
+              </button>
+            </div>
+
+            {/* Quick Lookbook Presets */}
+            <div style={{ padding: '12px 14px', background: 'var(--seller-bg-subtle, #fbfaf8)', borderRadius: 'var(--seller-radius)', border: '1px solid var(--seller-border)', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--seller-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Sparkles size={13} color="var(--seller-gold-dark)" />
+                <span>Quick ZELORA Lookbook Editorial Presets:</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {LOOKBOOK_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => handleSelectPreset(preset.url)}
+                    style={{
+                      fontSize: '11px',
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      border: '1px solid var(--seller-border)',
+                      background: formData.images.includes(preset.url) ? 'var(--seller-espresso)' : '#ffffff',
+                      color: formData.images.includes(preset.url) ? '#ffffff' : 'var(--seller-espresso)',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {formData.images.includes(preset.url) ? '✓ ' : '+ '}
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {formData.images.length > 0 && (
               <div className="uploaded-previews-grid">
                 {formData.images.map((imgUrl, idx) => (
                   <div key={idx} className="preview-thumb-box">
-                    <img src={imgUrl} alt={`Upload ${idx + 1}`} />
+                    <img
+                      src={imgUrl}
+                      alt={`Upload ${idx + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                      }}
+                    />
                     <button
                       type="button"
                       className="btn-remove-preview"

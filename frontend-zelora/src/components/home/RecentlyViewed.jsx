@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom';
 import ProductCard from '../common/ProductCard';
 import { useRecentlyViewed } from '../../context/RecentlyViewedContext';
-import { PRODUCTS } from '../../data/products';
+import { useLiveProducts } from '../../data/products';
 import { ArrowRight, History } from 'lucide-react';
 
 export default function RecentlyViewed() {
   const { recentlyViewed } = useRecentlyViewed();
+  const liveProducts = useLiveProducts();
 
   // If user hasn't visited any product yet, show a curated fallback selection
   const displayItems =
     recentlyViewed && recentlyViewed.length > 0
       ? recentlyViewed.slice(0, 4)
-      : PRODUCTS.slice(2, 6);
+      : liveProducts.slice(2, 6);
 
   const isRealHistory = recentlyViewed && recentlyViewed.length > 0;
 

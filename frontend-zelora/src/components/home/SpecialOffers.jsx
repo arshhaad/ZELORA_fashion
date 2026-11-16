@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../common/ProductCard';
-import { PRODUCTS } from '../../data/products';
+import { useLiveProducts } from '../../data/products';
 import { ArrowRight, Clock, Zap } from 'lucide-react';
 
 export default function SpecialOffers() {
-  const specialOffers = PRODUCTS.filter((p) => p.isSpecialOffer).slice(0, 4);
+  const liveProducts = useLiveProducts();
+  const specialOffers = liveProducts.filter((p) => p.isSpecialOffer).slice(0, 4);
 
   // 18 hours, 45 minutes, 30 seconds countdown timer from mount
   const [timeLeft, setTimeLeft] = useState({

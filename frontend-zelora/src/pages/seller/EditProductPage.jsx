@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import SellerLayout from '../../components/seller/SellerLayout';
 import { useSeller } from '../../context/SellerContext';
+import { FALLBACK_PRODUCT_IMAGE, DEFAULT_CATEGORY_IMAGES, normalizeCategory } from '../../data/products';
 import {
   ArrowLeft,
   Save,
@@ -11,6 +12,48 @@ import {
   AlertCircle,
   Boxes,
 } from 'lucide-react';
+
+const compressImageFile = (file) => {
+  return new Promise((resolve) => {
+    if (!file.type || !file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 900;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.82);
+        resolve(compressed);
+      };
+      img.onerror = () => resolve(e.target?.result);
+      img.src = e.target?.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function EditProductPage() {
   const { productId } = useParams();
@@ -103,13 +146,21 @@ export default function EditProductPage() {
     }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
-    const newUrls = files.map((f) => URL.createObjectURL(f));
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...newUrls],
-    }));
+    if (files.length === 0) return;
+    const compressedList = [];
+    for (const f of files) {
+      const dataUrl = await compressImageFile(f);
+      if (dataUrl) compressedList.push(dataUrl);
+    }
+    if (compressedList.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...compressedList],
+      }));
+    }
+    e.target.value = '';
   };
 
   const handleRemoveImage = (index) => {
@@ -320,7 +371,14 @@ export default function EditProductPage() {
               <div className="uploaded-previews-grid">
                 {formData.images.map((imgUrl, idx) => (
                   <div key={idx} className="preview-thumb-box">
-                    <img src={imgUrl} alt={`Piece ${idx + 1}`} />
+                    <img
+                      src={imgUrl}
+                      alt={`Piece ${idx + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                      }}
+                    />
                     <button
                       type="button"
                       className="btn-remove-preview"

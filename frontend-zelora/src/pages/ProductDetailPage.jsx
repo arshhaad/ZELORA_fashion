@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import ProductCard from '../components/common/ProductCard';
 import Toast from '../components/common/Toast';
-import { PRODUCTS } from '../data/products';
+import { useLiveProducts, normalizeCategory } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useRecentlyViewed } from '../context/RecentlyViewedContext';
@@ -29,8 +29,20 @@ export default function ProductDetailPage() {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { addRecentlyViewed } = useRecentlyViewed();
 
+  const liveProducts = useLiveProducts({ includeDrafts: true });
+
   // Find product
-  const product = PRODUCTS.find((p) => p.id === id || p.slug === id);
+  const product = useMemo(() => {
+    if (!id) return null;
+    const target = String(id).toLowerCase().trim();
+    return (
+      liveProducts.find(
+        (p) =>
+          String(p.id).toLowerCase() === target ||
+          String(p.slug || '').toLowerCase() === target
+      ) || null
+    );
+  }, [liveProducts, id]);
 
   // States
   const [selectedImage, setSelectedImage] = useState(0);
@@ -77,9 +89,13 @@ export default function ProductDetailPage() {
   }
 
   const inWishlist = isInWishlist(product.id);
-  const relatedProducts = PRODUCTS.filter(
-    (p) => p.category === product.category && p.id !== product.id
-  ).slice(0, 4);
+  const relatedProducts = useMemo(() => {
+    if (!product) return [];
+    const normCat = normalizeCategory(product.category);
+    return liveProducts
+      .filter((p) => p.id !== product.id && normalizeCategory(p.category) === normCat)
+      .slice(0, 4);
+  }, [liveProducts, product]);
 
   const handleAddToCart = () => {
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
@@ -171,7 +187,14 @@ export default function ProductDetailPage() {
                   className={`pdp-thumbnail-btn ${selectedImage === index ? 'active' : ''}`}
                   onClick={() => setSelectedImage(index)}
                 >
-                  <img src={imgUrl} alt={`${product.name} angle ${index + 1}`} />
+                  <img
+                    src={imgUrl}
+                    alt={`${product.name} angle ${index + 1}`}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100';
+                    }}
+                  />
                 </button>
               ))}
             </div>
@@ -179,9 +202,13 @@ export default function ProductDetailPage() {
             {/* Main Stage Image */}
             <div className="pdp-main-image-wrap">
               <img
-                src={product.images[selectedImage] || product.images[0]}
+                src={product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100'}
                 alt={product.name}
                 className="pdp-stage-image"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100';
+                }}
               />
               <button
                 type="button"
@@ -243,18 +270,22 @@ export default function ProductDetailPage() {
                   <span className="option-selected-val">{selectedColor}</span>
                 </div>
                 <div className="color-swatches-row">
-                  {product.colors.map((c) => (
-                    <button
-                      key={c.name}
-                      type="button"
-                      className={`color-swatch-btn ${selectedColor === c.name ? 'selected' : ''}`}
-                      onClick={() => setSelectedColor(c.name)}
-                      title={c.name}
-                    >
-                      <span className="color-dot" style={{ backgroundColor: c.hex }} />
-                      <span className="color-swatch-name">{c.name}</span>
-                    </button>
-                  ))}
+                  {product.colors.map((c, idx) => {
+                    const cName = typeof c === 'object' && c.name ? c.name : String(c);
+                    const cHex = typeof c === 'object' && c.hex ? c.hex : '#1e293b';
+                    return (
+                      <button
+                        key={cName || idx}
+                        type="button"
+                        className={`color-swatch-btn ${selectedColor === cName ? 'selected' : ''}`}
+                        onClick={() => setSelectedColor(cName)}
+                        title={cName}
+                      >
+                        <span className="color-dot" style={{ backgroundColor: cHex }} />
+                        <span className="color-swatch-name">{cName}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

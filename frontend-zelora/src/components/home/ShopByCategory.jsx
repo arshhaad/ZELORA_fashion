@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom';
-import { CATEGORIES } from '../../data/products';
+import { CATEGORIES, useLiveProducts, normalizeCategory } from '../../data/products';
 import { ArrowUpRight } from 'lucide-react';
 
 export default function ShopByCategory() {
+  const liveProducts = useLiveProducts();
+
+  const getCategoryCount = (slug, fallbackCount) => {
+    const liveCount = liveProducts.filter((p) => normalizeCategory(p.category) === slug).length;
+    return liveCount || fallbackCount;
+  };
   return (
     <section className="zelora-section category-section">
       <div className="section-header-wrap">
@@ -34,7 +40,7 @@ export default function ShopByCategory() {
             </div>
 
             <div className="category-content">
-              <span className="category-count">{cat.itemCount} PIECES</span>
+              <span className="category-count">{getCategoryCount(cat.slug, cat.itemCount)} PIECES</span>
               <h3 className="category-name">{cat.name}</h3>
               <p className="category-desc">{cat.description}</p>
               <span className="category-explore-link">

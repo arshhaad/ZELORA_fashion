@@ -245,8 +245,12 @@ export default function MyProductsPage() {
                 <tr key={prod.id}>
                   <td>
                     <img
-                      src={prod.images[0]}
+                      src={(prod.images && prod.images[0]) || 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100'}
                       alt={prod.name}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100';
+                      }}
                       style={{
                         width: '48px',
                         height: '60px',
@@ -373,8 +377,12 @@ export default function MyProductsPage() {
             <div key={prod.id} className="seller-card" style={{ padding: '16px' }}>
               <div style={{ position: 'relative', width: '100%', height: '260px', borderRadius: 'var(--seller-radius)', overflow: 'hidden', marginBottom: '14px' }}>
                 <img
-                  src={prod.images[0]}
+                  src={(prod.images && prod.images[0]) || 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100'}
                   alt={prod.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100';
+                  }}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
                 <span

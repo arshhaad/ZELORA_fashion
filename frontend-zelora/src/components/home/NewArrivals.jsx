@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import ProductCard from '../common/ProductCard';
-import { PRODUCTS } from '../../data/products';
+import { useLiveProducts } from '../../data/products';
 import { ArrowRight } from 'lucide-react';
 
 export default function NewArrivals() {
-  const newProducts = PRODUCTS.filter((p) => p.isNew).slice(0, 4);
+  const liveProducts = useLiveProducts();
+  const newProducts = liveProducts.filter((p) => p.isNew).slice(0, 4);
 
   return (
     <section className="zelora-section">

@@ -4,7 +4,7 @@ import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import ProductCard from '../components/common/ProductCard';
 import Toast from '../components/common/Toast';
-import { PRODUCTS, CATEGORIES } from '../data/products';
+import { useLiveProducts, normalizeCategory, CATEGORIES } from '../data/products';
 import {
   Filter,
   X,
@@ -20,6 +20,12 @@ import {
 
 export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const liveProducts = useLiveProducts();
+
+  const maxCatalogPrice = useMemo(() => {
+    const prices = liveProducts.map((p) => Number(p.price) || 0);
+    return prices.length > 0 ? Math.max(500, Math.ceil(Math.max(...prices) / 100) * 100) : 1000;
+  }, [liveProducts]);
 
   // URL query params
   const categoryParam = searchParams.get('category') || 'all';
@@ -34,7 +40,7 @@ export default function ProductListingPage() {
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [selectedSize, setSelectedSize] = useState('all');
   const [selectedRating, setSelectedRating] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(500);
+  const [maxPrice, setMaxPrice] = useState(null);
   const [sortBy, setSortBy] = useState(sortParam);
   const [searchQuery, setSearchQuery] = useState(searchParam);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -50,23 +56,41 @@ export default function ProductListingPage() {
   }, [searchParams]);
 
   const brands = useMemo(() => {
-    const set = new Set(PRODUCTS.map((p) => p.brand));
+    const set = new Set(liveProducts.map((p) => p.brand).filter(Boolean));
     return ['all', ...Array.from(set)];
-  }, []);
+  }, [liveProducts]);
 
   const sizes = ['all', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
+  const categoryCounts = useMemo(() => {
+    const counts = { all: liveProducts.length };
+    CATEGORIES.forEach((cat) => {
+      counts[cat.slug] = liveProducts.filter(
+        (p) => normalizeCategory(p.category) === cat.slug
+      ).length;
+    });
+    return counts;
+  }, [liveProducts]);
+
   // Filtering & Sorting logic
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((product) => {
-      // Category filter
-      if (selectedCategory !== 'all' && product.category !== selectedCategory) {
-        return false;
+    return liveProducts.filter((product) => {
+      // Category filter (flexible slug and name comparison)
+      if (selectedCategory !== 'all') {
+        const prodCat = normalizeCategory(product.category);
+        const selCat = normalizeCategory(selectedCategory);
+        if (prodCat !== selCat && product.category?.toLowerCase() !== selectedCategory.toLowerCase()) {
+          return false;
+        }
       }
 
       // Gender filter
-      if (selectedGender !== 'all' && product.gender !== selectedGender && product.gender !== 'unisex') {
-        return false;
+      if (selectedGender !== 'all') {
+        const prodGender = (product.gender || 'unisex').toLowerCase();
+        const selGender = selectedGender.toLowerCase();
+        if (prodGender !== selGender && prodGender !== 'unisex') {
+          return false;
+        }
       }
 
       // Brand filter
@@ -80,7 +104,8 @@ export default function ProductListingPage() {
       }
 
       // Price filter
-      if (product.price > maxPrice) {
+      const effectiveMax = maxPrice !== null ? maxPrice : maxCatalogPrice;
+      if (product.price > effectiveMax) {
         return false;
       }
 
@@ -97,11 +122,12 @@ export default function ProductListingPage() {
       // Text Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
-        const matchesName = product.name.toLowerCase().includes(query);
-        const matchesDesc = product.description.toLowerCase().includes(query);
-        const matchesBrand = product.brand.toLowerCase().includes(query);
-        const matchesCat = product.category.toLowerCase().includes(query);
-        if (!matchesName && !matchesDesc && !matchesBrand && !matchesCat) {
+        const matchesName = product.name?.toLowerCase().includes(query);
+        const matchesDesc = product.description?.toLowerCase().includes(query);
+        const matchesBrand = product.brand?.toLowerCase().includes(query);
+        const matchesSeller = product.seller?.toLowerCase().includes(query);
+        const matchesCat = product.category?.toLowerCase().includes(query);
+        if (!matchesName && !matchesDesc && !matchesBrand && !matchesSeller && !matchesCat) {
           return false;
         }
       }
@@ -116,12 +142,14 @@ export default function ProductListingPage() {
       return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
     });
   }, [
+    liveProducts,
     selectedCategory,
     selectedGender,
     selectedBrand,
     selectedSize,
     selectedRating,
     maxPrice,
+    maxCatalogPrice,
     sortBy,
     searchQuery,
     filterParam,
@@ -210,7 +238,7 @@ export default function ProductListingPage() {
     setSelectedBrand('all');
     setSelectedSize('all');
     setSelectedRating(0);
-    setMaxPrice(500);
+    setMaxPrice(null);
     setSearchQuery('');
     setSortBy('newest');
     setSearchParams({});
@@ -223,7 +251,7 @@ export default function ProductListingPage() {
     (selectedBrand !== 'all' ? 1 : 0) +
     (selectedSize !== 'all' ? 1 : 0) +
     (selectedRating > 0 ? 1 : 0) +
-    (maxPrice < 500 ? 1 : 0) +
+    (maxPrice !== null && maxPrice < maxCatalogPrice ? 1 : 0) +
     (searchQuery ? 1 : 0);
 
   return (
@@ -384,7 +412,7 @@ export default function ProductListingPage() {
                   onClick={() => setSelectedCategory('all')}
                 >
                   <span>All Categories</span>
-                  <span className="option-count">{PRODUCTS.length}</span>
+                  <span className="option-count">{categoryCounts.all}</span>
                 </button>
                 {CATEGORIES.map((cat) => (
                   <button
@@ -394,7 +422,7 @@ export default function ProductListingPage() {
                     onClick={() => setSelectedCategory(cat.slug)}
                   >
                     <span>{cat.name}</span>
-                    <span className="option-count">{cat.itemCount}</span>
+                    <span className="option-count">{categoryCounts[cat.slug] || 0}</span>
                   </button>
                 ))}
               </div>
@@ -421,20 +449,20 @@ export default function ProductListingPage() {
             <div className="filter-group">
               <div className="filter-header-flex">
                 <h4 className="filter-group-title">MAX PRICE</h4>
-                <span className="price-val-indicator">₹{maxPrice}</span>
+                <span className="price-val-indicator">₹{maxPrice ?? maxCatalogPrice}</span>
               </div>
               <input
                 type="range"
                 min="50"
-                max="500"
+                max={maxCatalogPrice}
                 step="25"
-                value={maxPrice}
+                value={maxPrice ?? maxCatalogPrice}
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
                 className="zelora-range-slider"
               />
               <div className="slider-limits">
                 <span>₹50</span>
-                <span>₹500</span>
+                <span>₹{maxCatalogPrice}</span>
               </div>
             </div>
 

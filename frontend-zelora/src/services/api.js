@@ -386,3 +386,14 @@ export const adminApi = {
     body: JSON.stringify(payload),
   }),
 };
+
+export const productsApi = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/products/${qs ? `?${qs}` : ''}`);
+  },
+  create: (payload) => request('/products/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+};

@@ -1164,7 +1164,14 @@ export default function CheckoutPage() {
                     <div className="review-items-list">
                       {cartItems.map((item) => (
                         <div key={item.id} className="review-item-mini">
-                          <img src={item.product.images[0]} alt={item.product.name} />
+                          <img
+                            src={(item.product.images && item.product.images[0]) || 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100'}
+                            alt={item.product.name}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100';
+                            }}
+                          />
                           <div className="review-item-info">
                             <strong>{item.product.name}</strong>
                             <span>Size: {item.size} • Color: {item.color} • Qty: {item.quantity}</span>

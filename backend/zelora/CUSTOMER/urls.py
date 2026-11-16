@@ -30,6 +30,7 @@ from .views import (
     SellerShopProfileView,
     SendSellerOtpView,
     VerifySellerOtpView,
+    ProductListCreateView,
 )
 
 urlpatterns = [
@@ -77,4 +78,8 @@ urlpatterns = [
     path('seller/register/', SellerRegisterView.as_view(), name='seller-register'),
     path('seller/login/', SellerLoginView.as_view(), name='seller-login'),
     path('seller/shop/', SellerShopProfileView.as_view(), name='seller-shop'),
+    path('seller/products/', ProductListCreateView.as_view(), name='seller-products'),
+
+    # Product Catalog
+    path('products/', ProductListCreateView.as_view(), name='product-list-create'),
 ]

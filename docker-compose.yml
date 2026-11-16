@@ -82,18 +82,31 @@ services:
       timeout: 5s
       retries: 5
 
-  # 4. React 19 Frontend (Nginx Production Reverse Proxy)
+  # 4. React 19 Frontend (Vite)
   frontend:
     build:
       context: ./frontend-zelora
       dockerfile: Dockerfile
     container_name: zelora_frontend
     restart: unless-stopped
-    ports:
-      - "5173:80"
-      - "80:80"
+    expose:
+      - "5173"
     depends_on:
       - backend
+
+  # 5. Nginx Dedicated Reverse Proxy & Gateway
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: zelora_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
+      - frontend
 
 volumes:
   postgres_data:

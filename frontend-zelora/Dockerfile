@@ -1,20 +1,18 @@
-# Stage 1: Build Frontend Assets
-FROM node:20-alpine AS build
+# Multi-stage production build for ZELORA React 19 Frontend
+FROM node:20-alpine
 
 WORKDIR /app
 
+# Install project dependencies
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# Copy application source and build production bundle
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve via Nginx
-FROM nginx:alpine
+# Expose internal preview port for the Nginx reverse proxy
+EXPOSE 5173
 
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Serve production assets via Vite preview with host binding
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]

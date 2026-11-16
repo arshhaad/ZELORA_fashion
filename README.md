@@ -2,6 +2,55 @@
 
 A full-stack, multi-role luxury fashion e-commerce web platform engineered with **Django REST Framework** and **React (Vite)**. Built with a minimalist, high-fashion aesthetic (`#000000`, `#ffffff`, `#f7f7f7`, and `#b69a70` couture gold accents) and typography.
 
+
+
+---
+
+## 🏛️ System Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Clients & Presentation Tier"]
+        WebClient["React 19 + Vite (Web Storefront & Portals)"]
+        MobileClient["React Native (ZELORA Mobile App)"]
+    end
+
+    subgraph GatewayLayer["API & Security Boundary"]
+        CORS["Django CORS Middleware"]
+        AuthGuard["JWT & RBAC Gatekeeper"]
+    end
+
+    subgraph ServiceLayer["Django Backend Core"]
+        AuthService["Auth & Identity Service"]
+        CatalogService["Product & Catalog Engine"]
+        OrderService["Order & Checkout Manager"]
+        SellerService["Seller Atelier Service"]
+        AIService["ZELORA AI Assistant"]
+    end
+
+    subgraph ExternalServices["External Infrastructure"]
+        GoogleOIDC["Google Identity Services (OAuth 2.0)"]
+        GoogleSMTP["Google SMTP (6-Digit OTP Delivery)"]
+        RazorpayGateway["Razorpay Payment Gateway"]
+        GroqAPI["Groq Llama 3 Fast Inference API"]
+    end
+
+    subgraph PersistenceLayer["Data Storage & Assets"]
+        Database[("PostgreSQL / SQLite Database")]
+        StaticAssets["Media & Product Image Storage"]
+    end
+
+    WebClient --> GatewayLayer
+    MobileClient --> GatewayLayer
+    GatewayLayer --> ServiceLayer
+    AuthService --> GoogleOIDC
+    AuthService --> GoogleSMTP
+    OrderService --> RazorpayGateway
+    AIService --> GroqAPI
+    ServiceLayer --> Database
+    CatalogService --> StaticAssets
+```
+
 ---
 
 ## 🌟 Architecture & Features

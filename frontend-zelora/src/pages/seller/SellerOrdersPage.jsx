@@ -12,6 +12,8 @@ import {
   Truck,
   Filter,
   Check,
+  User,
+  X,
 } from 'lucide-react';
 
 export default function SellerOrdersPage() {
@@ -90,54 +92,56 @@ export default function SellerOrdersPage() {
       </div>
 
       {/* FILTER TABS & SEARCH CARD */}
-      <div className="seller-card mb-24" style={{ padding: '16px 20px', marginBottom: '24px' }}>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '14px',
-            marginBottom: '16px',
-          }}
-        >
+      <div className="seller-card seller-orders-filter-card mb-24">
+        <div className="seller-orders-filter-bar">
           {/* Search Bar */}
           <div className="seller-filter-search-box">
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--seller-muted)' }} />
+            <Search size={16} className="seller-filter-search-icon" />
             <input
               type="text"
               placeholder="Search by Order ID, customer name, garment..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="seller-input"
-              style={{ paddingLeft: '38px' }}
+              className="seller-input seller-orders-search-input"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                className="seller-search-clear-btn"
+                onClick={() => setSearchTerm('')}
+                title="Clear Search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* Date Picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={16} color="var(--seller-muted)" />
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="seller-input"
-              style={{ width: 'auto' }}
-            />
+          <div className="seller-orders-date-wrap">
+            <div className="seller-date-input-box">
+              <Calendar size={15} className="seller-date-icon" />
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="seller-input seller-orders-date-input"
+                aria-label="Filter by order date"
+              />
+            </div>
             {dateFilter && (
               <button
                 type="button"
                 className="btn-seller-secondary btn-seller-sm"
                 onClick={() => setDateFilter('')}
               >
-                Clear
+                Clear Date
               </button>
             )}
           </div>
         </div>
 
-        {/* Status Filter Tabs */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+        {/* Status Filter Tabs (Horizontally scrollable with styled scrollbar) */}
+        <div className="seller-orders-tabs-scroll">
           {statusTabs.map((tab) => {
             const count =
               tab === 'All'
@@ -148,33 +152,11 @@ export default function SellerOrdersPage() {
               <button
                 key={tab}
                 type="button"
-                style={{
-                  border: '1px solid var(--seller-border)',
-                  background: statusFilter === tab ? 'var(--seller-espresso)' : 'var(--seller-white)',
-                  color: statusFilter === tab ? 'var(--seller-white)' : 'var(--seller-dark-text)',
-                  padding: '7px 14px',
-                  borderRadius: 'var(--seller-radius)',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  whiteSpace: 'nowrap',
-                  transition: 'var(--seller-transition)',
-                }}
+                className={`seller-order-tab-btn ${statusFilter === tab ? 'active' : ''}`}
                 onClick={() => setStatusFilter(tab)}
               >
                 <span>{tab === 'All' ? 'All Orders' : tab}</span>
-                <span
-                  style={{
-                    fontSize: '10.5px',
-                    padding: '2px 6px',
-                    borderRadius: '999px',
-                    background: statusFilter === tab ? 'rgba(255,255,255,0.2)' : 'var(--seller-beige-light)',
-                    color: statusFilter === tab ? '#fff' : 'var(--seller-muted)',
-                  }}
-                >
+                <span className="seller-order-tab-count">
                   {count}
                 </span>
               </button>
@@ -183,138 +165,280 @@ export default function SellerOrdersPage() {
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="seller-table-container">
-        <table className="seller-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Customer</th>
-              <th>Order Date</th>
-              <th>Garments</th>
-              <th>Amount (₹)</th>
-              <th>Payment</th>
-              <th>Order Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.length === 0 ? (
+      {/* Orders Table - Desktop & Tablets */}
+      <div className="seller-orders-table-wrapper">
+        <div className="seller-table-container">
+          <table className="seller-table">
+            <thead>
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '40px' }}>
-                  <p style={{ margin: 0, color: 'var(--seller-muted)', fontSize: '14px' }}>
-                    No orders match your selected criteria.
-                  </p>
-                </td>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Order Date</th>
+                <th>Garments</th>
+                <th>Amount (₹)</th>
+                <th>Payment</th>
+                <th>Order Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ) : (
-              filteredOrders.map((ord) => (
-                <tr key={ord.id}>
-                  <td>
-                    <strong style={{ fontFamily: 'monospace', color: 'var(--seller-espresso)' }}>
-                      {ord.order_id}
-                    </strong>
+            </thead>
+            <tbody>
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '50px 20px' }}>
+                    <div className="seller-empty-table-state">
+                      <ShoppingBag size={38} color="var(--seller-muted)" style={{ margin: '0 auto 12px' }} />
+                      <p style={{ margin: '0 0 8px', color: 'var(--seller-espresso)', fontWeight: 700, fontSize: '15px' }}>
+                        No orders match your selected criteria.
+                      </p>
+                      <p style={{ margin: 0, color: 'var(--seller-muted)', fontSize: '13px' }}>
+                        Try adjusting your search terms, date filter, or order status tabs.
+                      </p>
+                      {(searchTerm || statusFilter !== 'All' || dateFilter) && (
+                        <button
+                          type="button"
+                          className="btn-seller-secondary btn-seller-sm"
+                          style={{ marginTop: '16px' }}
+                          onClick={() => {
+                            setSearchTerm('');
+                            setStatusFilter('All');
+                            setDateFilter('');
+                          }}
+                        >
+                          Reset All Filters
+                        </button>
+                      )}
+                    </div>
                   </td>
+                </tr>
+              ) : (
+                filteredOrders.map((ord) => (
+                  <tr key={ord.id}>
+                    <td>
+                      <strong style={{ fontFamily: 'monospace', color: 'var(--seller-espresso)' }}>
+                        {ord.order_id}
+                      </strong>
+                    </td>
 
-                  <td>
-                    <span style={{ fontWeight: 600, color: 'var(--seller-dark-text)' }}>
-                      {ord.customer_name}
-                    </span>
-                    <small style={{ display: 'block', color: 'var(--seller-muted)', fontSize: '11px' }}>
-                      {ord.shipping_address?.city}, {ord.shipping_address?.state}
-                    </small>
-                  </td>
+                    <td>
+                      <span style={{ fontWeight: 600, color: 'var(--seller-dark-text)' }}>
+                        {ord.customer_name}
+                      </span>
+                      <small style={{ display: 'block', color: 'var(--seller-muted)', fontSize: '11px' }}>
+                        {ord.shipping_address?.city}, {ord.shipping_address?.state}
+                      </small>
+                    </td>
 
-                  <td>
-                    <span style={{ fontSize: '12.5px', color: 'var(--seller-dark-text)' }}>
+                    <td>
+                      <span style={{ fontSize: '12.5px', color: 'var(--seller-dark-text)' }}>
+                        {new Date(ord.order_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </td>
+
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {ord.items.slice(0, 2).map((it, idx) => (
+                          <img
+                            key={idx}
+                            src={it.product_image}
+                            alt={it.product_name}
+                            title={`${it.product_name} (${it.size})`}
+                            style={{
+                              width: '32px',
+                              height: '40px',
+                              objectFit: 'cover',
+                              borderRadius: '3px',
+                              border: '1px solid var(--seller-border)',
+                            }}
+                          />
+                        ))}
+                        <span style={{ fontSize: '12px', color: 'var(--seller-muted)' }}>
+                          {ord.items.length} item{ord.items.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td>
+                      <strong style={{ fontSize: '14px', color: 'var(--seller-espresso)' }}>
+                        ₹{ord.total_amount.toFixed(2)}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span className="status-pill published" style={{ fontSize: '10.5px' }}>
+                        {ord.payment_status}
+                      </span>
+                      <small style={{ display: 'block', fontSize: '10px', color: 'var(--seller-muted)' }}>
+                        {ord.payment_method?.split(' ')[0]}
+                      </small>
+                    </td>
+
+                    <td>
+                      <span className={`status-pill ${ord.order_status.toLowerCase()}`}>
+                        {ord.order_status}
+                      </span>
+                    </td>
+
+                    <td>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                        {(ord.order_status === 'Pending' || ord.order_status === 'New') && (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-seller-gold btn-seller-sm"
+                              onClick={() => acceptOrder(ord.order_id)}
+                              title="Accept Order"
+                            >
+                              <Check size={13} /> Accept
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-seller-danger btn-seller-sm"
+                              onClick={() => handleOpenRejectModal(ord)}
+                              title="Reject Order"
+                            >
+                              <XCircle size={13} />
+                            </button>
+                          </>
+                        )}
+
+                        <Link
+                          to={`/seller/orders/${ord.order_id}`}
+                          className="btn-seller-secondary btn-seller-sm"
+                        >
+                          <Eye size={13} /> Inspect
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile Responsive Order Cards (<= 768px) */}
+      <div className="seller-mobile-order-cards">
+        {filteredOrders.length === 0 ? (
+          <div className="seller-card seller-mobile-empty-orders">
+            <ShoppingBag size={40} color="var(--seller-muted)" style={{ margin: '0 auto 12px' }} />
+            <h4>No Orders Found</h4>
+            <p>
+              {searchTerm || statusFilter !== 'All' || dateFilter
+                ? 'No orders match your active search or filter criteria.'
+                : 'No customer orders placed yet for your atelier.'}
+            </p>
+            {(searchTerm || statusFilter !== 'All' || dateFilter) && (
+              <button
+                type="button"
+                className="btn-seller-secondary btn-seller-sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('All');
+                  setDateFilter('');
+                }}
+              >
+                Reset All Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          filteredOrders.map((ord) => (
+            <div key={ord.id} className="seller-card seller-order-mobile-card">
+              <div className="seller-order-card-header">
+                <div>
+                  <span className="seller-order-id-badge">{ord.order_id}</span>
+                  <div className="seller-order-date">
+                    <Calendar size={12} />
+                    <span>
                       {new Date(ord.order_date).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
                       })}
                     </span>
-                  </td>
+                  </div>
+                </div>
+                <span className={`status-pill ${ord.order_status.toLowerCase()}`}>
+                  {ord.order_status}
+                </span>
+              </div>
 
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {ord.items.slice(0, 2).map((it, idx) => (
-                        <img
-                          key={idx}
-                          src={it.product_image}
-                          alt={it.product_name}
-                          title={`${it.product_name} (${it.size})`}
-                          style={{
-                            width: '32px',
-                            height: '40px',
-                            objectFit: 'cover',
-                            borderRadius: '3px',
-                            border: '1px solid var(--seller-border)',
-                          }}
-                        />
-                      ))}
-                      <span style={{ fontSize: '12px', color: 'var(--seller-muted)' }}>
-                        {ord.items.length} item{ord.items.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </td>
+              <div className="seller-order-customer-row">
+                <div className="seller-order-customer-info">
+                  <span className="customer-name">{ord.customer_name}</span>
+                  <span className="customer-location">
+                    {ord.shipping_address?.city || 'Local Delivery'}, {ord.shipping_address?.state || ''}
+                  </span>
+                </div>
+                <div className="seller-order-amount-box">
+                  <span className="amount-label">Total Amount</span>
+                  <strong className="amount-val">₹{Number(ord.total_amount).toFixed(2)}</strong>
+                </div>
+              </div>
 
-                  <td>
-                    <strong style={{ fontSize: '14px', color: 'var(--seller-espresso)' }}>
-                      ₹{ord.total_amount.toFixed(2)}
-                    </strong>
-                  </td>
+              {ord.items && ord.items.length > 0 && (
+                <div className="seller-order-items-strip">
+                  <div className="seller-order-thumbs">
+                    {ord.items.slice(0, 3).map((it, idx) => (
+                      <img
+                        key={idx}
+                        src={it.product_image}
+                        alt={it.product_name}
+                        title={`${it.product_name} (${it.size})`}
+                        className="seller-order-thumb-img"
+                      />
+                    ))}
+                  </div>
+                  <span className="seller-order-items-count">
+                    {ord.items.length} garment{ord.items.length > 1 ? 's' : ''}
+                    {ord.items[0]?.product_name ? ` • ${ord.items[0].product_name}` : ''}
+                  </span>
+                </div>
+              )}
 
-                  <td>
-                    <span className="status-pill published" style={{ fontSize: '10.5px' }}>
-                      {ord.payment_status}
-                    </span>
-                    <small style={{ display: 'block', fontSize: '10px', color: 'var(--seller-muted)' }}>
-                      {ord.payment_method?.split(' ')[0]}
-                    </small>
-                  </td>
+              <div className="seller-order-payment-strip">
+                <span className="status-pill published" style={{ fontSize: '10px' }}>
+                  {ord.payment_status}
+                </span>
+                <span className="seller-payment-method">
+                  {ord.payment_method}
+                </span>
+              </div>
 
-                  <td>
-                    <span className={`status-pill ${ord.order_status.toLowerCase()}`}>
-                      {ord.order_status}
-                    </span>
-                  </td>
-
-                  <td>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                      {(ord.order_status === 'Pending' || ord.order_status === 'New') && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-seller-gold btn-seller-sm"
-                            onClick={() => acceptOrder(ord.order_id)}
-                            title="Accept Order"
-                          >
-                            <Check size={13} /> Accept
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-seller-danger btn-seller-sm"
-                            onClick={() => handleOpenRejectModal(ord)}
-                            title="Reject Order"
-                          >
-                            <XCircle size={13} />
-                          </button>
-                        </>
-                      )}
-
-                      <Link
-                        to={`/seller/orders/${ord.order_id}`}
-                        className="btn-seller-secondary btn-seller-sm"
-                      >
-                        <Eye size={13} /> Inspect
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              <div className="seller-order-card-actions">
+                {(ord.order_status === 'Pending' || ord.order_status === 'New') && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn-seller-gold btn-seller-sm"
+                      onClick={() => acceptOrder(ord.order_id)}
+                    >
+                      <Check size={13} /> Accept
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-seller-danger btn-seller-sm"
+                      onClick={() => handleOpenRejectModal(ord)}
+                    >
+                      <XCircle size={13} /> Reject
+                    </button>
+                  </>
+                )}
+                <Link
+                  to={`/seller/orders/${ord.order_id}`}
+                  className="btn-seller-secondary btn-seller-sm inspect-btn"
+                >
+                  <Eye size={13} /> View Order
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Reject Order Modal */}

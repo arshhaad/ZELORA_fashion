@@ -33,8 +33,9 @@ flowchart TD
         GroqAPI["Groq Llama 3 Fast Inference API"]
     end
 
-    subgraph PersistenceLayer["Data Storage & Assets"]
-        Database[("PostgreSQL / SQLite Database")]
+    subgraph PersistenceLayer["Data Storage, Cache & Assets"]
+        Database[("PostgreSQL 16 Relational DB")]
+        RedisCache[("Redis 7 Cache & Session Store")]
         StaticAssets["Media & Product Image Storage"]
     end
 
@@ -49,6 +50,7 @@ flowchart TD
     AIService --> GroqAPI
 
     ServiceLayer --> Database
+    ServiceLayer --> RedisCache
     CatalogService --> StaticAssets
 ```
 

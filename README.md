@@ -4,6 +4,8 @@ A full-stack, multi-role luxury fashion e-commerce web platform engineered with 
 
 
 
+> 📖 **Full System Architecture & Workflows:** See [ARCHITECTURE.md](ARCHITECTURE.md) for complete Mermaid diagrams, entity relationship models, and authentication sequences.
+
 ---
 
 ## 🏛️ System Architecture Diagram
@@ -35,8 +37,9 @@ flowchart TD
         GroqAPI["Groq Llama 3 Fast Inference API"]
     end
 
-    subgraph PersistenceLayer["Data Storage & Assets"]
-        Database[("PostgreSQL / SQLite Database")]
+    subgraph PersistenceLayer["Data Storage, Cache & Assets"]
+        Database[("PostgreSQL 16 Relational DB")]
+        RedisCache[("Redis 7 (In-Memory Cache & Sessions)")]
         StaticAssets["Media & Product Image Storage"]
     end
 
@@ -48,7 +51,42 @@ flowchart TD
     OrderService --> RazorpayGateway
     AIService --> GroqAPI
     ServiceLayer --> Database
+    ServiceLayer --> RedisCache
     CatalogService --> StaticAssets
+```
+
+---
+
+## 🐳 Docker & Redis Quick Start
+
+You can run the full multi-container luxury fashion platform (PostgreSQL 16, Redis 7, Django REST Framework, and React 19 / Nginx) using Docker Compose:
+
+### 1. Launch All Containers
+```bash
+docker compose up --build -d
+```
+
+### 2. Verify Container Health
+```bash
+docker compose ps
+```
+
+| Service | Container Name | Port | Description |
+|---|---|---|---|
+| **Frontend** | `zelora_frontend` | `http://localhost:5173` | React 19 SPA served via Nginx Reverse Proxy |
+| **Backend** | `zelora_backend` | `http://localhost:8000` | Django REST Framework API with Gunicorn |
+| **Redis** | `zelora_redis` | `localhost:6379` | Redis 7 in-memory cache & session engine |
+| **Database** | `zelora_postgres` | `localhost:5432` | PostgreSQL 16 relational database |
+
+### 3. Test Health Endpoint
+```bash
+curl http://localhost:8000/api/health/
+# Returns: {"status": "ok", "service": "ZELORA API", "database": "connected", "redis": "connected"}
+```
+
+### 4. Stop All Containers
+```bash
+docker compose down
 ```
 
 ---

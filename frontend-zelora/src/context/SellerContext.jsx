@@ -243,6 +243,58 @@ export function SellerProvider({ children }) {
     return { user: sellerUser, shop: shopData };
   };
 
+  const loginSellerWithGoogle = async ({ credential, access_token }) => {
+    const res = await authApi.googleAuth({ credential, access_token, is_seller: true });
+
+    if (res.tokens?.access) {
+      localStorage.setItem('zelora_seller_access_token', res.tokens.access);
+    }
+    if (res.tokens?.refresh) {
+      localStorage.setItem('zelora_seller_refresh_token', res.tokens.refresh);
+    }
+
+    const sellerUser = {
+      id: res.user?.id || `sel-${Date.now()}`,
+      name: `${res.user?.first_name || ''} ${res.user?.last_name || ''}`.trim() || res.user?.email?.split('@')[0] || 'Seller',
+      email: res.user?.email || '',
+      phone: res.user?.phone_number || '',
+      avatar: res.user?.avatar_url || null,
+      shop_name: res.shop?.name || res.user?.shop_name || '',
+      shop_category: res.shop?.category || res.user?.shop_category || 'Haute Couture & Designer Wear',
+      role: 'Boutique Seller',
+      is_seller: true,
+    };
+
+    const shopData = mapShopFromApi(res.shop) || {
+      name: sellerUser.shop_name,
+      category: sellerUser.shop_category,
+      description: '',
+      logo: null,
+      banner: null,
+      contact_email: res.user?.email || '',
+      contact_number: sellerUser.phone,
+      business_address: '',
+      instagram: '',
+      website: '',
+      is_open: true,
+      return_policy: '',
+      delivery_preferences: '',
+      shop_visibility: 'Public (Listed in Marketplace)',
+    };
+
+    setSeller(sellerUser);
+    setShop(shopData);
+    setIsSellerAuthenticated(true);
+    localStorage.setItem('zelora_seller_auth', 'true');
+    saveStored('user', sellerUser);
+    saveStored('shop', shopData);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+    }
+    showToast(`Welcome back, ${sellerUser.name}!`);
+    return { user: sellerUser, shop: shopData };
+  };
+
   const registerSeller = async (formData) => {
     const res = await authApi.sellerRegister(formData);
 
@@ -645,6 +697,7 @@ export function SellerProvider({ children }) {
         showToast,
         // Auth
         loginSeller,
+        loginSellerWithGoogle,
         registerSeller,
         logoutSeller,
         showLogoutConfirm,

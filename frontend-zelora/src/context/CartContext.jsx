@@ -196,17 +196,15 @@ export function CartProvider({ children }) {
   // Calculations
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   
+  // Total MRP / Subtotal is strictly based on the main offer price (not regular/original price)
   const subtotal = cartItems.reduce(
-    (acc, item) => acc + (item.product.originalPrice || item.product.price) * item.quantity,
-    0
-  );
-
-  const discountedSubtotal = cartItems.reduce(
     (acc, item) => acc + item.product.price * item.quantity,
     0
   );
 
-  const discountTotal = subtotal - discountedSubtotal;
+  const discountedSubtotal = subtotal;
+
+  const discountTotal = 0;
   
   // Free delivery above ₹500
   const deliveryCharge = discountedSubtotal > 500 || discountedSubtotal === 0 ? 0 : 50;

@@ -13,7 +13,7 @@ import '../../components/seller/seller.css';
 
 export default function SellerLoginPage() {
   const navigate = useNavigate();
-  const { loginSeller, showToast } = useSeller();
+  const { loginSeller, loginSellerWithGoogle, showToast } = useSeller();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -82,11 +82,7 @@ export default function SellerLoginPage() {
     setErrorMsg('');
     setIsSubmitting(true);
     try {
-      const res = await authApi.googleAuth({ credential, access_token, is_seller: true });
-      if (res.tokens?.access) {
-        localStorage.setItem('zelora_seller_access_token', res.tokens.access);
-      }
-      showToast?.('Authenticated successfully with Google');
+      await loginSellerWithGoogle({ credential, access_token });
       navigate('/seller/dashboard');
     } catch (err) {
       const msg = err.data?.detail || err.data?.message || err.message || 'Google seller authentication failed.';

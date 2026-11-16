@@ -235,7 +235,7 @@ export default function CartPage() {
                   {/* Pricing Breakdown */}
                   <div className="summary-breakdown-list">
                     <div className="summary-line">
-                      <span>{discountTotal > 0 ? 'Total MRP' : `Subtotal (${cartCount} items)`}</span>
+                      <span>Total MRP</span>
                       <span>₹{Number(subtotal).toFixed(2)}</span>
                     </div>
 

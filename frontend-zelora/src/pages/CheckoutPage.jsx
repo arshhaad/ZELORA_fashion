@@ -106,15 +106,12 @@ export default function CheckoutPage() {
 
   const isBuyNow = Boolean(buyNowItem);
   const cartItems = isBuyNow ? [buyNowItem] : contextCartItems;
+  // Total MRP / Subtotal is strictly based on the main offer price (not regular/original price)
   const subtotal = isBuyNow
-    ? (buyNowItem.product.originalPrice || buyNowItem.product.price) * buyNowItem.quantity
-    : cartSubtotal;
-  const discountedSubtotal = isBuyNow
     ? buyNowItem.product.price * buyNowItem.quantity
     : cartDiscountedSubtotal;
-  const discountTotal = isBuyNow
-    ? Math.max(0, subtotal - discountedSubtotal)
-    : cartDiscountTotal;
+  const discountedSubtotal = subtotal;
+  const discountTotal = 0;
   const {
     addresses,
     selectedAddressId,
@@ -1260,7 +1257,7 @@ export default function CheckoutPage() {
 
                 <div className="summary-breakdown-list">
                   <div className="summary-line">
-                    <span>{discountTotal > 0 ? 'Total MRP' : 'Product Subtotal'}</span>
+                    <span>Total MRP</span>
                     <span>₹{Number(subtotal).toFixed(2)}</span>
                   </div>
 

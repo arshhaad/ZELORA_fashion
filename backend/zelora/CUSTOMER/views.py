@@ -351,11 +351,23 @@ class GoogleAuthView(APIView):
             )
 
         tokens = get_tokens_for_user(user)
-        return Response({
+        response_data = {
             "message": "Google authentication successful.",
             "tokens": tokens,
             "user": UserSerializer(user).data
-        }, status=status.HTTP_200_OK)
+        }
+        if is_seller or getattr(user, 'is_seller', False):
+            shop, _ = SellerShop.objects.get_or_create(
+                owner=user,
+                defaults={
+                    'name': user.shop_name or f"{user.first_name}'s Atelier",
+                    'category': user.shop_category or "Haute Couture & Designer Wear",
+                    'contact_email': user.email,
+                    'contact_number': user.phone_number or '',
+                }
+            )
+            response_data["shop"] = SellerShopSerializer(shop).data
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class ForgotPasswordRequestView(APIView):
@@ -1060,7 +1072,7 @@ class SellerLoginView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # 4. Check user existence
-        user = User.objects.filter(email=email).first()
+        user = User.objects.filter(email__iexact=email).first()
         if not user:
             return Response({
                 "detail": "No boutique account found with this email. Please verify your credentials or register as a seller.",
@@ -1076,9 +1088,13 @@ class SellerLoginView(APIView):
 
         # 6. Password authentication check
         if not user.check_password(password):
+            if getattr(user, 'auth_provider', '') == 'google':
+                msg = "Incorrect password. This account was registered with Google. You can sign in using 'Continue with Google', or reset your password via 'Forgot Password'."
+            else:
+                msg = "Incorrect password. Please verify your credentials or use 'Forgot Password' to reset."
             return Response({
-                "detail": "Incorrect password. Please verify your credentials and try again.",
-                "errors": {"password": ["Incorrect password."]}
+                "detail": msg,
+                "errors": {"password": [msg]}
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         # 7. Seller authorization check

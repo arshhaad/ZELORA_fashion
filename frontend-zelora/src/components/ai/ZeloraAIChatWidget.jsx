@@ -187,8 +187,10 @@ export default function ZeloraAIChatWidget() {
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
       let errorReply = "I apologize, our assistant service is momentarily occupied. Please try again.";
+      const isAuthErr = err.status === 401;
+      const targetLogin = isAdminRole ? '/admin/login' : (isSellerRole ? '/seller/login' : '/login');
 
-      if (err.status === 401) {
+      if (isAuthErr) {
         errorReply = "Your session has expired. Please log in again to continue.";
       } else if (
         err.status === 502 ||
@@ -207,6 +209,8 @@ export default function ZeloraAIChatWidget() {
           role: 'assistant',
           content: errorReply,
           provider: 'system',
+          isAuthRequired: isAuthErr,
+          authLoginUrl: targetLogin,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -490,12 +494,12 @@ export default function ZeloraAIChatWidget() {
                   {m.isAuthRequired && (
                     <div style={{ marginTop: '8px' }}>
                       <Link
-                        to="/auth"
+                        to={m.authLoginUrl || (isAdminRole ? '/admin/login' : isSellerRole ? '/seller/login' : '/login')}
                         className="btn-admin-gold"
-                        style={{ padding: '6px 12px', fontSize: '11px', display: 'inline-flex' }}
+                        style={{ padding: '6px 14px', fontSize: '11px', display: 'inline-flex', textDecoration: 'none', borderRadius: '4px', fontWeight: 600 }}
                         onClick={() => setIsOpen(false)}
                       >
-                        Sign In Now
+                        Sign In Again
                       </Link>
                     </div>
                   )}

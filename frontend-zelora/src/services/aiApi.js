@@ -40,16 +40,17 @@ export const getActivePortalAuth = (pathname = '') => {
     return { token: null, user: null, role: null };
   }
 
-  // 1. Admin Portal (/admin/...)
+  // 1. Admin Portal (/admin/...) or active administrator session
+  const adminToken = localStorage.getItem('zelora_admin_token');
+  const adminRaw = localStorage.getItem('zelora_admin_user');
+  let adminUser = null;
+  try { adminUser = adminRaw ? JSON.parse(adminRaw) : null; } catch { adminUser = null; }
+
   if (path.startsWith('/admin')) {
-    const token = localStorage.getItem('zelora_admin_token');
-    const raw = localStorage.getItem('zelora_admin_user');
-    let user = null;
-    try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
-    if (token && user) {
+    if (adminToken && adminUser) {
       return {
-        token,
-        user: { ...user, is_staff: true, role: 'Administrator' },
+        token: adminToken,
+        user: { ...adminUser, is_staff: true, role: 'Administrator' },
         role: 'admin',
       };
     }
@@ -57,16 +58,17 @@ export const getActivePortalAuth = (pathname = '') => {
   }
 
   // 2. Seller Portal (/seller/...)
+  const isSellerAuth = localStorage.getItem('zelora_seller_auth') === 'true';
+  const sellerToken = localStorage.getItem('zelora_seller_access_token');
+  const sellerRaw = localStorage.getItem('zelora_seller_user');
+  let sellerUser = null;
+  try { sellerUser = sellerRaw ? JSON.parse(sellerRaw) : null; } catch { sellerUser = null; }
+
   if (path.startsWith('/seller')) {
-    const isAuth = localStorage.getItem('zelora_seller_auth') === 'true';
-    const token = localStorage.getItem('zelora_seller_access_token');
-    const raw = localStorage.getItem('zelora_seller_user');
-    let user = null;
-    try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
-    if (isAuth && token && user) {
+    if (isSellerAuth && sellerToken && sellerUser) {
       return {
-        token,
-        user: { ...user, is_seller: true, role: 'Boutique Seller' },
+        token: sellerToken,
+        user: { ...sellerUser, is_seller: true, role: 'Boutique Seller' },
         role: 'seller',
       };
     }
@@ -74,15 +76,34 @@ export const getActivePortalAuth = (pathname = '') => {
   }
 
   // 3. Customer Portal (Home, Products, Orders, Landing, Account, etc.)
-  const token = localStorage.getItem('customer_access_token');
-  const raw = localStorage.getItem('customer_user');
-  let user = null;
-  try { user = raw ? JSON.parse(raw) : null; } catch { user = null; }
-  if (token && user) {
+  const customerToken = localStorage.getItem('customer_access_token');
+  const customerRaw = localStorage.getItem('customer_user');
+  let customerUser = null;
+  try { customerUser = customerRaw ? JSON.parse(customerRaw) : null; } catch { customerUser = null; }
+
+  if (customerToken && customerUser) {
     return {
-      token,
-      user: { ...user, role: user.role || 'Valued Client' },
+      token: customerToken,
+      user: { ...customerUser, role: customerUser.role || 'Valued Client' },
       role: 'customer',
+    };
+  }
+
+  // If no customer session but admin session exists and user is browsing storefront
+  if (adminToken && adminUser) {
+    return {
+      token: adminToken,
+      user: { ...adminUser, is_staff: true, role: 'Administrator' },
+      role: 'admin',
+    };
+  }
+
+  // If seller session exists and browsing storefront
+  if (isSellerAuth && sellerToken && sellerUser) {
+    return {
+      token: sellerToken,
+      user: { ...sellerUser, is_seller: true, role: 'Boutique Seller' },
+      role: 'seller',
     };
   }
 
@@ -99,8 +120,68 @@ export const getActiveAuthUser = (pathname = '') => {
   return auth.user;
 };
 
-async function aiRequest(endpoint, options = {}) {
-  const token = getActiveAuthToken();
+/**
+ * Automatically refreshes the current session access token via /api/auth/token/refresh/
+ */
+export const refreshCurrentAuthToken = async () => {
+  const path = typeof window !== 'undefined' ? window.location.pathname : '';
+  const portalAuth = getActivePortalAuth(path);
+  const role = portalAuth.role || 'customer';
+
+  let refreshToken = null;
+  if (role === 'admin') {
+    refreshToken = localStorage.getItem('zelora_admin_refresh_token');
+  } else if (role === 'seller') {
+    refreshToken = localStorage.getItem('zelora_seller_refresh_token');
+  } else {
+    refreshToken = localStorage.getItem('customer_refresh_token');
+  }
+
+  if (!refreshToken) {
+    return null;
+  }
+
+  try {
+    const res = await fetch('/api/auth/token/refresh/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    const data = await res.json();
+    const newAccess = data.access;
+    const newRefresh = data.refresh;
+
+    if (newAccess) {
+      if (role === 'admin') {
+        localStorage.setItem('zelora_admin_token', newAccess);
+        if (newRefresh) localStorage.setItem('zelora_admin_refresh_token', newRefresh);
+      } else if (role === 'seller') {
+        localStorage.setItem('zelora_seller_access_token', newAccess);
+        if (newRefresh) localStorage.setItem('zelora_seller_refresh_token', newRefresh);
+      } else {
+        localStorage.setItem('customer_access_token', newAccess);
+        if (newRefresh) localStorage.setItem('customer_refresh_token', newRefresh);
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
+      return newAccess;
+    }
+    return null;
+  } catch (e) {
+    console.warn('Auto token refresh error:', e);
+    return null;
+  }
+};
+
+async function aiRequest(endpoint, options = {}, isRetry = false) {
+  let token = getActiveAuthToken();
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -114,6 +195,18 @@ async function aiRequest(endpoint, options = {}) {
     ...options,
     headers,
   });
+
+  // Automatic token refresh interceptor on 401
+  if (response.status === 401 && !isRetry) {
+    const refreshedToken = await refreshCurrentAuthToken();
+    if (refreshedToken) {
+      const retryHeaders = {
+        ...headers,
+        Authorization: `Bearer ${refreshedToken}`,
+      };
+      return aiRequest(endpoint, { ...options, headers: retryHeaders }, true);
+    }
+  }
 
   const contentType = response.headers.get('content-type');
   let data = null;

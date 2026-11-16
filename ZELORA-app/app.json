@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "ZELORA",
+    "slug": "zelora-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0B0B",
+    "splash": {
+      "backgroundColor": "#0B0B0B",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "userInterfaceStyle": "dark"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0B0B",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "package": "com.zelora.app",
+      "userInterfaceStyle": "dark"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

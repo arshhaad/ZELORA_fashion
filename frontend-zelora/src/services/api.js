@@ -34,7 +34,7 @@ export const setStoredUser = (user) => {
   localStorage.setItem('customer_user', JSON.stringify(user));
 };
 
-async function request(endpoint, options = {}) {
+async function request(endpoint, options = {}, isRetry = false) {
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -49,6 +49,26 @@ async function request(endpoint, options = {}) {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && !isRetry) {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      try {
+        const refreshRes = await fetch(`${API_BASE}/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (refreshData.access) {
+            setTokens({ access: refreshData.access, refresh: refreshData.refresh || refreshToken });
+            return request(endpoint, options, true);
+          }
+        }
+      } catch {}
+    }
+  }
 
   const contentType = response.headers.get('content-type');
   let data = null;
@@ -232,8 +252,11 @@ const ADMIN_API_BASE = '/api/admin';
 
 export const getAdminAccessToken = () => localStorage.getItem('zelora_admin_token');
 export const setAdminAccessToken = (token) => localStorage.setItem('zelora_admin_token', token);
+export const getAdminRefreshToken = () => localStorage.getItem('zelora_admin_refresh_token');
+export const setAdminRefreshToken = (token) => localStorage.setItem('zelora_admin_refresh_token', token);
 export const clearAdminTokens = () => {
   localStorage.removeItem('zelora_admin_token');
+  localStorage.removeItem('zelora_admin_refresh_token');
   localStorage.removeItem('zelora_admin_user');
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('storage'));
@@ -260,7 +283,7 @@ export const setStoredAdminUser = (user) => {
   localStorage.setItem('zelora_admin_user', JSON.stringify(user));
 };
 
-async function adminRequest(endpoint, options = {}) {
+async function adminRequest(endpoint, options = {}, isRetry = false) {
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -275,6 +298,27 @@ async function adminRequest(endpoint, options = {}) {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && !isRetry) {
+    const refreshToken = getAdminRefreshToken();
+    if (refreshToken) {
+      try {
+        const refreshRes = await fetch('/api/auth/token/refresh/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (refreshData.access) {
+            setAdminAccessToken(refreshData.access);
+            if (refreshData.refresh) setAdminRefreshToken(refreshData.refresh);
+            return adminRequest(endpoint, options, true);
+          }
+        }
+      } catch {}
+    }
+  }
 
   const contentType = response.headers.get('content-type');
   let data = null;

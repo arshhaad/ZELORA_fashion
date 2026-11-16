@@ -3,6 +3,7 @@ import {
   adminApi,
   getAdminAccessToken,
   setAdminAccessToken,
+  setAdminRefreshToken,
   clearAdminTokens,
   getStoredAdminUser,
   setStoredAdminUser,
@@ -257,8 +258,12 @@ export function AdminProvider({ children }) {
       const res = await adminApi.login({ email, password });
       const user = res.user;
       const accessToken = res.tokens.access;
+      const refreshToken = res.tokens.refresh;
 
       setAdminAccessToken(accessToken);
+      if (refreshToken) {
+        setAdminRefreshToken(refreshToken);
+      }
       setStoredAdminUser(user);
       setAdminUser(user);
       setToken(accessToken);

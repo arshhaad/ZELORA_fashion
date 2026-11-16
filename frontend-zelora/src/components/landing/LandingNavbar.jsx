@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Smartphone } from 'lucide-react';
+import { Menu, X, Smartphone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function LandingNavbar({ onOpenInstallModal }) {
+export default function LandingNavbar({ onOpenInstall }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
@@ -30,13 +30,12 @@ export default function LandingNavbar({ onOpenInstallModal }) {
             <li key={item.label} className="zelora-nav-item">
               <Link
                 to={item.path}
-                className={`zelora-nav-link ${
-                  item.path === '/'
-                    ? location.pathname === '/' ? 'active' : ''
-                    : location.pathname + location.search === item.path || (item.path === '/products' && location.pathname === '/products' && !location.search)
+                className={`zelora-nav-link ${item.path === '/'
+                  ? location.pathname === '/' ? 'active' : ''
+                  : location.pathname + location.search === item.path || (item.path === '/products' && location.pathname === '/products' && !location.search)
                     ? 'active'
                     : ''
-                }`}
+                  }`}
               >
                 {item.label}
               </Link>
@@ -44,18 +43,19 @@ export default function LandingNavbar({ onOpenInstallModal }) {
           ))}
         </nav>
 
-        {/* Right: Authentication Action Buttons & Install Button */}
+        {/* Right: Authentication Action Buttons & Install App */}
         <div className="zelora-nav-actions">
-          {/* Small Install App Button */}
-          <button
-            type="button"
-            className="btn-zelora-install"
-            onClick={() => onOpenInstallModal && onOpenInstallModal()}
-            title="Install ZELORA Mobile App (iOS / Android / PWA)"
-          >
-            <Smartphone size={13} />
-            <span>Install App</span>
-          </button>
+          {onOpenInstall && (
+            <button
+              type="button"
+              className="btn-zelora-install"
+              onClick={onOpenInstall}
+              title="Install ZELORA Mobile / Web App"
+            >
+              <Smartphone size={13} />
+              <span className="install-btn-text">Install App</span>
+            </button>
+          )}
 
           {isAuthenticated && user ? (
             <div className="nav-auth-buttons">
@@ -101,33 +101,33 @@ export default function LandingNavbar({ onOpenInstallModal }) {
             <Link
               key={item.label}
               to={item.path}
-              className={`mobile-link ${
-                item.path === '/'
-                  ? location.pathname === '/' ? 'active' : ''
-                  : location.pathname + location.search === item.path
+              className={`mobile-link ${item.path === '/'
+                ? location.pathname === '/' ? 'active' : ''
+                : location.pathname + location.search === item.path
                   ? 'active'
                   : ''
-              }`}
+                }`}
               onClick={() => setMobileMenuOpen(false)}
             >
               {item.label}
             </Link>
           ))}
-          <div className="mobile-install-wrap" style={{ marginTop: '12px' }}>
+
+          {onOpenInstall && (
             <button
               type="button"
-              className="btn-zelora-install text-center"
-              style={{ width: '100%', height: '36px', fontSize: '12px' }}
+              className="btn-zelora-install-mobile"
               onClick={() => {
                 setMobileMenuOpen(false);
-                onOpenInstallModal && onOpenInstallModal();
+                onOpenInstall();
               }}
             >
-              <Smartphone size={14} />
+              <Smartphone size={16} />
               <span>Install ZELORA Mobile App</span>
             </button>
-          </div>
-          <div className="mobile-auth-grid" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #222' }}>
+          )}
+
+          <div className="mobile-auth-grid" style={{ marginTop: '12px', paddingTop: '16px', borderTop: '1px solid #222' }}>
             {isAuthenticated && user ? (
               <>
                 <Link to="/home" className="btn-zelora-signup text-center" onClick={() => setMobileMenuOpen(false)}>

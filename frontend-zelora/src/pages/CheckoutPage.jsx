@@ -219,10 +219,10 @@ export default function CheckoutPage() {
     }
   }, [fulfillmentType, deliveryMethod, discountedSubtotal]);
 
-  // Tax calculation (5% luxury apparel GST)
-  const tax = Math.round(discountedSubtotal * 0.05 * 100) / 100;
+  // Tax calculation (5% luxury apparel GST included in retail catalog price)
+  const tax = Math.round((discountedSubtotal - (discountedSubtotal / 1.05)) * 100) / 100;
   const currentCharge = fulfillmentType === 'pickup' ? 0 : deliveryCharge;
-  const finalPayable = discountedSubtotal + currentCharge + tax;
+  const finalPayable = discountedSubtotal + currentCharge;
 
   const handleSwitchFulfillment = (type) => {
     setFulfillmentType(type);
@@ -1203,11 +1203,11 @@ export default function CheckoutPage() {
                             <span className="spinner"></span> Securing Order...
                           </span>
                         ) : paymentMethod === 'Pay at Boutique Atelier' ? (
-                          <span>Confirm Atelier Reservation & Order (₹{finalPayable})</span>
+                          <span>Confirm Atelier Reservation & Order (₹{finalPayable.toFixed(2)})</span>
                         ) : paymentMethod === 'Razorpay' ? (
-                          <span>Authorize & Pay ₹{finalPayable} via Razorpay</span>
+                          <span>Authorize & Pay ₹{finalPayable.toFixed(2)} via Razorpay</span>
                         ) : (
-                          <span>Place Order (₹{finalPayable} COD)</span>
+                          <span>Place Order (₹{finalPayable.toFixed(2)} COD)</span>
                         )}
                       </button>
 
@@ -1260,14 +1260,14 @@ export default function CheckoutPage() {
 
                 <div className="summary-breakdown-list">
                   <div className="summary-line">
-                    <span>Product Subtotal</span>
-                    <span>₹{subtotal}</span>
+                    <span>{discountTotal > 0 ? 'Total MRP' : 'Product Subtotal'}</span>
+                    <span>₹{Number(subtotal).toFixed(2)}</span>
                   </div>
 
                   {discountTotal > 0 && (
                     <div className="summary-line text-discount">
                       <span>Catalogue Discount</span>
-                      <span>-₹{discountTotal}</span>
+                      <span>-₹{Number(discountTotal).toFixed(2)}</span>
                     </div>
                   )}
 
@@ -1278,13 +1278,15 @@ export default function CheckoutPage() {
                         ? 'FREE (Atelier Visit)'
                         : deliveryCharge === 0
                           ? 'FREE'
-                          : `₹${deliveryCharge}.00`}
+                          : `₹${Number(deliveryCharge).toFixed(2)}`}
                     </span>
                   </div>
 
                   <div className="summary-line">
                     <span>Estimated Tax (5% GST)</span>
-                    <span>₹{tax.toFixed(2)}</span>
+                    <span style={{ color: '#666', fontSize: '13px' }}>
+                      Included (₹{tax.toFixed(2)})
+                    </span>
                   </div>
 
                   <hr className="summary-divider" />

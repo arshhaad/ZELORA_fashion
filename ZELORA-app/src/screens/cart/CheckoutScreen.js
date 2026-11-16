@@ -39,8 +39,8 @@ export const CheckoutScreen = ({ route, navigation }) => {
     : cartSubtotal;
 
   const shipping = activeSubtotal >= 1500 || activeSubtotal === 0 ? 0 : 150;
-  const tax = Math.round(activeSubtotal * 0.05);
-  const total = activeSubtotal + shipping + tax;
+  const tax = Math.round((activeSubtotal - (activeSubtotal / 1.05)) * 100) / 100;
+  const total = activeSubtotal + shipping;
 
   // Form State
   const [fullName, setFullName] = useState(
@@ -280,7 +280,7 @@ export const CheckoutScreen = ({ route, navigation }) => {
           </View>
           <View style={styles.summaryLine}>
             <Text style={styles.summaryLabel}>Estimated GST (5%)</Text>
-            <Text style={styles.summaryValue}>₹{tax.toLocaleString('en-IN')}</Text>
+            <Text style={styles.summaryValue}>Included in Price (₹{tax.toLocaleString('en-IN')})</Text>
           </View>
 
           <View style={styles.divider} />

@@ -7,25 +7,25 @@ import InstallAppModal from '../components/common/InstallAppModal';
 import '../components/landing/landing.css';
 
 export default function LandingPage() {
-  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   return (
     <div className="zelora-landing">
-      {/* 1. Navbar */}
-      <LandingNavbar onOpenInstallModal={() => setIsInstallModalOpen(true)} />
+      {/* 1. Navbar with small Install App button */}
+      <LandingNavbar onOpenInstall={() => setShowInstallModal(true)} />
 
       {/* 2. Hero Section */}
       <main>
-        <HeroSection onOpenInstallModal={() => setIsInstallModalOpen(true)} />
+        <HeroSection onOpenInstall={() => setShowInstallModal(true)} />
       </main>
 
       {/* 3. Features Section */}
       <FeaturesSection />
 
-      {/* 4. Install App Modal */}
+      {/* 4. Install App Modal (Strictly on Landing Page) */}
       <InstallAppModal
-        isOpen={isInstallModalOpen}
-        onClose={() => setIsInstallModalOpen(false)}
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
       />
 
       {/* Minimal Bottom Bar */}
@@ -36,16 +36,15 @@ export default function LandingPage() {
           <div className="footer-nav">
             <Link to="/products">Collections</Link>
             <Link to="/about">About</Link>
+            <Link to="/login">Sign In</Link>
+            <Link to="/register">Sign Up</Link>
             <button
               type="button"
-              className="footer-install-link"
-              onClick={() => setIsInstallModalOpen(true)}
-              style={{ background: 'none', border: 'none', color: '#c5a059', cursor: 'pointer', font: 'inherit', padding: 0 }}
+              className="footer-install-btn"
+              onClick={() => setShowInstallModal(true)}
             >
               Install App
             </button>
-            <Link to="/login">Sign In</Link>
-            <Link to="/register">Sign Up</Link>
             <a href="#privacy" onClick={(e) => e.preventDefault()}>Privacy</a>
             <a href="#terms" onClick={(e) => e.preventDefault()}>Terms</a>
           </div>

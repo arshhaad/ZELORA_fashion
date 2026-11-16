@@ -102,8 +102,8 @@ export const CartProvider = ({ children }) => {
     0
   );
   const shipping = subtotal > 1500 || subtotal === 0 ? 0 : 150;
-  const tax = Math.round(subtotal * 0.05); // 5% GST
-  const total = subtotal + shipping + tax;
+  const tax = Math.round((subtotal - (subtotal / 1.05)) * 100) / 100; // 5% GST included in price
+  const total = subtotal + shipping;
   const totalCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
   return (

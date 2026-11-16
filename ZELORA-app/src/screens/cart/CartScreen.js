@@ -129,7 +129,7 @@ export const CartScreen = ({ navigation }) => {
 
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Estimated GST (5%)</Text>
-              <Text style={styles.summaryValue}>₹{tax.toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>Included (₹{tax.toLocaleString('en-IN')})</Text>
             </View>
 
             <View style={styles.summaryDivider} />

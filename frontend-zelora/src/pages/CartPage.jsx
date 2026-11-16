@@ -235,14 +235,14 @@ export default function CartPage() {
                   {/* Pricing Breakdown */}
                   <div className="summary-breakdown-list">
                     <div className="summary-line">
-                      <span>Subtotal ({cartCount} items)</span>
-                      <span>₹{subtotal}</span>
+                      <span>{discountTotal > 0 ? 'Total MRP' : `Subtotal (${cartCount} items)`}</span>
+                      <span>₹{Number(subtotal).toFixed(2)}</span>
                     </div>
 
                     {discountTotal > 0 && (
                       <div className="summary-line text-discount">
                         <span>Catalogue Discount</span>
-                        <span>-₹{discountTotal}</span>
+                        <span>-₹{Number(discountTotal).toFixed(2)}</span>
                       </div>
                     )}
 
@@ -250,7 +250,7 @@ export default function CartPage() {
                       <div className="summary-line text-discount">
                         <span>Promo ({appliedPromo.code} -{appliedPromo.percent}%)</span>
                         <div className="promo-applied-tag">
-                          <span>-₹{appliedPromo.discount}</span>
+                          <span>-₹{Number(appliedPromo.discount).toFixed(2)}</span>
                           <X size={12} onClick={handleRemovePromo} className="remove-promo-icon" />
                         </div>
                       </div>
@@ -262,15 +262,22 @@ export default function CartPage() {
                         {deliveryCharge === 0 ? (
                           <span className="free-shipping-tag">FREE</span>
                         ) : (
-                          `₹${deliveryCharge}`
+                          `₹${Number(deliveryCharge).toFixed(2)}`
                         )}
+                      </span>
+                    </div>
+
+                    <div className="summary-line">
+                      <span>Estimated Tax (5% GST)</span>
+                      <span style={{ color: '#666', fontSize: '13px' }}>
+                        Included in Price
                       </span>
                     </div>
 
                     {discountedSubtotal < 500 && (
                       <div className="shipping-progress-box">
                         <small>
-                          Add <strong>₹{500 - discountedSubtotal}</strong> more for complimentary delivery.
+                          Add <strong>₹{(500 - discountedSubtotal).toFixed(2)}</strong> more for complimentary delivery.
                         </small>
                       </div>
                     )}
@@ -279,7 +286,7 @@ export default function CartPage() {
 
                     <div className="summary-total-line">
                       <span className="total-label">Total Amount</span>
-                      <span className="total-value">₹{finalTotal}</span>
+                      <span className="total-value">₹{Number(finalTotal).toFixed(2)}</span>
                     </div>
                   </div>
 

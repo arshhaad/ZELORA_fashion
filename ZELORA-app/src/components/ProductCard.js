@@ -1,20 +1,18 @@
 // ZELORA Luxury Product Card
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { useWishlist } from '../context/WishlistContext';
 
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 44) / 2;
+
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80&sat=-100';
 
-export const ProductCard = ({ product, onPress, customWidth }) => {
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
-  const cardWidth = customWidth || (isTablet ? (width - 64) / 3 : (width - 44) / 2);
-  const imageHeight = cardWidth * 1.35;
-
+export const ProductCard = ({ product, onPress }) => {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [imageError, setImageError] = useState(false);
 
@@ -34,11 +32,11 @@ export const ProductCard = ({ product, onPress, customWidth }) => {
 
   return (
     <TouchableOpacity
-      style={[styles.card, { width: cardWidth }]}
+      style={styles.card}
       activeOpacity={0.85}
       onPress={() => onPress && onPress(product)}
     >
-      <View style={[styles.imageContainer, { height: imageHeight }]}>
+      <View style={styles.imageContainer}>
         <Image
           source={{ uri: imageUrl }}
           style={styles.image}
@@ -102,6 +100,7 @@ export const ProductCard = ({ product, onPress, customWidth }) => {
 
 const styles = StyleSheet.create({
   card: {
+    width: CARD_WIDTH,
     marginBottom: 20,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -111,6 +110,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
+    height: CARD_WIDTH * 1.35,
     backgroundColor: colors.surfaceElevated,
     position: 'relative',
   },

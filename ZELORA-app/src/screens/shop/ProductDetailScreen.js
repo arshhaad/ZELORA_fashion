@@ -7,7 +7,7 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  useWindowDimensions,
+  Dimensions,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { Header } from '../../components/Header';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 
+const { width } = Dimensions.get('window');
 const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80&sat=-100';
@@ -25,10 +26,6 @@ const FALLBACK_IMAGE =
 export const ProductDetailScreen = ({ route, navigation }) => {
   const { product } = route.params;
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const isTablet = width >= 768;
-  const imageHeight = isTablet ? 520 : Math.min(width * 1.3, 500);
-
   const { addToCart, setDirectBuyItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
@@ -76,7 +73,7 @@ export const ProductDetailScreen = ({ route, navigation }) => {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Full Editorial Garment Image */}
-        <View style={[styles.imageContainer, { width: '100%', height: imageHeight }]}>
+        <View style={styles.imageContainer}>
           <Image
             source={{ uri: imageUrl }}
             style={styles.image}
@@ -212,9 +209,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   imageContainer: {
+    width: width,
+    height: width * 1.3,
     backgroundColor: colors.surfaceElevated,
     position: 'relative',
-    alignSelf: 'center',
   },
   image: {
     width: '100%',

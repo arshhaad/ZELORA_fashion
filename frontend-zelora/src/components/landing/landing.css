@@ -661,3 +661,493 @@
   justify-content: center;
 }
 
+/* ==============================================================================
+   ZELORA INSTALL BUTTONS & MOBILE ATELIER MODAL
+   ============================================================================== */
+
+/* Small Navbar Install Button */
+.btn-zelora-install {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #C5A059;
+  background-color: #111111;
+  border: 1px solid #C5A059;
+  border-radius: 4px;
+  padding: 4px 10px;
+  height: 28px;
+  box-sizing: border-box;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.btn-zelora-install:hover {
+  background-color: #C5A059;
+  color: #0B0B0B;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.35);
+}
+
+/* Hero Section Install Button */
+.btn-hero-install {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #C5A059;
+  background-color: #111111;
+  border: 1px solid #C5A059;
+  border-radius: 4px;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.btn-hero-install:hover {
+  background-color: #C5A059;
+  color: #0B0B0B;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(197, 160, 89, 0.35);
+}
+
+/* Modal Overlay */
+.zelora-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal Card */
+.zelora-install-modal {
+  background: #0B0B0B;
+  color: #EDEDED;
+  border: 1px solid #282828;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(197, 160, 89, 0.15);
+  animation: modalSlideUp 0.25s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(16px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.install-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #1C1C1C;
+}
+
+.install-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1C1810;
+  border: 1px solid #C5A059;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #C5A059;
+  text-transform: uppercase;
+}
+
+.install-modal-close {
+  background: transparent;
+  border: none;
+  color: #888888;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.install-modal-close:hover {
+  color: #FFFFFF;
+  background: #1C1C1C;
+}
+
+.install-modal-hero {
+  padding: 20px 24px 14px;
+}
+
+.install-modal-title {
+  font-family: var(--font-brand);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+
+.install-modal-desc {
+  font-size: 13px;
+  color: #A0A0A0;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Tabs */
+.install-modal-tabs {
+  display: flex;
+  padding: 0 24px;
+  gap: 8px;
+  border-bottom: 1px solid #1C1C1C;
+  overflow-x: auto;
+}
+
+.install-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #888888;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.install-tab-btn:hover {
+  color: #EDEDED;
+}
+
+.install-tab-btn.active {
+  color: #C5A059;
+  border-bottom-color: #C5A059;
+  font-weight: 700;
+}
+
+.install-tab-content {
+  padding: 20px 24px;
+}
+
+/* QR Strip */
+.install-qr-strip {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  background: #141414;
+  border: 1px solid #222222;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.install-qr-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #FFFFFF;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.install-qr-svg {
+  width: 110px;
+  height: 110px;
+}
+
+.install-qr-caption {
+  font-size: 10px;
+  font-weight: 800;
+  color: #0B0B0B;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+.install-steps {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.install-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.step-num {
+  font-family: var(--font-brand);
+  font-size: 11px;
+  font-weight: 800;
+  color: #C5A059;
+  background: #1C1810;
+  border: 1px solid #3A2E1A;
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.step-text strong {
+  display: block;
+  font-size: 12px;
+  color: #FFFFFF;
+  margin-bottom: 2px;
+}
+
+.step-text p {
+  font-size: 11px;
+  color: #888888;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* CLI Box */
+.install-cli-strip {
+  background: #141414;
+  border: 1px solid #222222;
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.install-cli-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #C5A059;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.install-cli-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0B0B0B;
+  border: 1px solid #262626;
+  border-radius: 4px;
+  padding: 8px 12px;
+  gap: 10px;
+}
+
+.install-cli-box code {
+  font-family: monospace;
+  font-size: 12px;
+  color: #34D399;
+  overflow-x: auto;
+}
+
+.install-copy-btn {
+  background: #1C1C1C;
+  border: 1px solid #333333;
+  color: #EDEDED;
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.install-copy-btn:hover {
+  background: #C5A059;
+  color: #0B0B0B;
+  border-color: #C5A059;
+}
+
+/* PWA Tab Content */
+.pwa-install-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #141414;
+  border: 1px solid #222222;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.pwa-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  background: #1C1810;
+  border: 1px solid #C5A059;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pwa-text-wrap h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 4px;
+}
+
+.pwa-text-wrap p {
+  font-size: 12px;
+  color: #999999;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.btn-modal-install-now {
+  width: 100%;
+  height: 46px;
+  background: #C5A059;
+  color: #0B0B0B;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-bottom: 16px;
+}
+
+.btn-modal-install-now:hover {
+  background: #D4AF37;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(197, 160, 89, 0.4);
+}
+
+.pwa-instruction-hints {
+  background: #141414;
+  border: 1px solid #222222;
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: #888888;
+  line-height: 1.6;
+}
+
+.pwa-instruction-hints p {
+  margin: 0;
+}
+
+.pwa-instruction-hints strong {
+  color: #EDEDED;
+}
+
+.install-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #1C1C1C;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.modal-footer-brand {
+  font-family: var(--font-brand);
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #C5A059;
+}
+
+.modal-footer-info {
+  color: #666666;
+  font-size: 10px;
+}
+
+/* Responsive adjustments for Install Button & Modal */
+@media (max-width: 640px) {
+  .install-qr-strip {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .install-step-item {
+    text-align: left;
+  }
+  .install-modal-footer {
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-zelora-install span {
+    display: inline;
+  }
+  .btn-hero-install {
+    width: 100%;
+  }
+  .install-modal-title {
+    font-size: 18px;
+  }
+  .install-modal-tabs {
+    flex-direction: column;
+    gap: 0;
+  }
+  .install-tab-btn {
+    padding: 8px 10px;
+    border-bottom: none;
+    border-left: 2px solid transparent;
+  }
+  .install-tab-btn.active {
+    border-left-color: #C5A059;
+  }
+}
+
+@media (max-width: 360px) {
+  .btn-zelora-install {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+  .btn-zelora-install span {
+    display: none;
+  }
+}
+
+

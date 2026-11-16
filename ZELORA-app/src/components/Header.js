@@ -44,8 +44,12 @@ export const Header = ({
         onPress={() => navigation?.navigate('HomeTab')}
         activeOpacity={0.8}
       >
-        <Text style={styles.brandTitle}>{title}</Text>
-        <Text style={styles.brandSubtitle}>HAUTE HORLOGERIE & COUTURE</Text>
+        <Text style={styles.brandTitle} numberOfLines={1} ellipsizeMode="tail">
+          {title}
+        </Text>
+        <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
+          HAUTE HORLOGERIE & COUTURE
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.rightRow}>

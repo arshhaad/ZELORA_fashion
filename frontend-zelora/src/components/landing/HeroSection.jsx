@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Smartphone } from 'lucide-react';
 import heroEditorialImg from '../../assets/hero-editorial.jpg';
 
-export default function HeroSection() {
+export default function HeroSection({ onOpenInstallModal }) {
   return (
     <section className="zelora-hero">
       <div className="zelora-hero-container">
@@ -28,6 +28,16 @@ export default function HeroSection() {
             <Link to="/products" className="btn-hero-secondary">
               Explore Collections
             </Link>
+
+            <button
+              type="button"
+              className="btn-hero-install"
+              onClick={() => onOpenInstallModal && onOpenInstallModal()}
+              title="Install ZELORA Mobile App on iOS or Android"
+            >
+              <Smartphone size={15} />
+              <span>Install App</span>
+            </button>
           </div>
         </div>
 

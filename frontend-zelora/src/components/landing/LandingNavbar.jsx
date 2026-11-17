@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Smartphone } from 'lucide-react';
+import { Menu, X, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LandingNavbar({ onOpenInstall }) {
@@ -50,9 +50,9 @@ export default function LandingNavbar({ onOpenInstall }) {
               type="button"
               className="btn-zelora-install"
               onClick={onOpenInstall}
-              title="Install ZELORA Mobile / Web App"
+              title="Install ZELORA Web Application"
             >
-              <Smartphone size={13} />
+              <Download size={13} />
               <span className="install-btn-text">Install App</span>
             </button>
           )}
@@ -122,8 +122,8 @@ export default function LandingNavbar({ onOpenInstall }) {
                 onOpenInstall();
               }}
             >
-              <Smartphone size={16} />
-              <span>Install ZELORA Mobile App</span>
+              <Download size={16} />
+              <span>Install ZELORA Web App</span>
             </button>
           )}
 

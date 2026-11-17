@@ -2,28 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { X, Smartphone, Download, QrCode, Check, Copy, Sparkles, ExternalLink } from 'lucide-react';
 
 export default function InstallAppModal({ isOpen, onClose }) {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(() => (typeof window !== 'undefined' ? window.deferredInstallPrompt : null));
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  });
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState('mobile'); // 'mobile' | 'pwa'
+  const [activeTab, setActiveTab] = useState('pwa'); // 'pwa' | 'mobile'
 
   useEffect(() => {
     const handleBeforeInstall = (e) => {
       e.preventDefault();
+      window.deferredInstallPrompt = e;
       setDeferredPrompt(e);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
+      window.deferredInstallPrompt = null;
       setDeferredPrompt(null);
+    };
+
+    const handleReady = () => {
+      setDeferredPrompt(window.deferredInstallPrompt);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('zelora_install_ready', handleReady);
+    window.addEventListener('zelora_installed', handleAppInstalled);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      setIsInstalled(true);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('zelora_install_ready', handleReady);
+      window.removeEventListener('zelora_installed', handleAppInstalled);
     };
   }, []);
 
@@ -45,20 +62,30 @@ export default function InstallAppModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handleInstallPWA = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
-      if (choiceResult.outcome === 'accepted') {
-        setIsInstalled(true);
+    const promptEvent = deferredPrompt || window.deferredInstallPrompt;
+    if (promptEvent) {
+      try {
+        promptEvent.prompt();
+        const choiceResult = await promptEvent.userChoice;
+        if (choiceResult && choiceResult.outcome === 'accepted') {
+          setIsInstalled(true);
+          window.deferredInstallPrompt = null;
+          setDeferredPrompt(null);
+        }
+      } catch (err) {
+        console.warn('Install prompt error:', err);
       }
-      setDeferredPrompt(null);
     } else {
+      if (isInstalled) {
+        alert('ZELORA is already installed as a standalone web application on your device.');
+        return;
+      }
       // Manual fallback alert / instruction
       alert(
-        'To install ZELORA on your device:\n\n' +
-        '• On Chrome/Edge: Click the Install icon in the browser address bar.\n' +
-        '• On iOS Safari: Tap Share (square with arrow) and select "Add to Home Screen".\n' +
-        '• On Android Chrome: Tap Menu (3 dots) and select "Add to Home screen" / "Install app".'
+        'To install the ZELORA Web Application on your device:\n\n' +
+        '• Chrome / Edge / Brave: Look for the Install icon (⊕) in the browser address bar, or click Menu (⋮) → "Install ZELORA".\n' +
+        '• Safari (iOS / iPadOS): Tap the Share button (square with arrow) at the bottom and select "Add to Home Screen".\n' +
+        '• Android: Tap browser Menu (⋮) and tap "Install app" or "Add to Home screen".'
       );
     }
   };
@@ -80,8 +107,8 @@ export default function InstallAppModal({ isOpen, onClose }) {
         {/* Modal Header */}
         <div className="install-modal-header">
           <div className="install-modal-brand-badge">
-            <Smartphone size={16} />
-            <span>ZELORA MOBILE & APP EXPERIENCE</span>
+            <Download size={16} />
+            <span>ZELORA INSTALLABLE APPLICATION</span>
           </div>
           <button
             type="button"
@@ -96,34 +123,96 @@ export default function InstallAppModal({ isOpen, onClose }) {
         {/* Hero Title */}
         <div className="install-modal-body">
           <h2 className="install-modal-title">
-            Experience ZELORA on Your Mobile Device
+            Install ZELORA on Your Device
           </h2>
           <p className="install-modal-desc">
-            Enjoy seamless monochrome couture browsing, real-time order tracking, and our
-            bespoke AI Assistant on iOS & Android.
+            Enjoy full-screen monochrome couture browsing, standalone dock integration, and instant offline launch on desktop and mobile.
           </p>
 
           {/* Mode Switcher Tabs */}
           <div className="install-tab-switch">
             <button
               type="button"
-              className={`install-tab-btn ${activeTab === 'mobile' ? 'active' : ''}`}
-              onClick={() => setActiveTab('mobile')}
-            >
-              <Smartphone size={14} />
-              <span>React Native / Expo App</span>
-            </button>
-            <button
-              type="button"
               className={`install-tab-btn ${activeTab === 'pwa' ? 'active' : ''}`}
               onClick={() => setActiveTab('pwa')}
             >
               <Download size={14} />
-              <span>Web App (PWA)</span>
+              <span>Web Application (PWA)</span>
+            </button>
+            <button
+              type="button"
+              className={`install-tab-btn ${activeTab === 'mobile' ? 'active' : ''}`}
+              onClick={() => setActiveTab('mobile')}
+            >
+              <Smartphone size={14} />
+              <span>React Native / Mobile App</span>
             </button>
           </div>
 
-          {activeTab === 'mobile' ? (
+          {activeTab === 'pwa' ? (
+            <div className="install-tab-content">
+              <div className="pwa-install-banner">
+                <div className="pwa-icon-wrap">
+                  <Download size={26} />
+                </div>
+                <div>
+                  <h4 className="pwa-banner-title">
+                    {isInstalled ? 'ZELORA Web App Installed' : 'Install Instant Web Application'}
+                  </h4>
+                  <p className="pwa-banner-sub">
+                    {isInstalled
+                      ? 'ZELORA is installed on this device and ready to launch in full standalone mode.'
+                      : 'Add ZELORA directly to your mobile home screen or computer dock for fast, standalone access.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="install-feature-pill-strip">
+                <div className="install-feature-pill">
+                  <Sparkles size={13} className="text-gold" />
+                  <span>Standalone Window</span>
+                </div>
+                <div className="install-feature-pill">
+                  <Check size={13} className="text-gold" />
+                  <span>Offline Cache</span>
+                </div>
+                <div className="install-feature-pill">
+                  <Check size={13} className="text-gold" />
+                  <span>Instant Launch</span>
+                </div>
+              </div>
+
+              <div className="pwa-device-instructions">
+                <div className="pwa-device-card">
+                  <h5>iOS (iPhone / iPad)</h5>
+                  <p>1. Open in <strong>Safari</strong></p>
+                  <p>2. Tap the <strong>Share</strong> button (box with arrow)</p>
+                  <p>3. Tap <strong>Add to Home Screen</strong></p>
+                </div>
+                <div className="pwa-device-card">
+                  <h5>Android, Chrome & Brave</h5>
+                  <p>1. Click the <strong>Install</strong> button below</p>
+                  <p>2. Or tap Menu (⋮) → <strong>Install app</strong></p>
+                  <p>3. Launch ZELORA from your app drawer</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn-pwa-trigger"
+                onClick={handleInstallPWA}
+              >
+                <Download size={16} />
+                <span>
+                  {isInstalled
+                    ? 'App Installed ✓'
+                    : (deferredPrompt || window.deferredInstallPrompt
+                      ? 'Install ZELORA Now'
+                      : 'Add to Home Screen / Install')}
+                </span>
+              </button>
+            </div>
+          ) : (
             <div className="install-tab-content">
               <div className="install-feature-pill-strip">
                 <div className="install-feature-pill">
@@ -218,45 +307,6 @@ export default function InstallAppModal({ isOpen, onClose }) {
                   </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="install-tab-content">
-              <div className="pwa-install-banner">
-                <div className="pwa-icon-wrap">
-                  <Download size={26} />
-                </div>
-                <div>
-                  <h4 className="pwa-banner-title">Install ZELORA Web Application</h4>
-                  <p className="pwa-banner-sub">
-                    Add ZELORA directly to your home screen or desktop application dock for
-                    faster access and offline cache.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pwa-device-instructions">
-                <div className="pwa-device-card">
-                  <h5>iOS (iPhone / iPad)</h5>
-                  <p>1. Open ZELORA in Safari</p>
-                  <p>2. Tap the <strong>Share</strong> button (square with arrow)</p>
-                  <p>3. Select <strong>Add to Home Screen</strong></p>
-                </div>
-                <div className="pwa-device-card">
-                  <h5>Android & Desktop</h5>
-                  <p>1. Open in Chrome or Edge</p>
-                  <p>2. Click <strong>Install</strong> or Menu (⋮)</p>
-                  <p>3. Tap <strong>Install app</strong> / <strong>Add to Home Screen</strong></p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="btn-pwa-trigger"
-                onClick={handleInstallPWA}
-              >
-                <Download size={16} />
-                <span>{isInstalled ? 'App Installed ✓' : 'Install ZELORA Now'}</span>
-              </button>
             </div>
           )}
         </div>

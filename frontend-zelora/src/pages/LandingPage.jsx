@@ -9,14 +9,32 @@ import '../components/landing/landing.css';
 export default function LandingPage() {
   const [showInstallModal, setShowInstallModal] = useState(false);
 
+  // Directly trigger native PWA install prompt if supported by browser, else open modal
+  const handleOpenInstall = async () => {
+    const promptEvent = window.deferredInstallPrompt;
+    if (promptEvent) {
+      try {
+        promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          window.deferredInstallPrompt = null;
+          return;
+        }
+      } catch (err) {
+        console.warn('Direct PWA prompt error:', err);
+      }
+    }
+    setShowInstallModal(true);
+  };
+
   return (
     <div className="zelora-landing">
       {/* 1. Navbar with small Install App button */}
-      <LandingNavbar onOpenInstall={() => setShowInstallModal(true)} />
+      <LandingNavbar onOpenInstall={handleOpenInstall} />
 
       {/* 2. Hero Section */}
       <main>
-        <HeroSection onOpenInstall={() => setShowInstallModal(true)} />
+        <HeroSection onOpenInstall={handleOpenInstall} />
       </main>
 
       {/* 3. Features Section */}
@@ -41,7 +59,7 @@ export default function LandingPage() {
             <button
               type="button"
               className="footer-install-btn"
-              onClick={() => setShowInstallModal(true)}
+              onClick={handleOpenInstall}
             >
               Install App
             </button>

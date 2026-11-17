@@ -110,17 +110,17 @@ export default function ZeloraAIChatWidget() {
     }
   }, [isOpen, activeUser, isAdminRole, isSellerRole]);
 
-  // Strictly do NOT render the AI assistant widget if on auth route or user is not logged in!
-  if (isAuthenticationRoute(location.pathname) || !activeUser || !activeToken) {
-    return null;
-  }
-
-  // Auto-scroll to bottom of messages
+  // Auto-scroll to bottom of messages (called unconditionally to satisfy Rules of Hooks)
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading, isOpen]);
+
+  // Strictly do NOT render the AI assistant widget if on auth route or user is not logged in!
+  if (isAuthenticationRoute(location.pathname) || !activeUser || !activeToken) {
+    return null;
+  }
 
   const handleSend = async (textToSend) => {
     const prompt = (textToSend || inputText).trim();

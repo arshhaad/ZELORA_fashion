@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
 import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
@@ -7,14 +7,22 @@ import '../../components/admin/admin.css';
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginAdmin } = useAdmin();
+  const { loginAdmin, isAuthenticated } = useAdmin();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const from = location.state?.from?.pathname || '/admin';
+  const targetPath = location.state?.from?.pathname;
+  const from = (targetPath && targetPath !== '/admin/login') ? targetPath : '/admin';
+
+  // Automatically redirect authenticated administrators to executive portal
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, from, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

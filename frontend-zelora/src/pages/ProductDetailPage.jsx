@@ -72,6 +72,15 @@ export default function ProductDetailPage() {
     }
   }, [id, product]);
 
+  const inWishlist = product ? isInWishlist(product.id) : false;
+  const relatedProducts = useMemo(() => {
+    if (!product) return [];
+    const normCat = normalizeCategory(product.category);
+    return liveProducts
+      .filter((p) => p.id !== product.id && normalizeCategory(p.category) === normCat)
+      .slice(0, 4);
+  }, [liveProducts, product]);
+
   if (!product) {
     return (
       <div className="zelora-page-wrapper">
@@ -87,15 +96,6 @@ export default function ProductDetailPage() {
       </div>
     );
   }
-
-  const inWishlist = isInWishlist(product.id);
-  const relatedProducts = useMemo(() => {
-    if (!product) return [];
-    const normCat = normalizeCategory(product.category);
-    return liveProducts
-      .filter((p) => p.id !== product.id && normalizeCategory(p.category) === normCat)
-      .slice(0, 4);
-  }, [liveProducts, product]);
 
   const handleAddToCart = () => {
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {

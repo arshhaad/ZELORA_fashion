@@ -149,7 +149,7 @@ export function AdminProvider({ children }) {
     razorpay_key_id: 'rzp_test_TxHy520so82PT1',
   });
 
-  const isAuthenticated = Boolean(adminUser && token);
+  const isAuthenticated = Boolean((adminUser && token) || (getStoredAdminUser() && getAdminAccessToken()));
 
   // Load live data from Django Backend when authenticated
   const loadDashboardData = useCallback(async () => {

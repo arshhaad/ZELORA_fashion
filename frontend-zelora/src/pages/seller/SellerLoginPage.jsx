@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSeller } from '../../context/SellerContext';
 import { authApi } from '../../services/api';
@@ -13,7 +13,13 @@ import '../../components/seller/seller.css';
 
 export default function SellerLoginPage() {
   const navigate = useNavigate();
-  const { loginSeller, loginSellerWithGoogle, showToast } = useSeller();
+  const { loginSeller, loginSellerWithGoogle, isSellerAuthenticated, showToast } = useSeller();
+
+  useEffect(() => {
+    if (isSellerAuthenticated) {
+      navigate('/seller/dashboard', { replace: true });
+    }
+  }, [isSellerAuthenticated, navigate]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

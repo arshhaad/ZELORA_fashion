@@ -35,8 +35,8 @@ export default function ZeloraAIChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [addingCartId, setAddingCartId] = useState(null);
   const [conversationId, setConversationId] = useState(null);
-  const [preferredProvider, setPreferredProvider] = useState('groq'); // 'groq' | 'gemini'
-  const [activeProviderBadge, setActiveProviderBadge] = useState('Groq Fast');
+  const [preferredProvider, setPreferredProvider] = useState('gemini'); // 'gemini' | 'groq'
+  const [activeProviderBadge, setActiveProviderBadge] = useState('Gemini 3.5');
   const messagesEndRef = useRef(null);
 
   const activeUser = portalAuth?.user || null;

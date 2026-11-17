@@ -21,7 +21,7 @@ class GroqService:
             os.getenv('GORQ_API_KEY') or
             ''
         ).strip()
-        self.model = os.getenv('GROQ_MODEL', 'qwen/qwen3.8-27b').strip()
+        self.model = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile').strip()
         self.timeout = int(os.getenv('GROQ_TIMEOUT_SECONDS', '15'))
 
     def is_configured(self) -> bool:

@@ -469,17 +469,68 @@ export function AdminProvider({ children }) {
 
   // 9. Notification Broadcast
   const sendBroadcastNotification = async (notifData) => {
+    let savedNotif = null;
     try {
-      const res = await adminApi.sendNotification(notifData);
-      setNotificationsList((prev) => [res, ...prev]);
+      savedNotif = await adminApi.sendNotification(notifData);
+      setNotificationsList((prev) => [savedNotif, ...prev]);
     } catch {
-      const mockNotif = {
+      savedNotif = {
         id: Date.now(),
         ...notifData,
         sent_at: new Date().toISOString(),
         created_by_email: adminUser?.email || 'admin@zelora.luxury'
       };
-      setNotificationsList((prev) => [mockNotif, ...prev]);
+      setNotificationsList((prev) => [savedNotif, ...prev]);
+    }
+
+    // Dispatch broadcast event for live multi-tab & instant cross-portal updates
+    const audience = (notifData.target_audience || 'all').toLowerCase();
+    const broadcastPayload = {
+      id: savedNotif?.id || Date.now(),
+      title: notifData.title,
+      message: notifData.message,
+      description: notifData.message,
+      target_audience: audience,
+      sent_at: savedNotif?.sent_at || new Date().toISOString(),
+      created_at: savedNotif?.sent_at || new Date().toISOString(),
+    };
+
+    try {
+      // 1. Dispatch to seller notification storage if audience is 'all' or 'sellers'
+      if (['all', 'sellers'].includes(audience)) {
+        const sellerNotifs = JSON.parse(localStorage.getItem('zelora_seller_notifs') || '[]');
+        const updatedSellerNotif = {
+          id: broadcastPayload.id,
+          type: 'admin',
+          title: broadcastPayload.title,
+          description: broadcastPayload.message,
+          time: 'Just now',
+          created_at: broadcastPayload.created_at,
+          is_read: false,
+        };
+        localStorage.setItem('zelora_seller_notifs', JSON.stringify([updatedSellerNotif, ...sellerNotifs]));
+        window.dispatchEvent(new CustomEvent('zelora_seller_notification_updated', { detail: updatedSellerNotif }));
+      }
+
+      // 2. Dispatch to customer notification event if audience is 'all' or 'customers'
+      if (['all', 'customers'].includes(audience)) {
+        const updatedCustNotif = {
+          id: broadcastPayload.id,
+          category: 'promotions',
+          title: broadcastPayload.title,
+          description: broadcastPayload.message,
+          created_at: broadcastPayload.created_at,
+          is_read: false,
+        };
+        window.dispatchEvent(new CustomEvent('zelora_customer_notification_updated', { detail: updatedCustNotif }));
+      }
+
+      // 3. Global broadcast signal across all browser tabs
+      localStorage.setItem('zelora_last_broadcast_notification', JSON.stringify(broadcastPayload));
+      window.dispatchEvent(new CustomEvent('zelora_broadcast_notification', { detail: broadcastPayload }));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {
+      console.warn('Failed to dispatch broadcast notification events', e);
     }
   };
 

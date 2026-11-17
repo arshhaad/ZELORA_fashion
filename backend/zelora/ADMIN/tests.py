@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-from CUSTOMER.models import User, SellerShop
+from CUSTOMER.models import User, SellerShop, Notification
 from .models import PlatformSetting
 
 
@@ -120,3 +120,65 @@ class AdminAuthenticationAndModulesTests(TestCase):
         })
         self.assertEqual(notif_resp.status_code, status.HTTP_201_CREATED)
         self.assertIn('status', notif_resp.data)
+
+    def test_admin_broadcast_notification_delivered_to_customer_and_seller(self):
+        # Create seller and customer
+        seller = User.objects.create_user(
+            email='broadcast_seller@zelora.luxury',
+            password='Password@123',
+            first_name='Atelier',
+            last_name='Boutique',
+            is_seller=True
+        )
+        customer = User.objects.create_user(
+            email='broadcast_customer@zelora.luxury',
+            password='Password@123',
+            first_name='Valued',
+            last_name='Customer',
+            is_seller=False
+        )
+
+        login_resp = self.client.post(reverse('admin-login'), {
+            'email': 'superadmin@zelora.luxury',
+            'password': 'Password@123'
+        })
+        token = login_resp.data['tokens']['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+        broadcast_url = reverse('admin-notifications')
+        resp = self.client.post(broadcast_url, {
+            'title': 'Grand Festive Gala Announcement',
+            'message': 'Enjoy exclusive seasonal rewards across all boutiques.',
+            'target_audience': 'all'
+        })
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+        # Verify seller received the notification in their Notification table
+        seller_notifs = Notification.objects.filter(user=seller)
+        self.assertTrue(seller_notifs.exists())
+        self.assertEqual(seller_notifs.first().title, 'Grand Festive Gala Announcement')
+
+        # Verify customer received the notification in their Notification table
+        customer_notifs = Notification.objects.filter(user=customer)
+        self.assertTrue(customer_notifs.exists())
+        self.assertEqual(customer_notifs.first().title, 'Grand Festive Gala Announcement')
+
+        # Broadcast targeted only to sellers
+        seller_only_resp = self.client.post(broadcast_url, {
+            'title': 'Seller Inventory Advisory',
+            'message': 'Restock high-demand bridal gowns for the weekend.',
+            'target_audience': 'sellers'
+        })
+        self.assertEqual(seller_only_resp.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Notification.objects.filter(user=seller, title='Seller Inventory Advisory').exists())
+        self.assertFalse(Notification.objects.filter(user=customer, title='Seller Inventory Advisory').exists())
+
+        # Broadcast targeted only to customers
+        customer_only_resp = self.client.post(broadcast_url, {
+            'title': 'Customer Flash Sale',
+            'message': 'Exclusive 20% privilege credit on luxury footwear.',
+            'target_audience': 'customers'
+        })
+        self.assertEqual(customer_only_resp.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Notification.objects.filter(user=customer, title='Customer Flash Sale').exists())
+        self.assertFalse(Notification.objects.filter(user=seller, title='Customer Flash Sale').exists())

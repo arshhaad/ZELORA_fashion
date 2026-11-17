@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { useCart } from './CartContext';
 import { authApi } from '../services/api';
@@ -179,6 +179,62 @@ export function CustomerProvider({ children }) {
         .catch(() => {});
     }
   }, [user]);
+
+  // Dedicated notification refetch helper
+  const fetchCustomerNotifications = useCallback(() => {
+    if (!user) return;
+    const notifKey = getCustomerStorageKey('notifications', user);
+    authApi.getNotifications()
+      .then((res) => {
+        if (Array.isArray(res)) {
+          setNotifications(res);
+          if (notifKey) localStorage.setItem(notifKey, JSON.stringify(res));
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
+  // Real-time listener for admin broadcast notifications & customer updates
+  useEffect(() => {
+    if (!user) return;
+
+    const handleBroadcast = (event) => {
+      fetchCustomerNotifications();
+      if (event?.detail) {
+        const d = event.detail;
+        const target = (d.target_audience || 'all').toLowerCase();
+        if (target === 'all' || target === 'customers') {
+          setNotifications((prev) => [
+            {
+              id: d.id || Date.now(),
+              category: d.category || 'promotions',
+              title: d.title,
+              description: d.message || d.description,
+              created_at: d.created_at || new Date().toISOString(),
+              is_read: false,
+            },
+            ...prev,
+          ]);
+        }
+      }
+    };
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'zelora_last_broadcast_notification') {
+        fetchCustomerNotifications();
+      }
+    };
+
+    window.addEventListener('zelora_broadcast_notification', handleBroadcast);
+    window.addEventListener('zelora_customer_notification_updated', handleBroadcast);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('zelora_broadcast_notification', handleBroadcast);
+      window.removeEventListener('zelora_customer_notification_updated', handleBroadcast);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [user, fetchCustomerNotifications]);
 
   // Persist to user-scoped storage when states change
   useEffect(() => {

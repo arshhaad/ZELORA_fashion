@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, productsApi } from '../services/api';
 
 const SellerContext = createContext();
@@ -151,6 +151,82 @@ export function SellerProvider({ children }) {
       active = false;
     };
   }, [isSellerAuthenticated]);
+
+  // Fetch real notifications from backend whenever authenticated
+  const fetchSellerNotifications = useCallback(async () => {
+    const token = localStorage.getItem('zelora_seller_access_token');
+    if (!isSellerAuthenticated || !token) return;
+
+    try {
+      const backendNotifs = await authApi.getSellerNotifications();
+      if (Array.isArray(backendNotifs)) {
+        setNotifications((prev) => {
+          const formattedBackend = backendNotifs.map((n) => ({
+            id: n.id,
+            type: n.category === 'orders' ? 'order' : 'admin',
+            title: n.title,
+            description: n.description,
+            time: n.created_at ? new Date(n.created_at).toLocaleString() : 'Just now',
+            created_at: n.created_at,
+            is_read: Boolean(n.is_read),
+          }));
+
+          const backendIds = new Set(formattedBackend.map((n) => String(n.id)));
+          const remainingLocal = (Array.isArray(prev) ? prev : []).filter(
+            (p) => p && !backendIds.has(String(p.id)) && !LEGACY_DEMO_NOTIF_IDS.has(p.id)
+          );
+          return [...formattedBackend, ...remainingLocal];
+        });
+      }
+    } catch (err) {
+      console.warn('Could not refresh seller notifications from backend:', err?.message);
+    }
+  }, [isSellerAuthenticated]);
+
+  useEffect(() => {
+    fetchSellerNotifications();
+  }, [fetchSellerNotifications]);
+
+  // Real-time synchronization for admin broadcast notifications & cross-tab events
+  useEffect(() => {
+    const handleBroadcast = (event) => {
+      fetchSellerNotifications();
+      if (event?.detail) {
+        const d = event.detail;
+        const target = (d.target_audience || 'all').toLowerCase();
+        if (target === 'all' || target === 'sellers') {
+          setNotifications((prev) => [
+            {
+              id: d.id || Date.now(),
+              type: 'admin',
+              title: d.title,
+              description: d.message || d.description,
+              time: 'Just now',
+              created_at: new Date().toISOString(),
+              is_read: false,
+            },
+            ...prev,
+          ]);
+        }
+      }
+    };
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'zelora_last_broadcast_notification' || e.key === 'zelora_seller_notifs') {
+        fetchSellerNotifications();
+      }
+    };
+
+    window.addEventListener('zelora_broadcast_notification', handleBroadcast);
+    window.addEventListener('zelora_seller_notification_updated', handleBroadcast);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('zelora_broadcast_notification', handleBroadcast);
+      window.removeEventListener('zelora_seller_notification_updated', handleBroadcast);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [fetchSellerNotifications]);
 
   // Sync to local storage
   useEffect(() => {
@@ -604,19 +680,40 @@ export function SellerProvider({ children }) {
   };
 
   // Notifications
-  const markNotificationAsRead = (id) => {
+  const markNotificationAsRead = async (id) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
+    try {
+      if (isSellerAuthenticated && typeof id === 'number') {
+        await authApi.markSellerNotificationRead(id);
+      }
+    } catch (err) {
+      console.warn('Failed to sync mark seller notification as read on backend:', err);
+    }
   };
 
-  const markAllNotificationsAsRead = () => {
+  const markAllNotificationsAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    try {
+      if (isSellerAuthenticated) {
+        await authApi.markSellerNotificationRead();
+      }
+    } catch (err) {
+      console.warn('Failed to sync mark all seller notifications read on backend:', err);
+    }
     showToast("All notifications marked as read.");
   };
 
-  const deleteNotification = (id) => {
+  const deleteNotification = async (id) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    try {
+      if (isSellerAuthenticated && typeof id === 'number') {
+        await authApi.deleteSellerNotification(id);
+      }
+    } catch (err) {
+      console.warn('Failed to delete seller notification on backend:', err);
+    }
   };
 
   // Payouts

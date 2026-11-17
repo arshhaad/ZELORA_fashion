@@ -26,6 +26,9 @@ export default function SellerNotificationsPage() {
   const filtered = notifications.filter((notif) => {
     if (filterType === 'unread') return !notif.is_read;
     if (filterType === 'all') return true;
+    if (filterType === 'announcements') {
+      return notif.type === 'admin' || notif.type === 'announcements' || notif.type === 'broadcast';
+    }
     return notif.type === filterType;
   });
 
@@ -39,6 +42,10 @@ export default function SellerNotificationsPage() {
         return <Wallet size={18} color="var(--seller-gold-dark)" />;
       case 'review':
         return <Star size={18} color="var(--seller-gold)" fill="var(--seller-gold)" />;
+      case 'admin':
+      case 'announcements':
+      case 'broadcast':
+        return <Bell size={18} color="var(--seller-gold)" />;
       default:
         return <Sparkles size={18} color="var(--seller-espresso)" />;
     }
@@ -70,6 +77,7 @@ export default function SellerNotificationsPage() {
           {[
             { id: 'all', label: 'All Notifications' },
             { id: 'unread', label: 'Unread Only' },
+            { id: 'announcements', label: 'Announcements' },
             { id: 'order', label: 'Orders' },
             { id: 'stock', label: 'Inventory' },
             { id: 'payout', label: 'Payouts' },
@@ -157,7 +165,7 @@ export default function SellerNotificationsPage() {
                     {n.description}
                   </p>
                   <small style={{ color: 'var(--seller-muted)', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                    {n.time}
+                    {n.time || (n.created_at ? new Date(n.created_at).toLocaleString() : '')}
                   </small>
                 </div>
               </div>

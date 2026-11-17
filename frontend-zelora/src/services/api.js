@@ -223,7 +223,7 @@ export const authApi = {
     method: 'POST',
   }),
 
-  // Notifications
+  // Notifications (Customer)
   getNotifications: (category) => request(`/notifications/${category ? `?category=${category}` : ''}`),
   markNotificationRead: (id) => request(id ? `/notifications/${id}/read/` : '/notifications/read-all/', {
     method: 'POST',
@@ -231,6 +231,28 @@ export const authApi = {
   deleteNotification: (id) => request(`/notifications/${id}/`, {
     method: 'DELETE',
   }),
+
+  // Notifications (Seller)
+  getSellerNotifications: (category) => {
+    const token = localStorage.getItem('zelora_seller_access_token');
+    return request(`/notifications/${category ? `?category=${category}` : ''}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+  markSellerNotificationRead: (id) => {
+    const token = localStorage.getItem('zelora_seller_access_token');
+    return request(id ? `/notifications/${id}/read/` : '/notifications/read-all/', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+  deleteSellerNotification: (id) => {
+    const token = localStorage.getItem('zelora_seller_access_token');
+    return request(`/notifications/${id}/`, {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
 
   // Razorpay Payment Gateway
   getRazorpayConfig: () => request('/payment/razorpay/config/'),

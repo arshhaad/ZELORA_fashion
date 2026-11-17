@@ -740,6 +740,45 @@ class AdminNotificationsView(APIView):
             target_audience=audience,
             created_by=request.user
         )
+
+        # Deliver broadcast notification directly to customer and seller notification sections
+        target_audience = (audience or 'all').strip().lower()
+        delivered_user_ids = set()
+        notifications_to_create = []
+
+        if target_audience in ['all', 'sellers']:
+            seller_users = User.objects.filter(is_active=True, is_seller=True)
+            for u in seller_users:
+                if u.id not in delivered_user_ids:
+                    delivered_user_ids.add(u.id)
+                    notifications_to_create.append(
+                        Notification(
+                            user=u,
+                            title=title,
+                            description=message,
+                            category='orders',
+                            is_read=False,
+                        )
+                    )
+
+        if target_audience in ['all', 'customers']:
+            customer_users = User.objects.filter(is_active=True, is_seller=False).exclude(is_superuser=True, is_staff=True)
+            for u in customer_users:
+                if u.id not in delivered_user_ids:
+                    delivered_user_ids.add(u.id)
+                    notifications_to_create.append(
+                        Notification(
+                            user=u,
+                            title=title,
+                            description=message,
+                            category='promotions',
+                            is_read=False,
+                        )
+                    )
+
+        if notifications_to_create:
+            Notification.objects.bulk_create(notifications_to_create)
+
         return Response(AdminBroadcastNotificationSerializer(broadcast).data, status=status.HTTP_201_CREATED)
 
 

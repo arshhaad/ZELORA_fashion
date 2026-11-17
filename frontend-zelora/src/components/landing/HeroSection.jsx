@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Download } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import heroEditorialImg from '../../assets/hero-editorial.jpg';
 
-export default function HeroSection({ onOpenInstall }) {
+export default function HeroSection() {
   return (
     <section className="zelora-hero">
       <div className="zelora-hero-container">
@@ -28,18 +28,6 @@ export default function HeroSection({ onOpenInstall }) {
             <Link to="/products" className="btn-hero-secondary">
               Explore Collections
             </Link>
-
-            {onOpenInstall && (
-              <button
-                type="button"
-                className="btn-hero-install"
-                onClick={onOpenInstall}
-                title="Install ZELORA Web App"
-              >
-                <Download size={15} />
-                <span>Install App</span>
-              </button>
-            )}
           </div>
         </div>
 

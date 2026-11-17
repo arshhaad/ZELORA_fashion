@@ -126,25 +126,20 @@
 }
 
 .btn-zelora-install {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #1a1612;
   background-color: #faf7f2;
   border: 1px solid #c5a059;
   border-radius: 4px;
-  padding: 5px 11px;
-  height: 28px;
   box-sizing: border-box;
   cursor: pointer;
   transition: all 0.25s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
   line-height: 1;
-  white-space: nowrap;
 }
 
 .btn-zelora-install:hover {
@@ -1162,9 +1157,9 @@
   }
 
   .btn-zelora-install {
-    padding: 4px 8px;
-    font-size: 10.5px;
+    width: 27px;
     height: 27px;
+    padding: 0;
   }
 
   .nav-auth-buttons {
@@ -1207,13 +1202,10 @@
     letter-spacing: 2px;
   }
 
-  .btn-zelora-install .install-btn-text {
-    display: none;
-  }
-
-
   .btn-zelora-install {
-    padding: 4px 6px;
+    width: 25px;
+    height: 25px;
+    padding: 0;
   }
 
   .nav-auth-buttons .btn-zelora-signup {

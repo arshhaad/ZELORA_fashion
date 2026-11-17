@@ -34,7 +34,7 @@ export default function LandingPage() {
 
       {/* 2. Hero Section */}
       <main>
-        <HeroSection onOpenInstall={handleOpenInstall} />
+        <HeroSection />
       </main>
 
       {/* 3. Features Section */}
@@ -56,13 +56,6 @@ export default function LandingPage() {
             <Link to="/about">About</Link>
             <Link to="/login">Sign In</Link>
             <Link to="/register">Sign Up</Link>
-            <button
-              type="button"
-              className="footer-install-btn"
-              onClick={handleOpenInstall}
-            >
-              Install App
-            </button>
             <a href="#privacy" onClick={(e) => e.preventDefault()}>Privacy</a>
             <a href="#terms" onClick={(e) => e.preventDefault()}>Terms</a>
           </div>

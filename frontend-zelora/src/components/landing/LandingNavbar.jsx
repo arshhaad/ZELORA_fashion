@@ -50,10 +50,10 @@ export default function LandingNavbar({ onOpenInstall }) {
               type="button"
               className="btn-zelora-install"
               onClick={onOpenInstall}
-              title="Install ZELORA Web Application"
+              title="Install App"
+              aria-label="Install App"
             >
-              <Download size={13} />
-              <span className="install-btn-text">Install App</span>
+              <Download size={14} />
             </button>
           )}
 

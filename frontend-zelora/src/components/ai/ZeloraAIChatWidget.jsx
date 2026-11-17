@@ -24,7 +24,7 @@ import './aiChat.css';
 
 export default function ZeloraAIChatWidget() {
   const { user: authUser } = useAuth();
-  const { addToCart, showToast } = useCart();
+  const { addToCart, showToast, cartCount } = useCart();
   const location = useLocation();
 
   const [portalAuth, setPortalAuth] = useState(() => getActivePortalAuth(location.pathname));
@@ -147,11 +147,11 @@ export default function ZeloraAIChatWidget() {
         activeUser.name?.split(' ')[0] ||
         (activeUser.email ? activeUser.email.split('@')[0] : 'Client');
 
-      let greetingText = `Hi ${firstName}! 👋 Welcome to your private ZELORA Assistant. As a verified Valued Client, how may I assist your wardrobe, styling, or orders today?`;
+      let greetingText = `Hi ${firstName}! How can I help you today?`;
       if (isAdminRole) {
-        greetingText = `Hi ${firstName}! 👋 Welcome to your ZELORA Executive Assistant. As a verified Administrator, how may I assist platform governance, revenue analysis, or approvals today?`;
+        greetingText = `Hi ${firstName}! Executive Assistant ready.`;
       } else if (isSellerRole) {
-        greetingText = `Hi ${firstName}! 👋 Welcome to your private ZELORA Assistant. As a verified Boutique Seller, how may I assist your boutique inventory, sales, or orders today?`;
+        greetingText = `Hi ${firstName}! Atelier Assistant ready.`;
       }
 
       setMessages([
@@ -159,7 +159,7 @@ export default function ZeloraAIChatWidget() {
           id: 'init-1',
           role: 'assistant',
           content: greetingText,
-          provider: 'groq',
+          provider: 'gemini',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -218,7 +218,7 @@ export default function ZeloraAIChatWidget() {
     setIsLoading(true);
 
     try {
-      const res = await aiApi.sendMessage(prompt, conversationId, preferredProvider);
+      const res = await aiApi.sendMessage(prompt, conversationId, preferredProvider, cartCount);
 
       if (res.conversation_id) {
         setConversationId(res.conversation_id);
@@ -356,9 +356,9 @@ export default function ZeloraAIChatWidget() {
     // Default Authenticated Customer
     return [
       "Where is my order?",
+      "How many item in cart?",
       "How many orders have I placed?",
       "Is my payment successful?",
-      "Show my saved addresses",
       "Recommend an evening gown",
     ];
   };

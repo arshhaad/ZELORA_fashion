@@ -234,13 +234,14 @@ async function aiRequest(endpoint, options = {}, isRetry = false) {
 }
 
 export const aiApi = {
-  sendMessage: (message, conversationId = null, preferredProvider = null) => {
+  sendMessage: (message, conversationId = null, preferredProvider = null, cartCount = null) => {
     return aiRequest('/chat/', {
       method: 'POST',
       body: JSON.stringify({
         message,
         conversation_id: conversationId,
         preferred_provider: preferredProvider,
+        cart_count: typeof cartCount === 'number' ? cartCount : null,
       }),
     });
   },

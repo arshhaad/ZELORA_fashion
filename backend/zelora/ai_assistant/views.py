@@ -38,71 +38,60 @@ class AIChatView(APIView):
         """
         first_name = user.first_name or user.email.split('@')[0].capitalize()
 
-        if intent in ["customer_order_status", "customer_payment_status"]:
+        if intent == "customer_cart":
+            count = retrieved_data.get("cart_count", 0)
+            return f"{count}", "zelora_concierge", "data-grounded"
+
+        elif intent == "customer_order_status":
             latest = retrieved_data.get("latest_order")
             if latest:
-                reply = (
-                    f"Hello {first_name}, your latest order #{latest['order_id']} is currently "
-                    f"{latest['status'].upper()}. Total: {latest['total_amount']} ({latest['payment_status']} via {latest['payment_method']}). "
-                    f"Estimated delivery: {latest['estimated_delivery']}."
-                )
+                reply = f"{latest['status'].title()}"
             else:
-                reply = f"Hello {first_name}, you have not placed any orders yet on ZELORA. Feel free to explore our latest collection!"
+                reply = "No active orders"
+            return reply, "zelora_concierge", "data-grounded"
+
+        elif intent == "customer_payment_status":
+            latest = retrieved_data.get("latest_order")
+            if latest:
+                reply = f"{latest['payment_status'].title()} (via {latest['payment_method']})"
+            else:
+                reply = "No active orders"
             return reply, "zelora_concierge", "data-grounded"
 
         elif intent == "customer_order_history":
             stats = retrieved_data.get("stats", {})
             orders = retrieved_data.get("orders", [])
             total_orders = stats.get("total_orders", len(orders))
-            total_spent = stats.get("total_spent", "₹0")
             if total_orders > 0:
-                reply = (
-                    f"Hello {first_name}, you have placed {total_orders} order(s) with ZELORA "
-                    f"amounting to {total_spent}."
-                )
+                reply = f"{total_orders} orders"
             else:
-                reply = f"Hello {first_name}, you currently have no prior orders recorded in your account."
+                reply = "0 orders"
             return reply, "zelora_concierge", "data-grounded"
 
         elif intent == "customer_address":
             addresses = retrieved_data.get("addresses", [])
             if addresses:
                 default_addr = next((a for a in addresses if a.get("is_default")), addresses[0])
-                reply = (
-                    f"Hello {first_name}, your primary delivery address on file is: "
-                    f"{default_addr.get('house_building', '')}, {default_addr.get('street_area', '')}, "
-                    f"{default_addr.get('city', '')} - {default_addr.get('pin_code', '')}."
-                )
+                reply = f"{default_addr.get('house_building', '')}, {default_addr.get('city', '')} - {default_addr.get('pin_code', '')}"
             else:
-                reply = f"Hello {first_name}, you currently have no saved addresses. You can add one in your account settings."
+                reply = "No saved addresses"
             return reply, "zelora_concierge", "data-grounded"
 
         elif intent == "admin_analytics":
             stats = retrieved_data.get("stats", {})
-            reply = (
-                f"Platform Analytics: Total revenue is {stats.get('total_revenue', '₹0')} across "
-                f"{stats.get('total_orders', 0)} orders with {stats.get('total_customers', 0)} registered patrons."
-            )
+            reply = f"{stats.get('total_revenue', '₹0')} ({stats.get('total_orders', 0)} orders)"
             return reply, "zelora_admin_guard", "analytics-engine"
 
         elif intent == "seller_analytics":
             stats = retrieved_data.get("stats", {})
-            reply = (
-                f"Atelier Analytics: Total revenue generated is {stats.get('total_revenue', '₹0')} "
-                f"from {stats.get('total_orders', 0)} orders across {stats.get('total_products', 0)} listed garments."
-            )
+            reply = f"{stats.get('total_revenue', '₹0')} ({stats.get('total_orders', 0)} orders)"
             return reply, "zelora_seller_guard", "atelier-engine"
 
         elif intent == "product_recommendation":
-            products = retrieved_data.get("products", [])
-            if products:
-                names = [p.get("name") for p in products[:3] if p.get("name")]
-                reply = f"Here are curated pieces from our bespoke collection: {', '.join(names)}. Explore the pieces below!"
-            else:
-                reply = "Explore our latest monochrome couture and haute horlogerie collections in the store."
+            reply = "Here are our top pieces for you:"
             return reply, "zelora_stylist", "catalog-engine"
 
-        reply = f"Hello {first_name}! How may I assist your ZELORA wardrobe, order tracking, or boutique today?"
+        reply = "Hi! How can I help?"
         return reply, "zelora_concierge", "direct-grounded"
 
     def post(self, request):
@@ -114,6 +103,7 @@ class AIChatView(APIView):
         user_message = serializer.validated_data['message']
         conv_id = serializer.validated_data.get('conversation_id')
         preferred_provider = serializer.validated_data.get('preferred_provider')
+        cart_count = serializer.validated_data.get('cart_count')
 
         # 1. Resolve or Initialize Conversation Thread
         conversation = None
@@ -149,7 +139,8 @@ class AIChatView(APIView):
             system_prompt, retrieved_data, detected_intent = ContextService.build_user_context(
                 user=user,
                 message=user_message,
-                past_messages=past_messages
+                past_messages=past_messages,
+                cart_count=cart_count,
             )
 
             # 4. Generate AI Response via Primary/Fallback Provider

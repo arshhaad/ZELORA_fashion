@@ -66,4 +66,5 @@ class AIChatRequestSerializer(serializers.Serializer):
         required=False,
         allow_null=True
     )
+    cart_count = serializers.IntegerField(required=False, allow_null=True, default=None)
 

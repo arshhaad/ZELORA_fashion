@@ -154,6 +154,14 @@ class ContextService:
         ]):
             return "seller_analytics"
 
+        # Customer Cart & Shopping Bag
+        if any(term in msg for term in [
+            "how many item in cart", "how many items in cart", "item in cart", "items in cart",
+            "cart count", "in my cart", "my cart", "cart items", "shopping bag", "in my bag",
+            "how many in cart"
+        ]):
+            return "customer_cart"
+
         # Customer Order Tracking & History
         if any(term in msg for term in [
             "where is my order", "track my order", "order status", "latest order",
@@ -201,7 +209,7 @@ class ContextService:
         return "general_concierge"
 
     @classmethod
-    def build_user_context(cls, user: User, message: str, past_messages: list = None) -> Tuple[str, Dict[str, Any], str]:
+    def build_user_context(cls, user: User, message: str, past_messages: list = None, cart_count: Optional[int] = None) -> Tuple[str, Dict[str, Any], str]:
         """
         Builds the authorized context and prompt.
         Returns: (system_prompt, telemetry_metadata, detected_intent)
@@ -223,33 +231,46 @@ class ContextService:
 
         # Base Persona
         system_prompt = (
-            f"You are the official ZELORA Luxury AI Assistant — an intelligent, elegant, and secure assistant "
-            f"for the ZELORA monochrome editorial luxury fashion house.\n"
+            f"You are the official ZELORA Luxury AI Assistant for the ZELORA website.\n"
             f"Current Authenticated User: {first_name} ({user.email}).\n"
             f"User Role: {role_label}.\n"
-            f"Currency Standard: Indian Rupees (₹). Format all monetary figures with '₹' symbol.\n"
-            f"Brand Tone: Gracious, refined, direct, and succinct. Greet the user warmly as '{first_name}'.\n\n"
-            f"STRICT WEBSITE-ONLY SCOPE POLICY (MANDATORY HIGHEST PRIORITY):\n"
-            f"- You ONLY answer questions related to the ZELORA website: ZELORA products, fashion, styling, outfits, sizes, prices, orders, tracking, shipping, returns, refunds, payments, addresses, customer account, seller boutiques/analytics, admin platform metrics, and brief greetings.\n"
-            f"- If the user asks about ANY topic NOT related to the ZELORA website (for example: programming, React, Python, coding, math, science, history, weather, sports, movies, news, celebrities, recipes, general knowledge, or other brands/websites):\n"
-            f"  1. NEVER answer, explain, or give information about that off-topic subject.\n"
-            f"  2. Reply ONLY with this exact message format (replace <topic> with the concise subject they asked about):\n"
-            f"     \"Sorry, we can't provide information about <topic>. Please ask something related to ZELORA.\"\n"
-            f"  Example: 'what is react' -> \"Sorry, we can't provide information about React. Please ask something related to ZELORA.\"\n"
-            f"  Example: 'who is messi' -> \"Sorry, we can't provide information about Messi. Please ask something related to ZELORA.\"\n\n"
-            f"CRITICAL RESPONSE DIRECTIVES (MANDATORY):\n"
-            f"- Provide ONLY SIMPLE, VERY SHORT, and DIRECT answers (strictly 1 to 2 sentences maximum).\n"
-            f"- Never write long paragraphs, lengthy lists, bullet points, or repetitive text.\n"
-            f"- For orders/tracking: State the order status and estimated arrival in 1 sentence.\n"
-            f"- For product suggestions: Provide 1 elegant sentence introducing the curated pieces. The user interface will automatically render visual interactive product cards with photos and links directly underneath your message.\n"
-            f"- Ground truth: Strictly use only the verified account and catalog records provided below.\n"
-            f"- Never fabricate order numbers, tracking links, or statuses.\n\n"
+            f"Currency Standard: Indian Rupees (₹).\n\n"
+            f"STRICT WEBSITE-ONLY SCOPE POLICY:\n"
+            f"- You ONLY answer questions related to the ZELORA website: products, fashion, styling, orders, cart, tracking, shipping, payments, addresses, and platform analytics.\n"
+            f"- If the user asks about ANY off-topic subject (coding, weather, sports, movies, cooking, math, trivia, general knowledge):\n"
+            f"  Reply ONLY: \"Sorry, we can't provide information about <topic>. Please ask something related to ZELORA.\"\n\n"
+            f"CRITICAL ULTRA-SHORT RESPONSE DIRECTIVES (MANDATORY - HIGHEST PRIORITY):\n"
+            f"- Provide ONLY EXTREMELY SHORT, DIRECT ANSWERS (1 to 5 WORDS MAXIMUM).\n"
+            f"- NO greetings, NO pleasantries, NO conversational filler ('Hello', 'Welcome back', 'Our records show', 'I would be happy to', etc.). Get straight to the answer.\n"
+            f"- Users need answers they can grasp immediately in 1 second.\n"
+            f"- EXACT REQUIRED ANSWER EXAMPLES:\n"
+            f"  • User: 'where is my order ?' -> Answer: 'Shipped' (or 'Processing' / 'Delivered' / 'No active orders')\n"
+            f"  • User: 'how many item in cart ?' -> Answer: '2' (or '2 items' / 'Empty')\n"
+            f"  • User: 'how many orders have I placed?' -> Answer: '3 orders'\n"
+            f"  • User: 'is my payment successful?' -> Answer: 'Yes, Paid' (or 'Pending')\n"
+            f"  • User: 'saved address' -> Answer: 'Flat 4B, Grand Atelier, Mumbai'\n"
+            f"  • User: 'recommend an evening gown' -> Answer: 'Here are our top evening gowns:'\n"
+            f"  • User: 'platform revenue' -> Answer: '₹12,45,000 (34 orders)'\n"
+            f"  • User: 'shop sales' -> Answer: '₹85,000 (12 items sold)'\n"
+            f"  • User: 'hi / hello' -> Answer: 'Hi! How can I help?'\n"
+            f"- Never write paragraphs, full multi-sentence explanations, or conversational fluff.\n"
+            f"- Ground truth: Strictly use only the verified records provided below.\n\n"
         )
 
         retrieved_data = {}
 
         # 2. Fetch role-specific authorized data based on intent
-        if intent in ["customer_order_status", "customer_payment_status"]:
+        if intent == "customer_cart":
+            count = cart_count if cart_count is not None else 0
+            retrieved_data["cart_count"] = count
+            system_prompt += (
+                f"--- LIVE SHOPPING CART DATA ---\n"
+                f"Items in Cart: {count}\n"
+                f"-------------------------------\n"
+                f"DIRECTIVE: Answer ONLY with the number (e.g. '{count}' or '{count} items').\n\n"
+            )
+
+        elif intent in ["customer_order_status", "customer_payment_status"]:
             latest_order = RetrievalService.get_customer_latest_order(user)
             retrieved_data["latest_order"] = latest_order
             if latest_order:
@@ -263,13 +284,15 @@ class ContextService:
                     f"Estimated Delivery: {latest_order['estimated_delivery']}\n"
                     f"Tracking Number: {latest_order['tracking_number']}\n"
                     f"Items: {', '.join(latest_order['items'])}\n"
-                    f"-----------------------------------\n\n"
+                    f"-----------------------------------\n"
+                    f"DIRECTIVE: Answer ONLY the status (e.g. '{latest_order['status'].title()}'). If they ask about payment, answer ONLY the payment status (e.g. 'Paid via {latest_order['payment_method']}').\n\n"
                 )
             else:
                 system_prompt += (
                     f"--- VERIFIED LIVE ORDER RECORD ---\n"
                     f"User has not placed any orders yet on ZELORA.\n"
-                    f"-----------------------------------\n\n"
+                    f"-----------------------------------\n"
+                    f"DIRECTIVE: Answer ONLY: 'No active orders'.\n\n"
                 )
 
         elif intent == "customer_order_history":

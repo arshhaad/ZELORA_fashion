@@ -18,6 +18,8 @@ export const isAuthenticationRoute = (pathname = '') => {
     '/seller/login',
     '/seller/register',
     '/seller/verify-otp',
+    '/seller/forgot-password',
+    '/seller/reset-password',
     '/admin/login',
     '/admin/register',
   ];
@@ -76,6 +78,8 @@ export const getActivePortalAuth = (pathname = '') => {
   }
 
   // 3. Customer Portal (Home, Products, Orders, Landing, Account, etc.)
+  // Strictly only return session if customer is authenticated!
+  // NEVER leak admin or seller credentials onto the public customer storefront.
   const customerToken = localStorage.getItem('customer_access_token');
   const customerRaw = localStorage.getItem('customer_user');
   let customerUser = null;
@@ -89,25 +93,20 @@ export const getActivePortalAuth = (pathname = '') => {
     };
   }
 
-  // If no customer session but admin session exists and user is browsing storefront
-  if (adminToken && adminUser) {
-    return {
-      token: adminToken,
-      user: { ...adminUser, is_staff: true, role: 'Administrator' },
-      role: 'admin',
-    };
-  }
-
-  // If seller session exists and browsing storefront
-  if (isSellerAuth && sellerToken && sellerUser) {
-    return {
-      token: sellerToken,
-      user: { ...sellerUser, is_seller: true, role: 'Boutique Seller' },
-      role: 'seller',
-    };
-  }
-
+  // Unauthenticated visitor / guest: Return null session -> AI Assistant will NOT be shown
   return { token: null, user: null, role: null };
+};
+
+/**
+ * Returns isolated storage keys for user-specific AI conversations.
+ * Ensures each user account maintains an entirely private chat thread.
+ */
+export const getUserChatStorageKey = (userId, role = 'customer') => {
+  return userId ? `zelora_ai_chat_${role}_${userId}` : null;
+};
+
+export const getUserConvStorageKey = (userId, role = 'customer') => {
+  return userId ? `zelora_ai_conv_${role}_${userId}` : null;
 };
 
 export const getActiveAuthToken = (pathname = '') => {

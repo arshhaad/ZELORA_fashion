@@ -49,14 +49,27 @@ export default function ZeloraAIChatWidget() {
       }
     };
 
+    const handleLogout = () => {
+      setIsOpen(false);
+      setMessages([]);
+      setConversationId(null);
+      setPortalAuth({ token: null, user: null, role: null });
+      if (activeUser?.id) {
+        try {
+          localStorage.removeItem(`zelora_ai_chat_${portalAuth.role}_${activeUser.id}`);
+          localStorage.removeItem(`zelora_ai_conv_${portalAuth.role}_${activeUser.id}`);
+        } catch {}
+      }
+    };
+
     checkAuth();
     window.addEventListener('storage', checkAuth);
-    window.addEventListener('zelora_logout', checkAuth);
+    window.addEventListener('zelora_logout', handleLogout);
     return () => {
       window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('zelora_logout', checkAuth);
+      window.removeEventListener('zelora_logout', handleLogout);
     };
-  }, [authUser, location.pathname]);
+  }, [authUser, location.pathname, activeUser?.id, portalAuth.role]);
 
   const activeUser = portalAuth.user;
   const activeToken = portalAuth.token;
@@ -77,11 +90,54 @@ export default function ZeloraAIChatWidget() {
     ? 'Administrator'
     : (isSellerRole ? 'Boutique Seller' : 'Valued Client');
 
-  // Reset conversation thread memory when switching user accounts or portal contexts
+  // Load user-specific conversation memory when user signs in or account switches
   useEffect(() => {
+    if (!activeUser?.id || !activeToken) {
+      setMessages([]);
+      setConversationId(null);
+      return;
+    }
+    const chatKey = `zelora_ai_chat_${portalAuth.role}_${activeUser.id}`;
+    const convKey = `zelora_ai_conv_${portalAuth.role}_${activeUser.id}`;
+    try {
+      const saved = localStorage.getItem(chatKey);
+      const savedConv = localStorage.getItem(convKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          setConversationId(savedConv || null);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading user AI chat memory:', e);
+    }
+    // New conversation for this user
     setConversationId(null);
     setMessages([]);
-  }, [portalAuth.role, activeUser?.id, activeUser?.email]);
+  }, [portalAuth.role, activeUser?.id, activeToken]);
+
+  // Persist current user's conversation memory
+  useEffect(() => {
+    if (!activeUser?.id || !activeToken) return;
+    const chatKey = `zelora_ai_chat_${portalAuth.role}_${activeUser.id}`;
+    const convKey = `zelora_ai_conv_${portalAuth.role}_${activeUser.id}`;
+    try {
+      if (messages.length > 0) {
+        localStorage.setItem(chatKey, JSON.stringify(messages));
+      } else {
+        localStorage.removeItem(chatKey);
+      }
+      if (conversationId) {
+        localStorage.setItem(convKey, conversationId);
+      } else {
+        localStorage.removeItem(convKey);
+      }
+    } catch (e) {
+      console.warn('Error persisting user AI chat memory:', e);
+    }
+  }, [messages, conversationId, activeUser?.id, activeToken, portalAuth.role]);
 
   // Seed personalized greeting when chat is first opened by authenticated user
   useEffect(() => {
@@ -108,7 +164,7 @@ export default function ZeloraAIChatWidget() {
         },
       ]);
     }
-  }, [isOpen, activeUser, isAdminRole, isSellerRole]);
+  }, [isOpen, activeUser, messages.length, isAdminRole, isSellerRole]);
 
   // Auto-scroll to bottom of messages (called unconditionally to satisfy Rules of Hooks)
   useEffect(() => {
@@ -221,6 +277,14 @@ export default function ZeloraAIChatWidget() {
 
   const handleClearChat = async () => {
     setConversationId(null);
+    if (activeUser?.id) {
+      try {
+        localStorage.removeItem(`zelora_ai_chat_${portalAuth.role}_${activeUser.id}`);
+        localStorage.removeItem(`zelora_ai_conv_${portalAuth.role}_${activeUser.id}`);
+      } catch (e) {
+        console.warn('Error clearing user AI conversation:', e);
+      }
+    }
     const firstName = activeUser?.first_name || activeUser?.name?.split(' ')[0] || 'Client';
     setMessages([
       {

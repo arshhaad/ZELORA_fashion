@@ -37,6 +37,59 @@ def _get_from_email():
     return email_addr
 
 
+def _dispatch_email(subject, message, clean_recipient, html_message):
+    """Dispatches email with TLS 587 primary and SSL 465 fallback for cloud environments like AWS EC2."""
+    from django.core.mail import get_connection
+    host_user = getattr(settings, 'EMAIL_HOST_USER', None)
+    host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', None)
+
+    primary_err = None
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=_get_from_email(),
+            recipient_list=[clean_recipient],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True, "Email dispatched successfully"
+    except Exception as err:
+        primary_err = err
+        logger.warning(f"Primary SMTP dispatch failed ({err}). Attempting fallback port 465 SSL...")
+
+    # Fallback to port 465 SSL if port 587 TLS was blocked on cloud host
+    if host_user and host_password:
+        try:
+            ssl_conn = get_connection(
+                backend='django.core.mail.backends.smtp.EmailBackend',
+                host='smtp.gmail.com',
+                port=465,
+                username=host_user,
+                password=host_password,
+                use_ssl=True,
+                use_tls=False,
+                timeout=10,
+            )
+            from django.core.mail import EmailMultiAlternatives
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                body=message,
+                from_email=_get_from_email(),
+                to=[clean_recipient],
+                connection=ssl_conn,
+            )
+            if html_message:
+                msg.attach_alternative(html_message, "text/html")
+            msg.send(fail_silently=False)
+            logger.info(f"Fallback SSL 465 email dispatched successfully to {clean_recipient}")
+            return True, "Email dispatched successfully via SSL"
+        except Exception as ssl_err:
+            logger.error(f"Fallback SSL 465 also failed: {ssl_err}")
+
+    return False, str(primary_err)
+
+
 def send_verification_email(email, code, first_name=""):
     """Dispatches a 6-digit email verification OTP to a customer's real email inbox."""
     clean_recipient = normalize_email_address(email)
@@ -93,20 +146,10 @@ https://zelora.luxury
     </div>
     """
 
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_get_from_email(),
-            recipient_list=[clean_recipient],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        logger.info(f"Verification email successfully dispatched to {clean_recipient}")
-        return True, "Email dispatched successfully"
-    except Exception as e:
-        logger.error(f"SMTP dispatch error for {clean_recipient}: {e}", exc_info=True)
-        return False, str(e)
+    ok, msg = _dispatch_email(subject, message, clean_recipient, html_message)
+    if not ok:
+        logger.error(f"Failed to dispatch customer verification email to {clean_recipient}: {msg}")
+    return ok, msg
 
 
 def send_seller_verification_email(email, code, owner_name="", shop_name=""):
@@ -163,20 +206,10 @@ https://zelora.luxury/seller
     </div>
     """
 
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_get_from_email(),
-            recipient_list=[clean_recipient],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        logger.info(f"Seller verification email successfully dispatched to {clean_recipient}")
-        return True, "Email dispatched successfully"
-    except Exception as e:
-        logger.error(f"SMTP dispatch error for {clean_recipient}: {e}", exc_info=True)
-        return False, str(e)
+    ok, msg = _dispatch_email(subject, message, clean_recipient, html_message)
+    if not ok:
+        logger.error(f"Failed to dispatch seller verification email to {clean_recipient}: {msg}")
+    return ok, msg
 
 
 def send_password_reset_email(email, code, first_name=""):
@@ -227,17 +260,7 @@ The {app_name} Security Team
     </div>
     """
 
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=_get_from_email(),
-            recipient_list=[clean_recipient],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        logger.info(f"Password reset email successfully sent to {clean_recipient}")
-        return True, "Email dispatched successfully"
-    except Exception as e:
-        logger.error(f"Could not send email to {clean_recipient}: {e}", exc_info=True)
-        return False, str(e)
+    ok, msg = _dispatch_email(subject, message, clean_recipient, html_message)
+    if not ok:
+        logger.error(f"Failed to dispatch password reset email to {clean_recipient}: {msg}")
+    return ok, msg

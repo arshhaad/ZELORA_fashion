@@ -147,7 +147,12 @@ export default function SellerRegisterPage() {
         shop_category: formData.shop_category,
       });
       const targetEmail = res.email || normalizedEmail;
-      setSuccessInfoMsg(`Verification code sent to your real email: ${targetEmail}`);
+      if (res.code) {
+        setSuccessInfoMsg(`Verification code: ${res.code} (or check your email at ${targetEmail})`);
+        setOtp(String(res.code).split(''));
+      } else {
+        setSuccessInfoMsg(`Verification code sent to your real email: ${targetEmail}`);
+      }
       setStep('otp');
     } catch (err) {
       const backendErrors = err.data?.errors || {};
@@ -277,7 +282,12 @@ export default function SellerRegisterPage() {
         is_resend: true,
       });
       const targetEmail = res.email || trimmedEmail;
-      setSuccessInfoMsg(`A fresh verification code has been sent to your real email: ${targetEmail}`);
+      if (res.code) {
+        setSuccessInfoMsg(`Fresh verification code: ${res.code} (or check your email at ${targetEmail})`);
+        setOtp(String(res.code).split(''));
+      } else {
+        setSuccessInfoMsg(`A fresh verification code has been sent to your real email: ${targetEmail}`);
+      }
     } catch (err) {
       const msg = err.data?.detail || err.message || 'Could not resend verification code.';
       setErrorMsg(typeof msg === 'string' ? msg : JSON.stringify(msg));

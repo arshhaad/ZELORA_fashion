@@ -63,9 +63,9 @@ services:
       - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
       - EMAIL_PORT=${EMAIL_PORT:-587}
       - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-mhd.arshhad@gmail.com}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-svwt gmmv bsiw nqej}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-mhd.arshhad@gmail.com}
       - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
       - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}

@@ -39,6 +39,25 @@ export default function ZeloraAIChatWidget() {
   const [activeProviderBadge, setActiveProviderBadge] = useState('Groq Fast');
   const messagesEndRef = useRef(null);
 
+  const activeUser = portalAuth?.user || null;
+  const activeToken = portalAuth?.token || null;
+
+  const isAdminRole =
+    portalAuth?.role === 'admin' ||
+    Boolean(activeUser?.is_staff) ||
+    Boolean(activeUser?.is_superuser) ||
+    Boolean(activeUser?.role?.toLowerCase().includes('admin'));
+
+  const isSellerRole =
+    portalAuth?.role === 'seller' ||
+    Boolean(activeUser?.is_seller) ||
+    Boolean(activeUser?.role?.toLowerCase().includes('seller')) ||
+    Boolean(activeUser?.role?.toLowerCase().includes('atelier'));
+
+  const roleLabel = isAdminRole
+    ? 'Administrator'
+    : (isSellerRole ? 'Boutique Seller' : 'Valued Client');
+
   // Synchronize authenticated user state whenever route, storage, or auth context updates
   useEffect(() => {
     const checkAuth = () => {
@@ -53,13 +72,13 @@ export default function ZeloraAIChatWidget() {
       setIsOpen(false);
       setMessages([]);
       setConversationId(null);
-      setPortalAuth({ token: null, user: null, role: null });
-      if (activeUser?.id) {
+      if (activeUser?.id && portalAuth?.role) {
         try {
           localStorage.removeItem(`zelora_ai_chat_${portalAuth.role}_${activeUser.id}`);
           localStorage.removeItem(`zelora_ai_conv_${portalAuth.role}_${activeUser.id}`);
         } catch {}
       }
+      setPortalAuth({ token: null, user: null, role: null });
     };
 
     checkAuth();
@@ -69,26 +88,7 @@ export default function ZeloraAIChatWidget() {
       window.removeEventListener('storage', checkAuth);
       window.removeEventListener('zelora_logout', handleLogout);
     };
-  }, [authUser, location.pathname, activeUser?.id, portalAuth.role]);
-
-  const activeUser = portalAuth.user;
-  const activeToken = portalAuth.token;
-
-  const isAdminRole =
-    portalAuth.role === 'admin' ||
-    Boolean(activeUser?.is_staff) ||
-    Boolean(activeUser?.is_superuser) ||
-    Boolean(activeUser?.role?.toLowerCase().includes('admin'));
-
-  const isSellerRole =
-    portalAuth.role === 'seller' ||
-    Boolean(activeUser?.is_seller) ||
-    Boolean(activeUser?.role?.toLowerCase().includes('seller')) ||
-    Boolean(activeUser?.role?.toLowerCase().includes('atelier'));
-
-  const roleLabel = isAdminRole
-    ? 'Administrator'
-    : (isSellerRole ? 'Boutique Seller' : 'Valued Client');
+  }, [authUser, location.pathname, activeUser?.id, portalAuth?.role]);
 
   // Load user-specific conversation memory when user signs in or account switches
   useEffect(() => {

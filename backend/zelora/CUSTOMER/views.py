@@ -1328,3 +1328,68 @@ class ProductListCreateView(APIView):
             }
         )
         return Response(prod.to_dict(), status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class ProductRecommendationsView(APIView):
+    """
+    GET /api/auth/products/recommendations/
+    Query parameters:
+      - product_id: (optional) If provided, returns related products for this product.
+      - limit: (optional, default 4, max 12) Number of recommendations.
+      - session_id: (optional) Anonymous guest session ID.
+    Returns recommendations powered by Redis.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from .recommendation_service import RedisRecommendationEngine
+
+        product_id = request.query_params.get('product_id')
+        session_id = request.query_params.get('session_id') or request.headers.get('X-Session-ID')
+        try:
+            limit = min(max(int(request.query_params.get('limit', 4)), 1), 12)
+        except (ValueError, TypeError):
+            limit = 4
+
+        user_id = request.user.id if request.user and request.user.is_authenticated else None
+
+        if product_id:
+            recommendations = RedisRecommendationEngine.get_related_products(product_id, limit=limit)
+            strategy = "related_pieces"
+        else:
+            recommendations = RedisRecommendationEngine.get_personalized_recommendations(
+                user_id=user_id,
+                session_id=session_id,
+                limit=limit
+            )
+            strategy = "personalized_for_you"
+
+        return Response({
+            "recommendations": recommendations,
+            "engine": "redis",
+            "strategy": strategy,
+            "count": len(recommendations)
+        }, status=status.HTTP_200_OK)
+
+
+class ProductTrackView(APIView):
+    """
+    POST /api/auth/products/<str:product_id>/track/
+    Records product interaction (view, cart) into Redis for real-time recommendation training.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, product_id):
+        from .recommendation_service import RedisRecommendationEngine
+
+        session_id = request.data.get('session_id') or request.headers.get('X-Session-ID')
+        interaction_type = request.data.get('interaction_type', 'view')
+        user_id = request.user.id if request.user and request.user.is_authenticated else None
+
+        result = RedisRecommendationEngine.track_product_interaction(
+            product_id=product_id,
+            user_id=user_id,
+            session_id=session_id,
+            interaction_type=interaction_type
+        )
+        return Response(result, status=status.HTTP_200_OK)

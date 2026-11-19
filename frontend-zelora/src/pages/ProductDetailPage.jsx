@@ -5,6 +5,7 @@ import Footer from '../components/common/Footer';
 import ProductCard from '../components/common/ProductCard';
 import Toast from '../components/common/Toast';
 import { useLiveProducts, normalizeCategory } from '../data/products';
+import { productsApi } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useRecentlyViewed } from '../context/RecentlyViewedContext';
@@ -19,7 +20,8 @@ import {
   AlertCircle,
   Ruler,
   X,
-  Share2
+  Share2,
+  Sparkles
 } from 'lucide-react';
 
 export default function ProductDetailPage() {
@@ -56,8 +58,10 @@ export default function ProductDetailPage() {
   const [newReviewName, setNewReviewName] = useState('');
   const [newReviewRating, setNewReviewRating] = useState(5);
   const [reviewsList, setReviewsList] = useState([]);
+  const [redisRelated, setRedisRelated] = useState([]);
+  const [isRedisRelated, setIsRedisRelated] = useState(false);
 
-  // Reset and scroll to top when product ID changes
+  // Reset and scroll to top when product ID changes, and fetch Redis recommendations
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (product) {
@@ -69,17 +73,37 @@ export default function ProductDetailPage() {
       setReviewsList(product.reviews || []);
       // Add to recently viewed
       addRecentlyViewed(product);
+
+      // Track product view in Redis and load Redis related products
+      let active = true;
+      productsApi.trackView(product.id, 'view').catch(() => {});
+      productsApi
+        .getRecommendations({ product_id: product.id, limit: 4 })
+        .then((res) => {
+          if (!active) return;
+          if (res && Array.isArray(res.recommendations) && res.recommendations.length > 0) {
+            setRedisRelated(res.recommendations);
+            setIsRedisRelated(true);
+          }
+        })
+        .catch(() => {});
+
+      return () => {
+        active = false;
+      };
     }
   }, [id, product]);
 
   const inWishlist = product ? isInWishlist(product.id) : false;
-  const relatedProducts = useMemo(() => {
+  const fallbackRelated = useMemo(() => {
     if (!product) return [];
     const normCat = normalizeCategory(product.category);
     return liveProducts
       .filter((p) => p.id !== product.id && normalizeCategory(p.category) === normCat)
       .slice(0, 4);
   }, [liveProducts, product]);
+
+  const relatedProducts = redisRelated.length > 0 ? redisRelated : fallbackRelated;
 
   if (!product) {
     return (
@@ -105,6 +129,7 @@ export default function ProductDetailPage() {
     }
 
     setSizeError(false);
+    productsApi.trackView(product.id, 'cart').catch(() => {});
     addToCart(product, selectedSize, selectedColor, quantity);
   };
 
@@ -551,7 +576,10 @@ export default function ProductDetailPage() {
           <section className="pdp-related-section">
             <div className="section-header-wrap">
               <div>
-                <span className="section-pretitle">COMPLETE THE MONOCHROME AESTHETIC</span>
+                <span className="section-pretitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {isRedisRelated && <Sparkles size={13} color="#b69a70" />}
+                  {isRedisRelated ? 'CURATED VIA REDIS IN-MEMORY ENGINE' : 'COMPLETE THE MONOCHROME AESTHETIC'}
+                </span>
                 <h2 className="section-main-title">Related Pieces</h2>
               </div>
               <Link to="/products" className="section-view-all-btn">

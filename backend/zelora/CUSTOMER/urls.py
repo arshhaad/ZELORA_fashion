@@ -31,6 +31,8 @@ from .views import (
     SendSellerOtpView,
     VerifySellerOtpView,
     ProductListCreateView,
+    ProductRecommendationsView,
+    ProductTrackView,
 )
 
 urlpatterns = [
@@ -80,6 +82,8 @@ urlpatterns = [
     path('seller/shop/', SellerShopProfileView.as_view(), name='seller-shop'),
     path('seller/products/', ProductListCreateView.as_view(), name='seller-products'),
 
-    # Product Catalog
+    # Product Catalog & Redis Recommendations
+    path('products/recommendations/', ProductRecommendationsView.as_view(), name='product-recommendations'),
+    path('products/<str:product_id>/track/', ProductTrackView.as_view(), name='product-track'),
     path('products/', ProductListCreateView.as_view(), name='product-list-create'),
 ]

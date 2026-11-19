@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import User, EmailVerificationCode, PasswordResetCode
+from .models import User, EmailVerificationCode, PasswordResetCode, Product
 
 
 class AuthenticationTests(TestCase):
@@ -203,4 +203,124 @@ class ProductCatalogTests(TestCase):
         self.assertEqual(list_resp.status_code, status.HTTP_200_OK)
         names = [p['name'] for p in list_resp.data['products']]
         self.assertIn('Bespoke Emerald Velvet Blazer', names)
+
+
+class ProductRecommendationTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.recommendations_url = reverse('product-recommendations')
+        self.prod_a = Product.objects.create(
+            id='test-rec-a',
+            slug='noir-silk-evening-gown',
+            name='Noir Silk Evening Gown',
+            brand='ZELORA Atelier',
+            category='dresses',
+            gender='women',
+            price=850.0,
+            stock_quantity=5,
+            in_stock=True,
+            rating=4.9,
+            review_count=24,
+            is_featured=True,
+            image='https://images.unsplash.com/photo-1539109136881-3be0616acf4b'
+        )
+        self.prod_b = Product.objects.create(
+            id='test-rec-b',
+            slug='monochrome-linen-blazer',
+            name='Monochrome Linen Blazer',
+            brand='ZELORA Studio',
+            category='outerwear',
+            gender='women',
+            price=420.0,
+            stock_quantity=10,
+            in_stock=True,
+            rating=4.8,
+            review_count=18,
+            is_featured=True,
+            image='https://images.unsplash.com/photo-1539109136881-3be0616acf4b'
+        )
+        self.prod_c = Product.objects.create(
+            id='test-rec-c',
+            slug='satin-pleated-midi-skirt',
+            name='Satin Pleated Midi Skirt',
+            brand='ZELORA Atelier',
+            category='dresses',
+            gender='women',
+            price=310.0,
+            stock_quantity=7,
+            in_stock=True,
+            rating=4.7,
+            review_count=12,
+            is_featured=False,
+            image='https://images.unsplash.com/photo-1539109136881-3be0616acf4b'
+        )
+
+    def test_track_product_interaction_endpoint(self):
+        track_url = reverse('product-track', kwargs={'product_id': self.prod_a.id})
+        resp = self.client.post(track_url, {
+            'interaction_type': 'view',
+            'session_id': 'sess-test-123'
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get('status'), 'tracked')
+        self.assertEqual(resp.data.get('product_id'), self.prod_a.id)
+
+    def test_track_cart_interaction(self):
+        track_url = reverse('product-track', kwargs={'product_id': self.prod_b.id})
+        resp = self.client.post(track_url, {
+            'interaction_type': 'cart',
+            'session_id': 'sess-test-123'
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get('status'), 'tracked')
+        self.assertEqual(resp.data.get('interaction'), 'cart')
+
+    def test_personalized_recommendations_endpoint(self):
+        resp = self.client.get(self.recommendations_url, {'limit': 2, 'session_id': 'sess-test-123'})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn('recommendations', resp.data)
+        self.assertEqual(resp.data.get('engine'), 'redis')
+        self.assertEqual(resp.data.get('strategy'), 'personalized_for_you')
+        self.assertTrue(len(resp.data['recommendations']) > 0)
+        self.assertLessEqual(len(resp.data['recommendations']), 2)
+
+    def test_related_products_endpoint(self):
+        resp = self.client.get(self.recommendations_url, {'product_id': self.prod_a.id, 'limit': 2})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn('recommendations', resp.data)
+        self.assertEqual(resp.data.get('engine'), 'redis')
+        self.assertEqual(resp.data.get('strategy'), 'related_pieces')
+        self.assertTrue(len(resp.data['recommendations']) > 0)
+        # Should not recommend the source product itself
+        rec_ids = [r['id'] for r in resp.data['recommendations']]
+        self.assertNotIn(self.prod_a.id, rec_ids)
+
+    def test_redis_mocked_interaction_and_graph(self):
+        from unittest.mock import patch, MagicMock
+        from .recommendation_service import RedisRecommendationEngine
+        mock_redis = MagicMock()
+        mock_pipe = MagicMock()
+        mock_redis.pipeline.return_value = mock_pipe
+        mock_redis.lrange.return_value = [self.prod_b.id.encode('utf-8')]
+        mock_redis.zrevrange.return_value = [self.prod_c.id.encode('utf-8')]
+
+        with patch.object(RedisRecommendationEngine, 'get_redis_client', return_value=mock_redis):
+            # Test tracking with Redis client active
+            track_result = RedisRecommendationEngine.track_product_interaction(
+                product_id=self.prod_a.id,
+                session_id='sess-mock-456',
+                interaction_type='view'
+            )
+            self.assertEqual(track_result['status'], 'tracked')
+            self.assertEqual(track_result['engine'], 'redis')
+            mock_pipe.lpush.assert_called()
+            mock_pipe.zincrby.assert_called()
+            mock_pipe.execute.assert_called_once()
+
+            # Test related products with Redis co-occurrence returning prod_c
+            related = RedisRecommendationEngine.get_related_products(
+                product_id=self.prod_a.id,
+                limit=2
+            )
+            self.assertTrue(any(p['id'] == self.prod_c.id for p in related))
 

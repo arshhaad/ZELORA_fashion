@@ -462,4 +462,19 @@ export const productsApi = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  getRecommendations: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/products/recommendations/${qs ? `?${qs}` : ''}`);
+  },
+  trackView: (productId, interactionType = 'view') => {
+    let sessionId = typeof localStorage !== 'undefined' ? localStorage.getItem('zelora_client_session_id') : null;
+    if (!sessionId && typeof localStorage !== 'undefined') {
+      sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem('zelora_client_session_id', sessionId);
+    }
+    return request(`/products/${productId}/track/`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, interaction_type: interactionType }),
+    }).catch(() => {});
+  },
 };

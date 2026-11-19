@@ -1105,6 +1105,11 @@
     gap: 10px;
   }
 
+  .zelora-features-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
   .btn-hero-primary,
   .btn-hero-secondary,
   .btn-hero-install {

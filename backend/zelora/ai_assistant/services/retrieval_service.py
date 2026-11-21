@@ -1,115 +1,14 @@
 import re
 from decimal import Decimal
 from typing import Dict, Any, List, Tuple
-from django.db.models import Sum, Count, Q
-from CUSTOMER.models import Order, OrderItem, Address, SellerShop, User, Product
-from ADMIN.models import SupportTicket, SellerPayoutRequest
-
+from django.db.models import Sum, Count, Q, Min, Max
+from CUSTOMER.models import Order, OrderItem, Address, SellerShop, User, Product, Notification
+from ADMIN.models import SupportTicket, SellerPayoutRequest, PlatformCoupon
 
 
 class SecurityViolationError(Exception):
     """Raised when an unauthorized data access attempt is detected."""
     pass
-
-
-ZELORA_CATALOG = [
-    {
-        "id": "zel-001",
-        "name": "Structured Double-Breasted Wool Overcoat",
-        "category": "Outerwear",
-        "price": 349,
-        "original_price": 420,
-        "rating": 4.9,
-        "brand": "ZELORA Atelier",
-        "image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Architectural virgin wool melton overcoat with sharp shoulder pads and fluid drape.",
-        "keywords": ["coat", "overcoat", "wool", "outerwear", "trench", "jacket", "winter", "black coat"]
-    },
-    {
-        "id": "zel-002",
-        "name": "Draped Silk Evening Slip Gown",
-        "category": "Dresses",
-        "price": 260,
-        "original_price": 320,
-        "rating": 4.8,
-        "brand": "ZELORA Noir",
-        "image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Fluid 22-Momme Mulberry silk gown cut on the bias with asymmetrical cowl neck.",
-        "keywords": ["gown", "dress", "evening", "slip", "silk", "gala", "party", "wedding"]
-    },
-    {
-        "id": "zel-003",
-        "name": "Oversized Poplin Studio Shirt",
-        "category": "Tops",
-        "price": 145,
-        "original_price": 180,
-        "rating": 4.7,
-        "brand": "Studio Monolith",
-        "image": "https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Crisp Italian cotton poplin with relaxed tailoring and shell buttons.",
-        "keywords": ["shirt", "poplin", "top", "button", "cotton", "casual", "white shirt"]
-    },
-    {
-        "id": "zel-004",
-        "name": "Architectural Double-Breasted Wool Trench",
-        "category": "Outerwear",
-        "price": 420,
-        "original_price": 490,
-        "rating": 5.0,
-        "brand": "ZELORA Atelier",
-        "image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Sculptural double-faced bonded wool trench coat with belted waist.",
-        "keywords": ["trench", "belted", "wool", "coat", "heavyweight"]
-    },
-    {
-        "id": "zel-005",
-        "name": "High-Waist Pleated Wool Flannel Trousers",
-        "category": "Trousers",
-        "price": 185,
-        "original_price": 220,
-        "rating": 4.8,
-        "brand": "ZELORA Tailoring",
-        "image": "https://images.unsplash.com/photo-1508427953056-b00b8d78ebf5?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Double forward pleats and high-rise waistband in fine wool flannel.",
-        "keywords": ["trousers", "pants", "pleated", "wool", "tailored", "flannel"]
-    },
-    {
-        "id": "zel-006",
-        "name": "Cashmere Mock-Neck Cocoon Knit",
-        "category": "Knitwear",
-        "price": 240,
-        "original_price": 290,
-        "rating": 4.9,
-        "brand": "Maison Minimal",
-        "image": "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Grade-A Mongolian cashmere with tactile cocoon silhouette.",
-        "keywords": ["knit", "sweater", "cashmere", "turtleneck", "mock-neck", "warm"]
-    },
-    {
-        "id": "zel-008",
-        "name": "Square-Toe Italian Calfskin Ankle Boots",
-        "category": "Footwear",
-        "price": 310,
-        "original_price": 360,
-        "rating": 4.9,
-        "brand": "ZELORA Leather",
-        "image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Vegetable-tanned calfskin boots with architectural block heel.",
-        "keywords": ["boots", "shoes", "leather", "calfskin", "footwear", "ankle"]
-    },
-    {
-        "id": "zel-010",
-        "name": "Architectural Calfskin Frame Bag",
-        "category": "Bags",
-        "price": 290,
-        "original_price": 340,
-        "rating": 4.9,
-        "brand": "Studio Monolith",
-        "image": "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80&sat=-100",
-        "description": "Geometric hand-stitched structured calfskin frame tote with silver hardware.",
-        "keywords": ["bag", "tote", "handbag", "purse", "accessories", "leather"]
-    }
-]
 
 
 class RetrievalService:
@@ -122,8 +21,9 @@ class RetrievalService:
     @classmethod
     def parse_product_query(cls, message: str) -> Dict[str, Any]:
         """
-        Extracts structured shopping filters from natural language queries.
-        Supports budget ranges, specific prices, gender, category, availability, occasion, and counts.
+        Extracts structured shopping filters and search phrases from natural language queries.
+        Supports budget ranges, specific prices, gender, category, availability, occasion, counts,
+        and clean title/keyword terms for direct catalog searching.
         """
         msg = message.lower().strip()
         parsed = {
@@ -135,6 +35,7 @@ class RetrievalService:
             "occasion": None,
             "limit": None,
             "keywords": [],
+            "clean_query": "",
             "raw_query": msg,
         }
 
@@ -190,7 +91,7 @@ class RetrievalService:
         if re.search(r'\b(shirt|shirts|t-shirt|tshirts|tee|tees|top|tops|blouse|poplin|linen shirt)\b', msg):
             parsed["category"] = "tops"
             parsed["keywords"].append("shirt")
-        elif re.search(r'\b(dress|dresses|gown|gowns|slip|skirt|skirts)\b', msg):
+        elif re.search(r'\b(dress|dresses|gown|gowns|gwon|slip|skirt|skirts)\b', msg):
             parsed["category"] = "dresses"
             parsed["keywords"].append("dress")
         elif re.search(r'\b(coat|coats|overcoat|trench|jacket|jackets|blazer|blazers|bomber|outerwear)\b', msg):
@@ -217,20 +118,77 @@ class RetrievalService:
             parsed["occasion"] = "winter"
             parsed["keywords"].extend(["wool", "cashmere", "coat", "jacket"])
 
+        # 7. Extract Clean Search Phrase for Direct Product Name Searching
+        noise_patterns = [
+            r'\bhow\s+much\s+(?:is|are|for)\b',
+            r'\bwhat\s+is\s+the\s+price\s+of\b',
+            r'\bprice\s+of\b',
+            r'\bcost\s+of\b',
+            r'\bdo\s+you\s+have\b',
+            r'\bis\b',
+            r'\bare\b',
+            r'\bin\s+stock\b',
+            r'\bavailable\b',
+            r'\bout\s+of\s+stock\b',
+            r'\bsold\s+out\b',
+            r'\bdetails\s+of\b',
+            r'\btell\s+me\s+about\b',
+            r'\bshow\s+me\b',
+            r'\brecommend\b',
+            r'\bcan\s+i\s+(?:buy|get)\b',
+            r'\bplease\b',
+            r'\bzelora\b',
+            r'\batelier\b',
+            r'\bproduct\b',
+            r'\bpiece\b',
+        ]
+        cleaned = msg
+        for np in noise_patterns:
+            cleaned = re.sub(np, ' ', cleaned)
+        cleaned = re.sub(r'[^a-z0-9\s\-]', ' ', cleaned)
+        stop_words = {'the', 'a', 'an', 'for', 'and', 'with', 'in', 'to', 'of', 'any', 'some'}
+        words = [w for w in cleaned.split() if w not in stop_words and len(w) > 1]
+        parsed["clean_query"] = ' '.join(words)
+
         return parsed
 
     @classmethod
     def get_product_recommendations(cls, message: str = "", limit: int = 4) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Retrieves matching luxury products from Django PostgreSQL/SQLite Product model.
-        Leverages Redis caching via django-redis for sub-millisecond repeated queries.
-        Dynamically applies budget ranges, category, gender, availability, and occasion filters.
-        Never fabricates product details or prices.
+        Leverages Redis caching for repeated search requests.
+        Accurately handles specific product inquiries (name, price, stock status),
+        budget bounds, categories, genders, and availability.
         """
         parsed = cls.parse_product_query(message)
         eff_limit = parsed.get("limit") or limit
+        clean_text = parsed.get("clean_query", "").strip()
 
-        # Redis Cache Lookup
+        # Check for specific product name match in the database first
+        if len(clean_text) >= 2:
+            # 1. Exact or Substring Name match
+            matched_prods = Product.objects.filter(name__icontains=clean_text)
+            if not matched_prods.exists():
+                # Try matching by slug
+                slug_candidate = clean_text.replace(' ', '-')
+                matched_prods = Product.objects.filter(slug__icontains=slug_candidate)
+
+            if not matched_prods.exists():
+                # Tokenized search across product name, brand, description
+                tokens = [t for t in clean_text.split() if len(t) > 2]
+                if tokens:
+                    q_token = Q()
+                    for t in tokens:
+                        q_token |= Q(name__icontains=t) | Q(brand__icontains=t) | Q(category__icontains=t)
+                    matched_prods = Product.objects.filter(q_token)
+
+            if matched_prods.exists():
+                parsed["specific_inquiry"] = True
+                products = list(matched_prods[:eff_limit])
+                product_dicts = [p.to_dict() for p in products]
+                return product_dicts, parsed
+
+        # Redis Cache Lookup for General Recommendation Queries
         from django.core.cache import cache
         cache_key = f"zelora:products:{parsed.get('gender')}:{parsed.get('category')}:{parsed.get('budget_max')}:{parsed.get('budget_min')}:{parsed.get('only_unavailable')}:{parsed.get('occasion')}:{eff_limit}"
         try:
@@ -273,13 +231,11 @@ class RetrievalService:
                     Q(brand__icontains=kw)
                 )
             qs_kw = qs.filter(keyword_filter)
-            # If keyword filter yields matches, apply it; otherwise keep broader category/budget results
             if qs_kw.exists():
                 qs = qs_kw
 
         # 6. Sorting Order
         if parsed.get("budget_max") is not None:
-            # Sort closest to budget or highest rating
             qs = qs.order_by("-price", "-rating")
         else:
             qs = qs.order_by("-is_featured", "-rating", "-price")
@@ -295,6 +251,34 @@ class RetrievalService:
 
         return product_dicts, parsed
 
+    @classmethod
+    def get_catalog_overview(cls) -> Dict[str, Any]:
+        """
+        Provides aggregate catalog telemetry directly from the live database.
+        """
+        total_count = Product.objects.count()
+        in_stock_count = Product.objects.filter(in_stock=True).count()
+        raw_cats = Product.objects.exclude(category__isnull=True).exclude(category='').values_list('category', flat=True)
+        unique_cats = sorted({c.strip().title() for c in raw_cats if c and c.strip()})
+        raw_brands = Product.objects.exclude(brand__isnull=True).exclude(brand='').values_list('brand', flat=True)
+        unique_brands = sorted({b.strip() for b in raw_brands if b and b.strip()})[:10]
+        min_max = Product.objects.filter(in_stock=True).aggregate(
+            min_p=Min('price'),
+            max_p=Max('price')
+        )
+        cheapest = Product.objects.filter(in_stock=True).order_by('price').first()
+        priciest = Product.objects.filter(in_stock=True).order_by('-price').first()
+
+        return {
+            "total_products": total_count,
+            "in_stock_products": in_stock_count,
+            "categories": unique_cats,
+            "brands": unique_brands,
+            "min_price": float(min_max['min_p']) if min_max['min_p'] is not None else 0.0,
+            "max_price": float(min_max['max_p']) if min_max['max_p'] is not None else 0.0,
+            "cheapest_product": cheapest.name if cheapest else None,
+            "most_expensive_product": priciest.name if priciest else None
+        }
 
     @staticmethod
     def detect_unauthorized_cross_tenant_intent(message: str, user: User) -> bool:
@@ -303,24 +287,68 @@ class RetrievalService:
         """
         lower = message.lower()
         cross_user_patterns = [
-            r"other (user|customer|seller|client|buyer)'s? orders?",
-            r"someone else's? (order|sale|product|address|money)",
-            r"orders? (of|for|belonging to) (user|id|customer|another)",
-            r"show me all users",
-            r"all customers? (list|records|orders)",
-            r"passwords?",
-            r"api key",
-            r"secret key",
-            r"database dump",
-            r"raw sql",
+            r"\b(?:other|another)\s+(?:user|customer|seller|client|buyer)'s?\s+orders?\b",
+            r"\bsomeone\s+else's?\s+(?:order|sale|product|address|money)\b",
+            r"\borders?\s+(?:of|for|belonging\s+to)\s+(?:user|id|customer|another)\b",
+            r"\bshow\s+me\s+all\s+users\b",
+            r"\ball\s+customers?\s+(?:list|records|orders)\b",
+            r"\bpasswords?\b",
+            r"\bapi\s+key\b",
+            r"\bsecret\s+key\b",
+            r"\bdatabase\s+dump\b",
+            r"\braw\s+sql\b",
         ]
-        
-        # If user is not staff/admin, block requests attempting to probe other users
+
         if not (user.is_staff or user.is_superuser):
             for pat in cross_user_patterns:
                 if re.search(pat, lower):
                     return True
         return False
+
+    @staticmethod
+    def get_customer_order(user: User, message: str = ""):
+        """
+        Retrieves a specific order if an order ID is detected in the message,
+        or falls back to the customer's latest order from the database.
+        """
+        order = None
+        if message:
+            id_match = re.search(r'\b(ORD-[A-Za-z0-9\-]+|ZEL-[A-Za-z0-9\-]+|\d{4,})\b', message, re.IGNORECASE)
+            if id_match:
+                order_id_query = id_match.group(1).strip()
+                order = Order.objects.filter(user=user, order_id__iexact=order_id_query).prefetch_related('items').first()
+                if not order:
+                    order = Order.objects.filter(user=user, order_id__icontains=order_id_query).prefetch_related('items').first()
+
+        if not order:
+            order = Order.objects.filter(user=user).prefetch_related('items').order_by('-created_at').first()
+
+        if not order:
+            return None
+
+        return {
+            "order_id": order.order_id,
+            "date": order.created_at.strftime("%b %d, %Y"),
+            "status": order.status,
+            "payment_status": order.payment_status,
+            "payment_method": order.payment_method,
+            "total_amount": f"₹{order.total_amount}",
+            "estimated_delivery": order.estimated_delivery,
+            "tracking_number": order.tracking_number or "Pending courier assignment",
+            "delivery_method": order.delivery_method,
+            "items": [it.product_name for it in order.items.all()],
+            "items_detailed": [
+                f"{it.product_name} (Qty: {it.quantity}, ₹{it.price})"
+                for it in order.items.all()
+            ]
+        }
+
+    @staticmethod
+    def get_customer_latest_order(user: User):
+        """
+        Retrieves latest order for the authenticated user.
+        """
+        return RetrievalService.get_customer_order(user, "")
 
     @staticmethod
     def get_customer_orders_summary(user: User, limit: int = 5):
@@ -349,32 +377,11 @@ class RetrievalService:
         return result
 
     @staticmethod
-    def get_customer_latest_order(user: User):
-        """
-        Retrieves latest order for the authenticated user.
-        """
-        order = Order.objects.filter(user=user).prefetch_related('items').order_by('-created_at').first()
-        if not order:
-            return None
-        return {
-            "order_id": order.order_id,
-            "date": order.created_at.strftime("%b %d, %Y"),
-            "status": order.status,
-            "payment_status": order.payment_status,
-            "payment_method": order.payment_method,
-            "total_amount": f"₹{order.total_amount}",
-            "estimated_delivery": order.estimated_delivery,
-            "tracking_number": order.tracking_number or "Will update upon dispatch",
-            "delivery_method": order.delivery_method,
-            "items": [it.product_name for it in order.items.all()],
-        }
-
-    @staticmethod
     def get_customer_addresses(user: User):
         """
         Retrieves addresses belonging to the authenticated user.
         """
-        addresses = Address.objects.filter(user=user).order_by('-is_default', '-created_at')[:3]
+        addresses = Address.objects.filter(user=user).order_by('-is_default', '-created_at')[:5]
         return [
             {
                 "full_name": a.full_name,
@@ -400,6 +407,41 @@ class RetrievalService:
             "total_orders": orders_count,
             "total_spent": f"₹{float(total_spent):,.2f}",
         }
+
+    @staticmethod
+    def get_user_profile(user: User) -> Dict[str, Any]:
+        """
+        Retrieves verified account details for the authenticated user.
+        """
+        role_label = "Administrator" if (user.is_staff or user.is_superuser) else ("Boutique Seller" if user.is_seller else "Customer")
+        name = user.get_full_name() or user.first_name or user.email.split('@')[0].capitalize()
+        return {
+            "name": name,
+            "email": user.email,
+            "phone_number": getattr(user, 'phone_number', None) or "Not registered",
+            "role": role_label,
+            "is_email_verified": user.is_email_verified,
+            "date_joined": user.date_joined.strftime("%b %d, %Y") if user.date_joined else "Recent",
+            "shop_name": getattr(user, 'shop_name', None) if user.is_seller else None
+        }
+
+    @staticmethod
+    def get_customer_notifications(user: User, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Retrieves notifications addressed to the authenticated user from the database.
+        """
+        notifs = Notification.objects.filter(user=user).order_by('-created_at')[:limit]
+        return [
+            {
+                "id": n.id,
+                "title": n.title,
+                "description": n.description,
+                "category": n.category,
+                "is_read": n.is_read,
+                "date": n.created_at.strftime("%b %d, %Y")
+            }
+            for n in notifs
+        ]
 
     # =========================================================================
     # SELLER-SCOPED RETRIEVAL
@@ -431,21 +473,17 @@ class RetrievalService:
         """
         if not user.is_seller:
             return None
-        
+
         shop = SellerShop.objects.filter(owner=user).first()
-        shop_name = shop.name if shop else user.shop_name or "Atelier"
-        
-        # Bounded query: find order items matching this shop's brand name
+        shop_name = shop.name if shop else (user.shop_name or "Atelier")
+
         items_qs = OrderItem.objects.filter(brand__iexact=shop_name)
         total_items_sold = items_qs.aggregate(total_qty=Sum('quantity'))['total_qty'] or 0
-        total_sales_volume = items_qs.aggregate(
-            volume=Sum('price')
-        )['volume'] or 0.00
-        
-        # Recent associated orders
+        total_sales_volume = items_qs.aggregate(volume=Sum('price'))['volume'] or 0.00
+
         recent_order_ids = items_qs.values_list('order_id', flat=True).distinct()[:10]
         recent_orders = Order.objects.filter(id__in=recent_order_ids).order_by('-created_at')[:5]
-        
+
         orders_data = [
             {
                 "order_id": o.order_id,
@@ -461,6 +499,38 @@ class RetrievalService:
             "total_units_sold": total_items_sold,
             "estimated_sales_volume": f"₹{float(total_sales_volume):,.2f}",
             "recent_orders": orders_data
+        }
+
+    @staticmethod
+    def get_seller_products(user: User) -> Dict[str, Any]:
+        """
+        Retrieves catalog products belonging to this seller's boutique brand.
+        """
+        if not user.is_seller:
+            return None
+        shop = SellerShop.objects.filter(owner=user).first()
+        shop_name = shop.name if shop else (user.shop_name or "Atelier")
+        prods = Product.objects.filter(brand__iexact=shop_name)
+        if not prods.exists():
+            prods = Product.objects.filter(brand__icontains=shop_name)
+
+        prod_list = [
+            {
+                "id": p.id,
+                "name": p.name,
+                "category": p.category,
+                "price": float(p.price),
+                "stock_quantity": p.stock_quantity,
+                "in_stock": p.in_stock,
+                "rating": float(p.rating)
+            }
+            for p in prods[:10]
+        ]
+        return {
+            "shop_name": shop_name,
+            "total_products": prods.count(),
+            "in_stock_products": prods.filter(in_stock=True).count(),
+            "products": prod_list
         }
 
     # =========================================================================
@@ -493,6 +563,9 @@ class RetrievalService:
         pending_shops = SellerShop.objects.filter(is_open=False).count()
         pending_payouts = SellerPayoutRequest.objects.filter(status='pending').count()
         open_tickets = SupportTicket.objects.filter(status__in=['open', 'in_progress']).count()
+        total_products = Product.objects.count()
+        in_stock_products = Product.objects.filter(in_stock=True).count()
+        active_coupons = PlatformCoupon.objects.filter(is_active=True).count()
 
         metrics = {
             "platform_gross_merchandise_volume": f"₹{float(total_sales_aggr):,.2f}",
@@ -505,6 +578,9 @@ class RetrievalService:
             "pending_boutique_approvals": pending_shops,
             "pending_seller_payout_requests": pending_payouts,
             "open_support_tickets": open_tickets,
+            "total_products_in_catalog": total_products,
+            "in_stock_products": in_stock_products,
+            "active_coupons": active_coupons,
         }
 
         try:
@@ -513,4 +589,3 @@ class RetrievalService:
             pass
 
         return metrics
-

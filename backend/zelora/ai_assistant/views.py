@@ -31,12 +31,12 @@ class AIChatView(APIView):
     permission_classes = [IsAuthenticatedZeloraUser]
 
     @staticmethod
-    def generate_grounded_fallback(user, intent: str, retrieved_data: dict) -> tuple:
+    def generate_grounded_fallback(user, intent: str, retrieved_data: dict, user_message: str = "") -> tuple:
         """
         Generates a direct, factual, role-grounded response from live database telemetry
         when external LLM APIs are unreachable, rate-limited, or misconfigured.
         """
-        first_name = user.first_name or user.email.split('@')[0].capitalize()
+        lower_msg = user_message.lower() if user_message else ""
 
         if intent == "customer_cart":
             count = retrieved_data.get("cart_count", 0)
@@ -72,24 +72,87 @@ class AIChatView(APIView):
             addresses = retrieved_data.get("addresses", [])
             if addresses:
                 default_addr = next((a for a in addresses if a.get("is_default")), addresses[0])
-                reply = f"{default_addr.get('house_building', '')}, {default_addr.get('city', '')} - {default_addr.get('pin_code', '')}"
+                reply = f"{default_addr.get('line', '')}, {default_addr.get('city', '')}"
             else:
                 reply = "No saved addresses"
             return reply, "zelora_concierge", "data-grounded"
 
+        elif intent == "user_profile":
+            profile = retrieved_data.get("profile", {})
+            if "email" in lower_msg:
+                reply = profile.get("email") or user.email
+            elif "phone" in lower_msg:
+                reply = profile.get("phone_number") or "Not registered"
+            elif "name" in lower_msg:
+                reply = profile.get("name") or user.first_name or user.email
+            else:
+                reply = f"{profile.get('name', '')} ({profile.get('email', user.email)})"
+            return reply, "zelora_concierge", "data-grounded"
+
+        elif intent == "customer_notifications":
+            notifs = retrieved_data.get("notifications", [])
+            if notifs:
+                reply = f"{len(notifs)} notification{'s' if len(notifs) != 1 else ''}: {notifs[0]['title']}"
+            else:
+                reply = "No new notifications"
+            return reply, "zelora_concierge", "data-grounded"
+
+        elif intent == "catalog_overview":
+            meta = retrieved_data.get("catalog_meta", {})
+            total = meta.get("total_products", 0)
+            cats = meta.get("categories", [])
+            if "category" in lower_msg or "categories" in lower_msg:
+                reply = ", ".join(cats) if cats else "Outerwear, Dresses, Tops, Trousers, Knitwear"
+            elif "brand" in lower_msg or "brands" in lower_msg:
+                reply = ", ".join(meta.get("brands", [])) or "ZELORA Atelier"
+            elif "cheap" in lower_msg:
+                reply = f"{meta.get('cheapest_product', 'Luxury piece')} (₹{meta.get('min_price', 0):,.2f})"
+            elif "expensive" in lower_msg:
+                reply = f"{meta.get('most_expensive_product', 'Haute piece')} (₹{meta.get('max_price', 0):,.2f})"
+            else:
+                reply = f"{total} products across {len(cats)} categories"
+            return reply, "zelora_concierge", "data-grounded"
+
+        elif intent == "seller_products":
+            sp = retrieved_data.get("seller_products", {})
+            total = sp.get("total_products", 0)
+            reply = f"{total} products in boutique"
+            return reply, "zelora_seller_guard", "atelier-engine"
+
         elif intent == "admin_analytics":
-            stats = retrieved_data.get("stats", {})
-            reply = f"{stats.get('total_revenue', '₹0')} ({stats.get('total_orders', 0)} orders)"
+            metrics = retrieved_data.get("admin_metrics", {})
+            gmv = metrics.get("platform_gross_merchandise_volume", "₹0.00")
+            orders = metrics.get("total_orders_placed", 0)
+            reply = f"{gmv} ({orders} orders)"
             return reply, "zelora_admin_guard", "analytics-engine"
 
         elif intent == "seller_analytics":
-            stats = retrieved_data.get("stats", {})
-            reply = f"{stats.get('total_revenue', '₹0')} ({stats.get('total_orders', 0)} orders)"
+            sales = retrieved_data.get("sales", {})
+            vol = sales.get("estimated_sales_volume", "₹0.00")
+            units = sales.get("total_units_sold", 0)
+            reply = f"{vol} ({units} units sold)"
             return reply, "zelora_seller_guard", "atelier-engine"
 
         elif intent == "product_recommendation":
-            reply = "Here are our top pieces for you:"
-            return reply, "zelora_stylist", "catalog-engine"
+            prods = retrieved_data.get("products", [])
+            query_meta = retrieved_data.get("query_meta", {})
+            if query_meta.get("specific_inquiry") and prods:
+                p = prods[0]
+                status_str = "In stock" if p.get("in_stock") else "Out of stock"
+                price_str = f"₹{p['price']:,.2f}"
+                if "how much" in lower_msg or "price" in lower_msg or "cost" in lower_msg:
+                    reply = f"{price_str} ({status_str})"
+                elif "stock" in lower_msg or "available" in lower_msg:
+                    reply = f"{status_str} ({price_str})"
+                else:
+                    reply = f"{p['name']} - {price_str} ({status_str})"
+                return reply, "zelora_stylist", "catalog-engine"
+            elif prods:
+                reply = "Here are our top pieces for you:"
+                return reply, "zelora_stylist", "catalog-engine"
+            else:
+                reply = "No matching pieces found in the catalog."
+                return reply, "zelora_stylist", "catalog-engine"
 
         reply = "Hi! How can I help?"
         return reply, "zelora_concierge", "direct-grounded"
@@ -159,7 +222,7 @@ class AIChatView(APIView):
             except Exception as llm_err:
                 logger.warning(f"External LLM invocation failed ({llm_err}). Generating grounded fallback.")
                 reply_text, provider_used, model_used = self.generate_grounded_fallback(
-                    user, detected_intent, retrieved_data
+                    user, detected_intent, retrieved_data, user_message
                 )
                 fallback_used = True
 
@@ -188,7 +251,7 @@ class AIChatView(APIView):
         except Exception as e:
             logger.error(f"Error during context/response generation: {e}", exc_info=True)
             reply_text, provider_used, model_used = self.generate_grounded_fallback(
-                user, detected_intent, retrieved_data
+                user, detected_intent, retrieved_data, user_message
             )
             fallback_used = True
 

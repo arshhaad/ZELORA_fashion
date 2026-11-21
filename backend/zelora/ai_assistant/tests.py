@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from CUSTOMER.models import User, Order, OrderItem, Address, SellerShop
+from CUSTOMER.models import User, Order, OrderItem, Address, SellerShop, Product, Notification
 from ai_assistant.models import Conversation, ChatMessage
 from ai_assistant.services.retrieval_service import RetrievalService, SecurityViolationError
 from ai_assistant.services.context_service import ContextService
@@ -296,5 +296,106 @@ class AIAssistantSecurityTests(TestCase):
         self.assertNotEqual(response.data['intent'], "off_topic")
         called_args = mock_generate.call_args[1]
         self.assertIn("STRICT WEBSITE-ONLY SCOPE POLICY", called_args['system_prompt'])
+
+    # =========================================================================
+    # Test 9: Saved address is strictly categorized as customer_address
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_saved_address_not_mistaken_as_dress(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "Penthouse 402, Fashion Avenue, Mumbai",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        Address.objects.create(
+            user=self.user_arsh,
+            full_name="Arsh Choudhary",
+            mobile_number="9876543210",
+            house_building="Penthouse 402",
+            street_area="Fashion Avenue",
+            city="Mumbai",
+            state="Maharashtra",
+            pin_code="400001",
+            address_type="Home",
+            is_default=True
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        response = self.client.post(url, {"message": "What is my saved address?"}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "customer_address")
+        called_args = mock_generate.call_args[1]
+        self.assertIn("Penthouse 402, Fashion Avenue", called_args['system_prompt'])
+
+    # =========================================================================
+    # Test 10: Specific product price and stock retrieval from database
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_specific_product_price_and_stock_grounded(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "₹2,450.00 (In stock)",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        Product.objects.create(
+            id="test-prod-101",
+            name="Archive Cashmere Trench Coat",
+            slug="archive-cashmere-trench-coat",
+            brand="Maison de L'Ombre",
+            category="outerwear",
+            price=2450.00,
+            in_stock=True,
+            stock_quantity=4,
+            description="Hand-loomed cashmere trench."
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        response = self.client.post(url, {"message": "How much is Archive Cashmere Trench Coat?"}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "product_recommendation")
+        called_args = mock_generate.call_args[1]
+        self.assertIn("Archive Cashmere Trench Coat", called_args['system_prompt'])
+        self.assertIn("2,450", called_args['system_prompt'])
+
+    # =========================================================================
+    # Test 11: Catalog overview and category statistics
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_catalog_overview_metrics(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "10 products across 4 categories",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        response = self.client.post(url, {"message": "How many products in the catalog?"}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "catalog_overview")
+        called_args = mock_generate.call_args[1]
+        self.assertIn("VERIFIED LIVE CATALOG METRICS", called_args['system_prompt'])
+
+    # =========================================================================
+    # Test 12: User profile inquiry returns verified email
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_user_profile_grounded(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "arsh@zelora.test",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        response = self.client.post(url, {"message": "What is my email?"}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "user_profile")
+        called_args = mock_generate.call_args[1]
+        self.assertIn("arsh@zelora.test", called_args['system_prompt'])
+
 
 

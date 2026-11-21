@@ -1,5 +1,7 @@
 // ZELORA AI Assistant API Client
 
+import { resolveActiveCart } from '../context/CartContext';
+
 const AI_API_BASE = '/api/ai';
 
 /**
@@ -234,14 +236,39 @@ async function aiRequest(endpoint, options = {}, isRetry = false) {
 }
 
 export const aiApi = {
-  sendMessage: (message, conversationId = null, preferredProvider = null, cartCount = null) => {
+  sendMessage: (
+    message,
+    conversationId = null,
+    preferredProvider = null,
+    cartCount = null,
+    cartItems = null
+  ) => {
+    let finalCount = cartCount;
+    let finalItems = cartItems;
+
+    // Resilient fallback: snapshot directly from local storage if not supplied
+    if (finalCount === null || finalCount === undefined || !finalItems || finalItems.length === 0) {
+      try {
+        const snapshot = resolveActiveCart();
+        if (finalCount === null || finalCount === undefined || finalCount === 0) {
+          finalCount = snapshot.count;
+        }
+        if (!finalItems || finalItems.length === 0) {
+          finalItems = snapshot.items;
+        }
+      } catch (e) {
+        console.warn('Could not resolve cart snapshot for AI:', e);
+      }
+    }
+
     return aiRequest('/chat/', {
       method: 'POST',
       body: JSON.stringify({
         message,
         conversation_id: conversationId,
         preferred_provider: preferredProvider,
-        cart_count: typeof cartCount === 'number' ? cartCount : null,
+        cart_count: typeof finalCount === 'number' ? finalCount : 0,
+        cart_items: Array.isArray(finalItems) ? finalItems : [],
       }),
     });
   },

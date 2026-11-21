@@ -397,5 +397,68 @@ class AIAssistantSecurityTests(TestCase):
         called_args = mock_generate.call_args[1]
         self.assertIn("arsh@zelora.test", called_args['system_prompt'])
 
+    # =========================================================================
+    # Test 13: Live cart count and items grounded in system prompt
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_cart_count_grounded_in_prompt(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "1",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        payload = {
+            "message": "How many item in cart?",
+            "cart_count": 1,
+            "cart_items": [
+                {
+                    "name": "Structured Double-Breasted Wool Overcoat",
+                    "quantity": 1,
+                    "price": 349.00,
+                    "size": "XL",
+                    "color": "Noir Black"
+                }
+            ]
+        }
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "customer_cart")
+        called_args = mock_generate.call_args[1]
+        self.assertIn("Total Items in Cart: 1", called_args['system_prompt'])
+        self.assertIn("Structured Double-Breasted Wool Overcoat", called_args['system_prompt'])
+        self.assertIn("Noir Black", called_args['system_prompt'])
+
+    # =========================================================================
+    # Test 14: Cart count fallback returns accurate count when LLM unavailable
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_cart_count_grounded_fallback(self, mock_generate):
+        mock_generate.side_effect = RuntimeError("External LLM connection timeout")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        payload = {
+            "message": "how many item in cart",
+            "cart_count": 1,
+            "cart_items": [
+                {
+                    "name": "Structured Double-Breasted Wool Overcoat",
+                    "quantity": 1,
+                    "price": 349.00,
+                    "size": "XL",
+                    "color": "Noir Black"
+                }
+            ]
+        }
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "customer_cart")
+        self.assertEqual(response.data['reply'], "1")
+        self.assertTrue(response.data['fallback_used'])
+
+
 
 

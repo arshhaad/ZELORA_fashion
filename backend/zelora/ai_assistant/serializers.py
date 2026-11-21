@@ -67,4 +67,10 @@ class AIChatRequestSerializer(serializers.Serializer):
         allow_null=True
     )
     cart_count = serializers.IntegerField(required=False, allow_null=True, default=None)
+    cart_items = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        allow_null=True,
+        default=list
+    )
 

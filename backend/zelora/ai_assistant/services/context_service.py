@@ -159,8 +159,16 @@ class ContextService:
             return "customer_address"
 
         # 3. Customer Cart / Shopping Bag
-        if re.search(r'\b(?:cart\s+count|in\s+my\s+cart|my\s+cart|cart\s+items?|shopping\s+bag|in\s+my\s+bag|how\s+many\s+in\s+cart|how\s+many\s+items?\s+in\s+(?:the\s+)?cart|item\s+in\s+cart)\b', msg):
-            return "customer_cart"
+        cart_patterns = [
+            r'\b(?:cart|shopping\s+bag|in\s+my\s+bag|bag\s+items?)\b',
+            r'\b(?:how\s+many\s+items?|item\s+count|items?\s+in\s+(?:the\s+)?cart|item\s+in\s+cart)\b',
+            r'\b(?:how\s+many\s+(?:in|item\s+in|items?\s+in)\s+(?:the\s+|my\s+)?(?:cart|bag))\b',
+            r'\b(?:in\s+my\s+cart|my\s+cart|cart\s+items?|cart\s+count)\b',
+            r'\b(?:what\s+is\s+in\s+(?:my\s+)?cart|what\s+do\s+i\s+have\s+in\s+cart)\b',
+        ]
+        if any(re.search(pat, msg) for pat in cart_patterns):
+            if not re.search(r'\border\b', msg):
+                return "customer_cart"
 
         # 4. User Profile & Account Details
         if re.search(r'\b(?:my\s+profile|my\s+email|what\s+is\s+my\s+email|what\s+is\s+my\s+name|my\s+phone(?:\s*number)?|my\s+account(?:\s*details)?|who\s+am\s+i|my\s+registered\s+(?:email|phone|name))\b', msg):
@@ -209,7 +217,7 @@ class ContextService:
         return "general_concierge"
 
     @classmethod
-    def build_user_context(cls, user: User, message: str, past_messages: list = None, cart_count: Optional[int] = None) -> Tuple[str, Dict[str, Any], str]:
+    def build_user_context(cls, user: User, message: str, past_messages: list = None, cart_count: Optional[int] = None, cart_items: Optional[list] = None) -> Tuple[str, Dict[str, Any], str]:
         """
         Builds the authorized context and prompt using verified database ground truth.
         Returns: (system_prompt, telemetry_metadata, detected_intent)
@@ -268,13 +276,35 @@ class ContextService:
 
         # 3. Retrieve verified role-specific database telemetry
         if intent == "customer_cart":
-            count = cart_count if cart_count is not None else 0
+            computed_items = cart_items or []
+            if cart_count is not None and cart_count > 0:
+                count = cart_count
+            elif computed_items:
+                count = sum(int(it.get('quantity', 1)) for it in computed_items)
+            else:
+                count = cart_count if cart_count is not None else 0
+
             retrieved_data["cart_count"] = count
+            retrieved_data["cart_items"] = computed_items
+
+            if computed_items:
+                breakdown_lines = [
+                    f"- {it.get('name', 'Product')} (Qty: {it.get('quantity', 1)}, Size: {it.get('size', 'Standard')}, Color: {it.get('color', 'N/A')}, Price: ₹{it.get('price', 0)})"
+                    for it in computed_items
+                ]
+                items_text = "\n".join(breakdown_lines)
+            else:
+                items_text = "No items recorded in shopping bag."
+
             system_prompt += (
-                f"--- LIVE SHOPPING CART DATA ---\n"
-                f"Items in Cart: {count}\n"
-                f"-------------------------------\n"
-                f"DIRECTIVE: Answer ONLY with the number (e.g. '{count}' or '{count} items').\n\n"
+                f"--- LIVE SHOPPING CART DATA (CLIENT TELEMETRY) ---\n"
+                f"Total Items in Cart: {count}\n"
+                f"Cart Contents Breakdown:\n{items_text}\n"
+                f"----------------------------------------------------\n"
+                f"DIRECTIVE FOR CART QUERIES (MANDATORY):\n"
+                f"- If asked 'how many item in cart', 'how many items in cart', 'cart count', answer ONLY the exact number: '{count}' (or '{count} item' if 1, '{count} items' if > 1, or '0' if empty).\n"
+                f"- If count is > 0, NEVER state that the cart contains no items!\n"
+                f"- If asked what items are in the cart, output the concise item name(s) (e.g. '{computed_items[0].get('name')}' if 1 item).\n\n"
             )
 
         elif intent in ["customer_order_status", "customer_payment_status"]:

@@ -9,6 +9,62 @@ export const getCartStorageKey = (user) => {
   return 'zelora_cart_guest';
 };
 
+/**
+ * Resolves active cart count and item details from current user and local storage.
+ * Provides a resilient, immediate snapshot for UI components and AI assistant telemetry.
+ */
+export const resolveActiveCart = (user = null) => {
+  const possibleKeys = [];
+  if (user?.id) possibleKeys.push(`zelora_cart_user_${user.id}`);
+  if (user?.email) possibleKeys.push(`zelora_cart_${user.email.toLowerCase().trim()}`);
+
+  if (typeof window !== 'undefined') {
+    try {
+      const rawUser = localStorage.getItem('customer_user');
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        if (parsed?.id) possibleKeys.push(`zelora_cart_user_${parsed.id}`);
+        if (parsed?.email) possibleKeys.push(`zelora_cart_${parsed.email.toLowerCase().trim()}`);
+      }
+    } catch {}
+  }
+
+  possibleKeys.push('zelora_cart_guest');
+  possibleKeys.push('zelora_cart');
+
+  const uniqueKeys = [...new Set(possibleKeys)];
+  let foundItems = [];
+
+  for (const key of uniqueKeys) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          foundItems = parsed;
+          break;
+        }
+      }
+    } catch {}
+  }
+
+  const cleanItems = foundItems.map((item) => ({
+    id: item.id || item.product?.id || `item-${Date.now()}`,
+    name: item.product?.name || item.name || 'Item',
+    price: item.product?.offerPrice ?? item.product?.price ?? item.price ?? 0,
+    size: item.size || 'Standard',
+    color: item.color || '',
+    quantity: Number(item.quantity) || 1,
+  }));
+
+  const totalCount = cleanItems.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
+
+  return {
+    count: totalCount,
+    items: cleanItems,
+  };
+};
+
 export function CartProvider({ children }) {
   const { user } = useAuth();
   const currentKey = getCartStorageKey(user);

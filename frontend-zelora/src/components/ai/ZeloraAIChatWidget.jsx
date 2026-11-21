@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
+import { useCart, resolveActiveCart } from '../../context/CartContext';
 import {
   MessageSquare,
   X,
@@ -24,7 +24,7 @@ import './aiChat.css';
 
 export default function ZeloraAIChatWidget() {
   const { user: authUser } = useAuth();
-  const { addToCart, showToast, cartCount } = useCart();
+  const { addToCart, showToast, cartCount, cartItems } = useCart();
   const location = useLocation();
 
   const [portalAuth, setPortalAuth] = useState(() => getActivePortalAuth(location.pathname));
@@ -243,7 +243,34 @@ export default function ZeloraAIChatWidget() {
     setIsLoading(true);
 
     try {
-      const res = await aiApi.sendMessage(prompt, conversationId, preferredProvider, cartCount);
+      // Resolve fresh cart telemetry directly (from CartContext or localStorage snapshot)
+      let activeCount = cartCount;
+      let activeItems = cartItems;
+
+      if (!activeCount || !activeItems || activeItems.length === 0) {
+        const resolved = resolveActiveCart(activeUser);
+        if (resolved.count > 0) {
+          activeCount = resolved.count;
+          activeItems = resolved.items;
+        }
+      }
+
+      const formattedCartItems = (activeItems || []).map((it) => ({
+        id: it.id || it.product?.id,
+        name: it.product?.name || it.name || 'Item',
+        price: it.product?.offerPrice ?? it.product?.price ?? it.price ?? 0,
+        size: it.size || 'Standard',
+        color: it.color || '',
+        quantity: Number(it.quantity) || 1,
+      }));
+
+      const res = await aiApi.sendMessage(
+        prompt,
+        conversationId,
+        preferredProvider,
+        activeCount,
+        formattedCartItems
+      );
 
       if (res.conversation_id) {
         setConversationId(res.conversation_id);

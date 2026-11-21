@@ -40,6 +40,12 @@ class AIChatView(APIView):
 
         if intent == "customer_cart":
             count = retrieved_data.get("cart_count", 0)
+            items = retrieved_data.get("cart_items", [])
+            if any(w in lower_msg for w in ["what", "list", "which", "show"]):
+                if items:
+                    names = [f"{it.get('name', 'Item')} (x{it.get('quantity', 1)})" for it in items]
+                    return ", ".join(names), "zelora_concierge", "data-grounded"
+                return "Cart is empty" if count == 0 else f"{count} items", "zelora_concierge", "data-grounded"
             return f"{count}", "zelora_concierge", "data-grounded"
 
         elif intent == "customer_order_status":
@@ -167,6 +173,7 @@ class AIChatView(APIView):
         conv_id = serializer.validated_data.get('conversation_id')
         preferred_provider = serializer.validated_data.get('preferred_provider')
         cart_count = serializer.validated_data.get('cart_count')
+        cart_items = serializer.validated_data.get('cart_items') or []
 
         # 1. Resolve or Initialize Conversation Thread
         conversation = None
@@ -204,6 +211,7 @@ class AIChatView(APIView):
                 message=user_message,
                 past_messages=past_messages,
                 cart_count=cart_count,
+                cart_items=cart_items,
             )
 
             # 4. Generate AI Response via Primary/Fallback Provider

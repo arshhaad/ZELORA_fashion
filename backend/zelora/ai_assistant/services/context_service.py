@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Any, Optional, Tuple
 from CUSTOMER.models import User
-from .retrieval_service import RetrievalService, SecurityViolationError
+from .retrieval_service import RetrievalService, SecurityViolationError, normalize_fashion_query
 
 
 class OffTopicQueryError(Exception):
@@ -137,7 +137,7 @@ class ContextService:
         Evaluates specific data requests (addresses, orders, profile, catalog)
         before general clothing and keyword recommendations.
         """
-        msg = message.lower().strip()
+        msg = normalize_fashion_query(message)
 
         # 1. Security / Forbidden Probing
         sec_patterns = [
@@ -202,7 +202,7 @@ class ContextService:
             return "seller_analytics"
 
         # 11. Catalog Overview & Aggregate Stats
-        if re.search(r'\b(?:how\s+many\s+products|total\s+products|product\s+count|catalog\s+size|what\s+categories|list\s+categories|what\s+brands|brands\s+available|cheapest\s+product|most\s+expensive\s+product|price\s+range)\b', msg):
+        if re.search(r'\b(?:how\s+many\s+products?|total\s+products?|product\s+counts?|catalog\s+size|what\s+categories|list\s+categories|what\s+brands|brands\s+available|cheapest\s+product|most\s+expensive\s+product|price\s+range)\b', msg):
             return "catalog_overview"
 
         # 12. Specific Product Price / Availability Inquiry
@@ -563,5 +563,23 @@ class ContextService:
                         f"-------------------------------------------------------\n"
                         f"DIRECTIVE: In strictly 1 sentence, politely let the user know and invite them to explore our main collection.\n\n"
                     )
+
+        # Safeguard: Whenever the user asks for clothes, styles, collections, or recommendations,
+        # ensure retrieved_data["products"] contains top curated pieces so product cards render in chat
+        if not retrieved_data.get("products") and intent in ["product_recommendation", "general_concierge"]:
+            fashion_kw = [
+                "recommend", "suggest", "product", "products", "item", "items", "piece", "pieces",
+                "wear", "wearing", "style", "styling", "look", "outfit", "outfits", "dress", "dresses",
+                "clothes", "clothing", "collection", "collections", "wedding", "function", "party", "gala"
+            ]
+            norm_lower = normalize_fashion_query(message)
+            if any(k in norm_lower for k in fashion_kw):
+                try:
+                    from CUSTOMER.recommendation_service import RedisRecommendationEngine
+                    fallback_recs = RedisRecommendationEngine.get_personalized_recommendations(user.id, limit=4)
+                    if fallback_recs:
+                        retrieved_data["products"] = fallback_recs
+                except Exception:
+                    pass
 
         return system_prompt, retrieved_data, intent

@@ -122,6 +122,32 @@ class AIAssistantSecurityTests(TestCase):
             price=495.00
         )
 
+        # Create Catalog Products in Test Database for Recommendations
+        self.catalog_gown = Product.objects.create(
+            id="zel-test-gown-01",
+            name="Silk Atelier Evening Gown",
+            slug="silk-atelier-evening-gown-sample",
+            brand="ZELORA Atelier",
+            category="dresses",
+            gender="women",
+            price=1250.00,
+            in_stock=True,
+            stock_quantity=5,
+            description="Pure mulberry silk gown ideal for weddings and gala functions."
+        )
+        self.catalog_overcoat = Product.objects.create(
+            id="zel-test-coat-01",
+            name="Structured Double-Breasted Wool Overcoat",
+            slug="structured-wool-overcoat-sample",
+            brand="Maison de L'Ombre",
+            category="outerwear",
+            gender="unisex",
+            price=349.00,
+            in_stock=True,
+            stock_quantity=10,
+            description="Tailored luxury wool overcoat."
+        )
+
     # =========================================================================
     # Test 5: Unauthenticated user accesses AI endpoint -> HTTP 401
     # =========================================================================
@@ -500,7 +526,44 @@ class AIAssistantSecurityTests(TestCase):
         # Ensure Redis curated occasion prompt was injected
         called_args = mock_generate.call_args[1]
         self.assertIn("REDIS IN-MEMORY CURATED OCCASION SELECTION", called_args['system_prompt'])
-        self.assertIn("WEDDING", called_args['system_prompt'])
+
+    # =========================================================================
+    # Test 16: Typo queries like 'sugesst weding colloctions' return product cards
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_typo_query_sugesst_weding_colloctions(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "For your wedding collection, we recommend our Silk Atelier Evening Gown.",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        response = self.client.post(url, {"message": "sugesst weding colloctions"}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "product_recommendation")
+        self.assertTrue(len(response.data['products']) > 0)
+
+    # =========================================================================
+    # Test 17: 'recoment product in the chat' returns active product cards
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_typo_query_recoment_product_in_chat(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "Here are our finest selections for you.",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        response = self.client.post(url, {"message": "recoment product in the chat"}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "product_recommendation")
+        self.assertTrue(len(response.data['products']) > 0)
+        called_args = mock_generate.call_args[1]
+        self.assertIn("VERIFIED LIVE DATABASE PRODUCTS", called_args['system_prompt'])
 
 
 

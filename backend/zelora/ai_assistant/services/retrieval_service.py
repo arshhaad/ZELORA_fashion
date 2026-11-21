@@ -11,6 +11,50 @@ class SecurityViolationError(Exception):
     pass
 
 
+def normalize_fashion_query(text: str) -> str:
+    """
+    Normalizes common spelling errors, phonetic variations, and colloquial typos
+    for fashion terms, occasions, actions, and garments so the AI Concierge accurately
+    identifies intent and retrieves live catalog products.
+    """
+    if not text:
+        return ""
+    msg = text.lower().strip()
+
+    replacements = [
+        # Recommend / Suggest typos (recoment, recomend, sugesst, sugest)
+        (r'\b(?:recom+en[dt]s|recom+an[dt]s|recom+en[dt]ations|recom+an[dt]ations|recomnds|recomends)\b', 'recommends'),
+        (r'\b(?:recom+en[dt]|recom+an[dt]|recom+en[dt]ation|recom+an[dt]ation|recomnd|recomend)\b', 'recommend'),
+        (r'\b(?:sug+es+ts|sugg?es?ts|sug+es+tions|sugg?es?tions)\b', 'suggests'),
+        (r'\b(?:sug+es+t|sugg?es?t|sug+es+tion|sugg?es?tion|sugest|sugesst)\b', 'suggest'),
+        # Wedding / Ceremony / Function typos (weding, weeding, wedings)
+        (r'\b(?:w+e+d+i+n+g+s|w+e+e+d+i+n+g+s|weding|wedings|weeding|weedings|marriges|marraiges)\b', 'weddings'),
+        (r'\b(?:w+e+d+i+n+g|w+e+e+d+i+n+g|w+e+d+i+n|marrige|marraige)\b', 'wedding'),
+        (r'\b(?:func?tions|funtions)\b', 'functions'),
+        (r'\b(?:func?tion|funtion)\b', 'function'),
+        # Collection / Catalog typos (colloction, colloctions, colection)
+        (r'\b(?:c+o+l+o+c+t+i+o+n+s|c+o+l+e+c+t+i+o+n+s|colections|colloctions)\b', 'collections'),
+        (r'\b(?:c+o+l+o+c+t+i+o+n|c+o+l+e+c+t+i+o+n|colection|colloction)\b', 'collection'),
+        (r'\b(?:cat+al+og+u?e?s|catlogs|catlogues)\b', 'catalogs'),
+        (r'\b(?:cat+al+og+u?e?|catlog|catlogue)\b', 'catalog'),
+        # Product typos (produck, producrt, produc)
+        (r'\b(?:p+r+o+d+u+c+r?t?s|producks|producs|producrts)\b', 'products'),
+        (r'\b(?:p+r+o+d+u+c+r?t?|produck|produc|producrt)\b', 'product'),
+        # Dress / Gown typos (dres, drese, gwon)
+        (r'\b(?:dreses|dresees)\b', 'dresses'),
+        (r'\b(?:dres|drese|dreess)\b', 'dress'),
+        (r'\b(?:gwons|gownds)\b', 'gowns'),
+        (r'\b(?:gwon|gownd)\b', 'gown'),
+        # Clothes / Outfit typos
+        (r'\b(?:cloths|clothese|clotehs)\b', 'clothes'),
+        (r'\b(?:outfitts|outfits)\b', 'outfits'),
+        (r'\b(?:outfi|outfitt)\b', 'outfit'),
+    ]
+    for pattern, repl in replacements:
+        msg = re.sub(pattern, repl, msg)
+    return msg
+
+
 class RetrievalService:
     """
     Deterministic, role-bounded database retrieval service.
@@ -25,7 +69,7 @@ class RetrievalService:
         Supports budget ranges, specific prices, gender, category, availability, occasion, counts,
         and clean title/keyword terms for direct catalog searching.
         """
-        msg = message.lower().strip()
+        msg = normalize_fashion_query(message)
         parsed = {
             "budget_min": None,
             "budget_max": None,
@@ -126,6 +170,16 @@ class RetrievalService:
 
         # 7. Extract Clean Search Phrase for Direct Product Name Searching
         noise_patterns = [
+            r'\bin\s+the\s+chat\b',
+            r'\bin\s+chat\b',
+            r'\bfor\s+me\b',
+            r'\bi\s+need\b',
+            r'\bgive\s+me\b',
+            r'\bshow\s+me\b',
+            r'\bfind\s+me\b',
+            r'\bbest\s+products?\b',
+            r'\bbest\s+dresses?\b',
+            r'\bbest\s+pieces?\b',
             r'\bhow\s+much\s+(?:is|are|for)\b',
             r'\bwhat\s+is\s+the\s+price\s+of\b',
             r'\bprice\s+of\b',
@@ -139,14 +193,15 @@ class RetrievalService:
             r'\bsold\s+out\b',
             r'\bdetails\s+of\b',
             r'\btell\s+me\s+about\b',
-            r'\bshow\s+me\b',
             r'\brecommend\b',
+            r'\bsuggest\b',
             r'\bcan\s+i\s+(?:buy|get)\b',
             r'\bplease\b',
             r'\bzelora\b',
             r'\batelier\b',
-            r'\bproduct\b',
-            r'\bpiece\b',
+            r'\bproducts?\b',
+            r'\bpieces?\b',
+            r'\bcollections?\b',
         ]
         cleaned = msg
         for np in noise_patterns:
@@ -212,6 +267,18 @@ class RetrievalService:
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).warning(f"Error querying Redis occasion recommendations: {e}")
+
+        # Redis Recommendation Engine for General Product Recommendations (e.g., "recommend product in chat")
+        if not parsed.get("category") and not parsed.get("gender") and parsed.get("budget_max") is None and not parsed.get("only_unavailable") and len(clean_text) < 2:
+            try:
+                from CUSTOMER.recommendation_service import RedisRecommendationEngine
+                redis_recs = RedisRecommendationEngine.get_personalized_recommendations(limit=eff_limit)
+                if redis_recs:
+                    parsed["recommendation_engine"] = "redis_personalized"
+                    return redis_recs, parsed
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Error querying Redis personalized recommendations: {e}")
 
         # Redis Cache Lookup for General Recommendation Queries
         from django.core.cache import cache

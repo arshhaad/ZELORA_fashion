@@ -256,8 +256,12 @@ class ContextService:
             f"  • User: 'recommend an evening gown' -> Answer: 'Here are our top evening gowns:'\n"
             f"  • User: 'platform revenue' -> Answer: '₹12,45,000 (34 orders)'\n"
             f"  • User: 'shop sales' -> Answer: '₹85,000 (12 items sold)'\n"
-            f"  • User: 'hi / hello' -> Answer: 'Hi! How can I help?'\n"
-            f"- Ground truth: Strictly use only the verified live database records provided below.\n\n"
+            f"  • User: 'hi / hello' -> Answer: 'Hi! How can I help?'\n\n"
+            f"STRICT ZERO-HALLUCINATION & FACTUALITY POLICY (MANDATORY):\n"
+            f"- Ground truth: You must strictly use ONLY the verified live database records provided below.\n"
+            f"- NEVER make up, invent, or guess ANY product, price, order status, order ID, delivery date, customer name, email, or policy.\n"
+            f"- If a product, order, or detail is NOT found in the verified records below, you MUST state plainly: 'No active orders' / 'Piece not in catalog' / 'Out of stock' / 'No records found'.\n"
+            f"- NEVER fabricate fake luxury brands, item names, or numbers.\n\n"
         )
 
         retrieved_data = {}

@@ -38,6 +38,8 @@ export default function ZeloraAIChatWidget() {
   const [preferredProvider, setPreferredProvider] = useState('gemini'); // 'gemini' | 'groq'
   const [activeProviderBadge, setActiveProviderBadge] = useState('Gemini 3.5');
   const messagesEndRef = useRef(null);
+  const chatWindowRef = useRef(null);
+  const triggerBtnRef = useRef(null);
 
   const activeUser = portalAuth?.user || null;
   const activeToken = portalAuth?.token || null;
@@ -172,6 +174,29 @@ export default function ZeloraAIChatWidget() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading, isOpen]);
+
+  // Close AI assistant when user clicks or touches outside the assistant window
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideInteraction = (e) => {
+      if (chatWindowRef.current && chatWindowRef.current.contains(e.target)) {
+        return;
+      }
+      if (triggerBtnRef.current && triggerBtnRef.current.contains(e.target)) {
+        return;
+      }
+      setIsOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideInteraction);
+    document.addEventListener('touchstart', handleOutsideInteraction, { passive: true });
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideInteraction);
+      document.removeEventListener('touchstart', handleOutsideInteraction);
+    };
+  }, [isOpen]);
 
   // Strictly do NOT render the AI assistant widget if on auth route or user is not logged in!
   if (isAuthenticationRoute(location.pathname) || !activeUser || !activeToken) {
@@ -365,9 +390,20 @@ export default function ZeloraAIChatWidget() {
 
   return (
     <>
+      {/* Backdrop: Touching / clicking outside closes the assistant */}
+      {isOpen && (
+        <div
+          className="zelora-ai-backdrop"
+          onClick={() => setIsOpen(false)}
+          onTouchStart={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* 1. Floating Logo Trigger Badge */}
       {!isOpen && (
         <button
+          ref={triggerBtnRef}
           type="button"
           className="zelora-ai-trigger-btn"
           onClick={() => setIsOpen(true)}
@@ -392,10 +428,16 @@ export default function ZeloraAIChatWidget() {
       {/* 2. Floating AI Chat Window Drawer */}
       {isOpen && (
         <div
+          ref={chatWindowRef}
           className={`zelora-ai-chat-window ${isExpanded ? 'expanded' : ''}`}
           role="dialog"
           aria-label="ZELORA Assistant"
         >
+          {/* Mobile Drag Handle */}
+          <div className="zelora-ai-mobile-handle-bar" aria-hidden="true">
+            <span className="zelora-ai-mobile-handle-pill" />
+          </div>
+
           {/* Header */}
           <div className="zelora-ai-header">
             <div className="zelora-ai-header-left">

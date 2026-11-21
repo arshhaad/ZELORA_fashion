@@ -1352,8 +1352,19 @@ class ProductRecommendationsView(APIView):
             limit = 4
 
         user_id = request.user.id if request.user and request.user.is_authenticated else None
+        occasion = request.query_params.get('occasion')
+        category = request.query_params.get('category')
+        gender = request.query_params.get('gender')
 
-        if product_id:
+        if occasion:
+            recommendations = RedisRecommendationEngine.get_occasion_recommendations(
+                occasion=occasion,
+                category=category,
+                gender=gender,
+                limit=limit
+            )
+            strategy = f"occasion_{occasion}"
+        elif product_id:
             recommendations = RedisRecommendationEngine.get_related_products(product_id, limit=limit)
             strategy = "related_pieces"
         else:

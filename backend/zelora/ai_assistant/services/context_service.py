@@ -210,7 +210,7 @@ class ContextService:
             return "product_recommendation"
 
         # 13. General Product Recommendations & Fashion Searches
-        product_terms_regex = r'\b(recommend|recommendation|suggestions?|suggest|outfits?|style|styling|garments?|clothes|clothing|apparel|wear|wears|wearing|gala|party|wedding|formal|casual|winter|dresses?|gowns?|gwon|shirts?|t-shirts?|tees?|tops?|blazers?|coats?|overcoats?|trenches?|jackets?|trousers?|pants?|denim|jeans?|knits?|knitwear|sweaters?|cashmere|boots?|shoes?|bags?|handbags?|totes?|accessories|piece|pieces|buy|shop|catalog|catalogue|collection|look)\b'
+        product_terms_regex = r'\b(recommend|recommendation|suggestions?|suggest|outfits?|style|styling|garments?|clothes|clothing|apparel|wear|wears|wearing|gala|party|wedding|weeding|weddings|marriage|function|functions|reception|sangeet|festive|formal|casual|winter|dresses?|gowns?|gwon|shirts?|t-shirts?|tees?|tops?|blazers?|coats?|overcoats?|trenches?|jackets?|trousers?|pants?|denim|jeans?|knits?|knitwear|sweaters?|cashmere|boots?|shoes?|bags?|handbags?|totes?|accessories|piece|pieces|buy|shop|catalog|catalogue|collection|look)\b'
         if re.search(product_terms_regex, msg) or re.search(r'\b\d+\s*(?:rs|inr|rupees)\b', msg) or re.search(r'₹\s*\d+', msg):
             return "product_recommendation"
 
@@ -512,6 +512,20 @@ class ContextService:
                         f"- If the user asks about the price: Answer ONLY the price and status (e.g. '₹{first_p['price']:,.2f} ({'In stock' if first_p['in_stock'] else 'Out of stock'})').\n"
                         f"- If the user asks if it is in stock or available: Answer ONLY the stock status (e.g. '{'In stock' if first_p['in_stock'] else 'Out of stock'} (₹{first_p['price']:,.2f})').\n"
                         f"- If they ask for general details: Give strictly 1 brief sentence with exact price and status.\n\n"
+                    )
+                elif parsed_query.get("occasion") in ["wedding", "function", "formal", "party", "gala"]:
+                    occasion_name = parsed_query["occasion"]
+                    first_p = products[0]
+                    system_prompt += (
+                        f"--- REDIS IN-MEMORY CURATED OCCASION SELECTION ({occasion_name.upper()}) ---\n"
+                        f"Data Engine: Redis In-Memory Cache & Recommendation Sets\n"
+                        f"Found {len(products)} top-ranked occasion piece(s):\n"
+                        f"{prod_summary}\n"
+                        f"----------------------------------------------------------------------\n"
+                        f"DIRECTIVE FOR {occasion_name.upper()} RECOMMENDATIONS:\n"
+                        f"- Give strictly 1 to 2 short, elegant sentences recommending the finest piece: '{first_p['name']}'.\n"
+                        f"- Mention it is our top curated choice for their {occasion_name}.\n"
+                        f"- Do NOT output markdown bullet lists of product names or descriptions in text — the frontend will automatically render rich interactive cards with photos, prices, 'View Piece', and 'Add to Cart' buttons below your message.\n\n"
                     )
                 else:
                     system_prompt += (

@@ -8,6 +8,7 @@ cached recommendations backed by Redis In-Memory Data Structures (Sorted Sets, L
 
 import json
 import logging
+from decimal import Decimal
 from typing import List, Dict, Any, Optional
 from django.core.cache import cache
 from django.db.models import Q
@@ -25,6 +26,8 @@ KEY_TRENDING_GLOBAL = f"{KEY_PREFIX}:trending:all"              # Sorted Set: to
 KEY_TRENDING_CAT = f"{KEY_PREFIX}:trending:cat:{{category}}"    # Sorted Set: top products in a specific category
 KEY_CACHE_PERSONAL = f"{KEY_PREFIX}:cache:personal:{{identifier}}:{{limit}}"
 KEY_CACHE_RELATED = f"{KEY_PREFIX}:cache:related:{{product_id}}:{{limit}}"
+KEY_OCCASION_RANKING = f"{KEY_PREFIX}:ranking:occasion:{{occasion}}"  # Sorted Set: ranked product IDs for an occasion
+KEY_OCCASION_CACHE = f"{KEY_PREFIX}:cache:occasion:{{occasion}}:{{gender}}:{{category}}:{{budget_min}}:{{budget_max}}:{{limit}}"
 
 # TTL constants (seconds)
 TTL_CACHE_SHORT = 300          # 5 minutes
@@ -331,6 +334,150 @@ class RedisRecommendationEngine:
                     products_list.append(p_dict)
 
         # 5. Cache result in Redis
+        try:
+            cache.set(cache_key, products_list, timeout=TTL_CACHE_MEDIUM)
+        except Exception:
+            pass
+
+        return products_list[:limit]
+
+    @classmethod
+    def get_occasion_recommendations(
+        cls,
+        occasion: str = "wedding",
+        gender: Optional[str] = None,
+        category: Optional[str] = None,
+        budget_max: Optional[float] = None,
+        budget_min: Optional[float] = None,
+        limit: int = 4
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieves top luxury product recommendations for special occasions (wedding, function, gala, party, formal).
+        Operates from Redis In-Memory Cache and Sorted Sets:
+          1. Sub-millisecond cache hit from KEY_OCCASION_CACHE.
+          2. Redis Sorted Set lookup: KEY_OCCASION_RANKING.
+          3. Cold-start query / DB hydration: filters by occasion tags/keywords, seeds Redis cache and ranking.
+        """
+        norm_occasion = (occasion or "wedding").lower().strip()
+        if norm_occasion in ["weeding", "weddings", "marriage", "shaadi", "nikah", "reception", "sangeet"]:
+            norm_occasion = "wedding"
+        elif norm_occasion in ["function", "functions", "event", "events", "ceremony"]:
+            norm_occasion = "function"
+
+        norm_gender = (gender or "all").lower().strip()
+        norm_category = (category or "all").lower().strip()
+        cache_key = KEY_OCCASION_CACHE.format(
+            occasion=norm_occasion,
+            gender=norm_gender,
+            category=norm_category,
+            budget_min=budget_min or "none",
+            budget_max=budget_max or "none",
+            limit=limit
+        )
+
+        # 1. Fast Redis Cache Hit
+        try:
+            cached = cache.get(cache_key)
+            if cached and isinstance(cached, list) and len(cached) > 0:
+                logger.info(f"Serving occasion '{norm_occasion}' recommendations directly from Redis cache.")
+                return cached
+        except Exception:
+            pass
+
+        recommended_ids = []
+        r = cls.get_redis_client()
+        ranking_key = KEY_OCCASION_RANKING.format(occasion=norm_occasion)
+
+        # 2. Redis Sorted Set Ranking Lookup
+        if r:
+            try:
+                top_ranked_raw = r.zrevrange(ranking_key, 0, limit * 3)
+                top_ranked_ids = [i.decode('utf-8') if isinstance(i, bytes) else str(i) for i in top_ranked_raw]
+                if top_ranked_ids:
+                    qs_redis = Product.objects.filter(id__in=top_ranked_ids, in_stock=True, stock_quantity__gt=0)
+                    if norm_category != "all":
+                        qs_redis = qs_redis.filter(category__iexact=norm_category)
+                    if norm_gender in ["men", "women"]:
+                        qs_redis = qs_redis.filter(Q(gender=norm_gender) | Q(gender="unisex"))
+                    if budget_max is not None:
+                        qs_redis = qs_redis.filter(price__lte=Decimal(str(budget_max)))
+                    if budget_min is not None:
+                        qs_redis = qs_redis.filter(price__gte=Decimal(str(budget_min)))
+
+                    prod_map = {p.id: p for p in qs_redis}
+                    for pid in top_ranked_ids:
+                        if pid in prod_map and pid not in recommended_ids:
+                            recommended_ids.append(pid)
+                            if len(recommended_ids) >= limit:
+                                break
+            except Exception as e:
+                logger.warning(f"Error querying Redis occasion ranking set: {e}")
+
+        # 3. Database Hydration & Keyword-targeted Search
+        products_list = []
+        if recommended_ids:
+            found_prods = {p.id: p for p in Product.objects.filter(id__in=recommended_ids)}
+            for pid in recommended_ids:
+                if pid in found_prods:
+                    item_dict = found_prods[pid].to_dict()
+                    item_dict["isRecommended"] = True
+                    item_dict["recommendation_source"] = "redis_occasion_ranking"
+                    products_list.append(item_dict)
+
+        # 4. If more items needed, query luxury catalog for occasion-appropriate pieces
+        if len(products_list) < limit:
+            existing_ids = {p["id"] for p in products_list}
+            qs = Product.objects.filter(in_stock=True, stock_quantity__gt=0).exclude(id__in=existing_ids)
+
+            if norm_category != "all":
+                qs = qs.filter(category__iexact=norm_category)
+            if norm_gender in ["men", "women"]:
+                qs = qs.filter(Q(gender=norm_gender) | Q(gender="unisex"))
+            if budget_max is not None:
+                qs = qs.filter(price__lte=Decimal(str(budget_max)))
+            if budget_min is not None:
+                qs = qs.filter(price__gte=Decimal(str(budget_min)))
+
+            # Occasion-specific keyword affinities
+            occasion_keywords = {
+                "wedding": ["wedding", "gown", "dress", "slip", "couture", "silk", "velvet", "blazer", "suit", "overcoat", "embroidered"],
+                "function": ["gown", "dress", "silk", "blazer", "suit", "couture", "overcoat", "formal"],
+                "party": ["cocktail", "slip", "dress", "silk", "party", "blazer"],
+                "gala": ["gala", "gown", "couture", "velvet", "silk", "tuxedo", "trench"],
+                "formal": ["blazer", "suit", "trousers", "poplin", "coat", "formal"],
+            }
+            kw_list = occasion_keywords.get(norm_occasion, ["couture", "silk", "dress", "gown", "blazer"])
+
+            q_kw = Q()
+            for kw in kw_list:
+                q_kw |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(category__icontains=kw)
+
+            qs_matched = qs.filter(q_kw).order_by('-is_featured', '-rating', '-price')
+            matched_items = list(qs_matched[:limit - len(products_list)])
+
+            # If still need items, grab top rated products
+            if len(products_list) + len(matched_items) < limit:
+                needed = limit - len(products_list) - len(matched_items)
+                exclude_ids = existing_ids | {p.id for p in matched_items}
+                extra_items = list(qs.exclude(id__in=exclude_ids).order_by('-is_featured', '-rating', '-review_count')[:needed])
+                matched_items.extend(extra_items)
+
+            for p in matched_items:
+                p_dict = p.to_dict()
+                p_dict["isRecommended"] = True
+                p_dict["recommendation_source"] = "redis_occasion_curated"
+                products_list.append(p_dict)
+
+                # Seed into Redis occasion ranking set
+                if r:
+                    try:
+                        score = float(p.rating or 4.5) * (1.5 if p.is_featured else 1.0)
+                        r.zincrby(ranking_key, score, p.id)
+                        r.expire(ranking_key, TTL_TRENDING)
+                    except Exception:
+                        pass
+
+        # 5. Store in Redis In-Memory Cache with TTL
         try:
             cache.set(cache_key, products_list, timeout=TTL_CACHE_MEDIUM)
         except Exception:

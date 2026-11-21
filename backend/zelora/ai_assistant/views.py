@@ -142,7 +142,12 @@ class AIChatView(APIView):
         elif intent == "product_recommendation":
             prods = retrieved_data.get("products", [])
             query_meta = retrieved_data.get("query_meta", {})
-            if query_meta.get("specific_inquiry") and prods:
+            occasion = query_meta.get("occasion")
+            if occasion and prods:
+                first_name = prods[0].get("name", "our signature couture piece")
+                reply = f"For your {occasion}, we recommend the {first_name}."
+                return reply, "zelora_stylist", "redis-cache"
+            elif query_meta.get("specific_inquiry") and prods:
                 p = prods[0]
                 status_str = "In stock" if p.get("in_stock") else "Out of stock"
                 price_str = f"₹{p['price']:,.2f}"

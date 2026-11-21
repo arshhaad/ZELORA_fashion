@@ -459,6 +459,50 @@ class AIAssistantSecurityTests(TestCase):
         self.assertEqual(response.data['reply'], "1")
         self.assertTrue(response.data['fallback_used'])
 
+    # =========================================================================
+    # Test 15: Wedding/Function styling query retrieves curated pieces from Redis
+    # =========================================================================
+    @patch.object(AIRouter, 'generate_response')
+    def test_wedding_function_recommendation_from_redis(self, mock_generate):
+        mock_generate.return_value = {
+            "text": "For your wedding function, we recommend our Silk Atelier Evening Gown.",
+            "provider": "gemini",
+            "model": "gemini-3.5-flash-lite"
+        }
+        # Create a wedding dress in catalog
+        Product.objects.create(
+            id="zel-wedding-01",
+            name="Silk Atelier Evening Gown",
+            slug="silk-atelier-evening-gown",
+            brand="ZELORA Atelier",
+            category="dresses",
+            gender="women",
+            price=1250.00,
+            in_stock=True,
+            stock_quantity=5,
+            description="Pure mulberry silk gown ideal for weddings and gala functions."
+        )
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token_arsh}")
+        url = reverse('ai-chat')
+        payload = {
+            "message": "i need a function (weeding) suggest best product or dress for me"
+        }
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['intent'], "product_recommendation")
+        # Ensure products are returned in the response for interactive card display
+        self.assertTrue(len(response.data['products']) > 0)
+        prod_names = [p['name'] for p in response.data['products']]
+        self.assertIn("Silk Atelier Evening Gown", prod_names)
+
+        # Ensure Redis curated occasion prompt was injected
+        called_args = mock_generate.call_args[1]
+        self.assertIn("REDIS IN-MEMORY CURATED OCCASION SELECTION", called_args['system_prompt'])
+        self.assertIn("WEDDING", called_args['system_prompt'])
+
+
 
 
 

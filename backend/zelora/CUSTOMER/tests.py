@@ -324,3 +324,32 @@ class ProductRecommendationTests(TestCase):
             )
             self.assertTrue(any(p['id'] == self.prod_c.id for p in related))
 
+    def test_redis_occasion_recommendations(self):
+        from unittest.mock import patch, MagicMock
+        from .recommendation_service import RedisRecommendationEngine
+        from django.core.cache import cache
+
+        cache.clear()
+        mock_redis = MagicMock()
+        # Mock Redis sorted set returning prod_c for wedding occasion
+        mock_redis.zrevrange.return_value = [self.prod_c.id.encode('utf-8')]
+
+        with patch.object(RedisRecommendationEngine, 'get_redis_client', return_value=mock_redis):
+            recs = RedisRecommendationEngine.get_occasion_recommendations(
+                occasion="wedding",
+                category="dresses",
+                gender="women",
+                limit=2
+            )
+            self.assertTrue(len(recs) > 0)
+            self.assertEqual(recs[0]['id'], self.prod_c.id)
+            self.assertIn('redis_occasion', recs[0].get('recommendation_source', ''))
+
+            # Verify endpoint supports occasion query param
+            url = reverse('product-recommendations')
+            resp = self.client.get(f"{url}?occasion=wedding&category=dresses")
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertEqual(resp.data.get('engine'), 'redis')
+            self.assertEqual(resp.data.get('strategy'), 'occasion_wedding')
+            self.assertTrue(len(resp.data.get('recommendations', [])) > 0)
+

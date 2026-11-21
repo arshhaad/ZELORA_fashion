@@ -108,10 +108,16 @@ class RetrievalService:
             parsed["keywords"].append("accessories")
 
         # 6. Occasion Extraction
-        if re.search(r'\b(casual|everyday|relaxed|daily|streetwear)\b', msg):
+        if re.search(r'\b(wedding|weeding|weddings|marriage|reception|sangeet|haldi|shaadi)\b', msg):
+            parsed["occasion"] = "wedding"
+            parsed["keywords"].extend(["wedding", "gown", "dress", "silk", "couture", "velvet", "blazer", "suit"])
+        elif re.search(r'\b(function|functions|event|ceremony|celebration)\b', msg):
+            parsed["occasion"] = "function"
+            parsed["keywords"].extend(["gown", "dress", "silk", "blazer", "suit", "formal", "couture"])
+        elif re.search(r'\b(casual|everyday|relaxed|daily|streetwear)\b', msg):
             parsed["occasion"] = "casual"
             parsed["keywords"].extend(["cotton", "tee", "shirt", "denim", "relaxed"])
-        elif re.search(r'\b(formal|evening|gala|party|wedding|cocktail|couture)\b', msg):
+        elif re.search(r'\b(formal|evening|gala|party|cocktail|couture)\b', msg):
             parsed["occasion"] = "formal"
             parsed["keywords"].extend(["silk", "gown", "blazer", "dress", "wool"])
         elif re.search(r'\b(winter|cold|warm|heavyweight)\b', msg):
@@ -164,8 +170,8 @@ class RetrievalService:
         eff_limit = parsed.get("limit") or limit
         clean_text = parsed.get("clean_query", "").strip()
 
-        # Check for specific product name match in the database first
-        if len(clean_text) >= 2:
+        # Check for specific product name match in the database first (only if not an occasion/general styling query)
+        if len(clean_text) >= 2 and not parsed.get("occasion"):
             # 1. Exact or Substring Name match
             matched_prods = Product.objects.filter(name__icontains=clean_text)
             if not matched_prods.exists():
@@ -187,6 +193,25 @@ class RetrievalService:
                 products = list(matched_prods[:eff_limit])
                 product_dicts = [p.to_dict() for p in products]
                 return product_dicts, parsed
+
+        # Redis Recommendation Engine for Occasion / Function / Styling Queries
+        if parsed.get("occasion"):
+            try:
+                from CUSTOMER.recommendation_service import RedisRecommendationEngine
+                occasion_prods = RedisRecommendationEngine.get_occasion_recommendations(
+                    occasion=parsed["occasion"],
+                    gender=parsed.get("gender"),
+                    category=parsed.get("category"),
+                    budget_max=parsed.get("budget_max"),
+                    budget_min=parsed.get("budget_min"),
+                    limit=eff_limit
+                )
+                if occasion_prods:
+                    parsed["recommendation_engine"] = "redis_occasion"
+                    return occasion_prods, parsed
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Error querying Redis occasion recommendations: {e}")
 
         # Redis Cache Lookup for General Recommendation Queries
         from django.core.cache import cache
